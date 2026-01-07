@@ -189,8 +189,8 @@ function PeritajePage() {
           <div className="space-y-4">
             {componentes.map((componente, index) => (
               <section key={index} className="card">
-                <div className="flex items-start justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">
+                <div className="flex items-start justify-between mb-3">
+                  <h3 className="text-base md:text-lg font-semibold text-gray-900">
                     {componente.nombre}
                     {componente.es_base && (
                       <span className="ml-2 text-xs font-normal text-gray-500">(Base)</span>
@@ -203,15 +203,15 @@ function PeritajePage() {
                       className="p-1 hover:bg-red-100 rounded transition-colors"
                       title="Eliminar componente"
                     >
-                      <XMarkIcon className="w-5 h-5 text-red-600" />
+                      <XMarkIcon className="w-4 h-4 md:w-5 md:h-5 text-red-600" />
                     </button>
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   {/* Estado */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
                       Estado *
                     </label>
                     <select
@@ -227,7 +227,7 @@ function PeritajePage() {
 
                   {/* Detalle técnico */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
                       Detalle Técnico
                     </label>
                     <select
@@ -244,7 +244,7 @@ function PeritajePage() {
 
                   {/* Acción propuesta */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
                       Acción Propuesta
                     </label>
                     <select
@@ -261,12 +261,12 @@ function PeritajePage() {
                 </div>
 
                 {/* Detalles visuales según estado */}
-                <div className="mt-4 p-3 rounded-lg border-2 ${
+                <div className="mt-3 p-2 rounded-lg border-2 ${
                   componente.estado === 'Bueno' ? 'estado-bueno' :
                   componente.estado === 'Cambio' ? 'estado-cambio' :
                   'estado-mantencion'
                 }">
-                  <p className="text-sm font-medium">
+                  <p className="text-xs font-medium">
                     {componente.estado === 'Bueno' && '✓ Componente en buen estado'}
                     {componente.estado === 'Cambio' && '⚠️ Requiere cambio'}
                     {componente.estado === 'Mantención' && '🔧 Requiere mantención'}
@@ -274,15 +274,15 @@ function PeritajePage() {
                 </div>
 
                 {/* Campo para detalles adicionales */}
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Observaciones Adicionales
+                <div className="mt-3">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Observaciones
                   </label>
                   <textarea
                     value={componente.observaciones || ''}
                     onChange={(e) => actualizarComponente(index, 'observaciones', e.target.value)}
-                    className="input-field min-h-20"
-                    placeholder="Agrega observaciones específicas sobre este componente..."
+                    className="input-field min-h-16 text-sm"
+                    placeholder="Observaciones adicionales..."
                   />
                 </div>
               </section>
@@ -290,18 +290,18 @@ function PeritajePage() {
           </div>
 
           {/* Botones de acción */}
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-2">
             <button
               onClick={handleVolver}
               className="btn-secondary flex-1"
             >
-              Volver
+              ← Volver
             </button>
             <button
               onClick={handleContinuar}
               className="btn-primary flex-1"
             >
-              Continuar a Pruebas →
+              Continuar →
             </button>
           </div>
         </div>

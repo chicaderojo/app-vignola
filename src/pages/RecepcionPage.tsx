@@ -111,12 +111,12 @@ function RecepcionPage() {
       </header>
 
       {/* Contenido principal */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="space-y-6">
+      <main className="max-w-4xl mx-auto px-3 md:px-4 py-4 md:py-6">
+        <div className="space-y-4 md:space-y-6">
           {/* Información del cilindro */}
           <section className="card">
             <h2 className="card-header">Información del Cilindro</h2>
-            <dl className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <dl className="grid grid-cols-2 gap-2 text-xs">
               <div>
                 <dt className="text-gray-600">Código:</dt>
                 <dd className="font-medium">{cilindro.id_codigo}</dd>
@@ -172,26 +172,26 @@ function RecepcionPage() {
             </p>
 
             {fotoArmado ? (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <img
                   src={fotoArmado.preview}
                   alt="Foto de armado"
-                  className="w-full h-64 object-cover rounded-lg"
+                  className="w-full h-48 md:h-64 object-cover rounded-lg"
                 />
                 <button
                   onClick={() => handleCapturarFoto('armado')}
-                  className="btn-secondary w-full"
+                  className="btn-secondary w-full text-xs"
                 >
-                  Recapturar Foto
+                  Recapturar
                 </button>
               </div>
             ) : (
               <button
                 onClick={() => handleCapturarFoto('armado')}
-                className="w-full py-8 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-colors flex flex-col items-center gap-2"
+                className="w-full py-6 md:py-8 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-colors flex flex-col items-center gap-2"
               >
-                <CameraIcon className="w-12 h-12 text-gray-400" />
-                <span className="text-sm font-medium text-gray-600">
+                <CameraIcon className="w-10 h-10 md:w-12 md:h-12 text-gray-400" />
+                <span className="text-xs md:text-sm font-medium text-gray-600">
                   Capturar Foto de Armado
                 </span>
               </button>
@@ -200,8 +200,8 @@ function RecepcionPage() {
 
           {/* Foto 2: Despiece */}
           <section className={`card border-2 ${fotoDespiece ? 'border-green-300' : 'border-red-300'}`}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-base md:text-lg font-semibold text-gray-900">
                 2. Foto Recepción (Por partes)
                 {fotoDespiece && <span className="ml-2 text-green-600">✓</span>}
               </h3>
@@ -210,31 +210,31 @@ function RecepcionPage() {
               </span>
             </div>
 
-            <p className="text-sm text-gray-600 mb-4">
+            <p className="text-xs md:text-sm text-gray-600 mb-3">
               Despiece inicial y estado de sellos internos. Muestra todos los componentes por separado.
             </p>
 
             {fotoDespiece ? (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <img
                   src={fotoDespiece.preview}
                   alt="Foto de despiece"
-                  className="w-full h-64 object-cover rounded-lg"
+                  className="w-full h-48 md:h-64 object-cover rounded-lg"
                 />
                 <button
                   onClick={() => handleCapturarFoto('despiece')}
-                  className="btn-secondary w-full"
+                  className="btn-secondary w-full text-xs"
                 >
-                  Recapturar Foto
+                  Recapturar
                 </button>
               </div>
             ) : (
               <button
                 onClick={() => handleCapturarFoto('despiece')}
-                className="w-full py-8 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-colors flex flex-col items-center gap-2"
+                className="w-full py-6 md:py-8 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-colors flex flex-col items-center gap-2"
               >
-                <CameraIcon className="w-12 h-12 text-gray-400" />
-                <span className="text-sm font-medium text-gray-600">
+                <CameraIcon className="w-10 h-10 md:w-12 md:h-12 text-gray-400" />
+                <span className="text-xs md:text-sm font-medium text-gray-600">
                   Capturar Foto de Despiece
                 </span>
               </button>
@@ -243,31 +243,31 @@ function RecepcionPage() {
 
           {/* Notas adicionales */}
           <section className="card">
-            <h3 className="text-lg font-semibold text-gray-900 mb-3">
+            <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-2">
               Notas Adicionales (Opcional)
             </h3>
             <textarea
               value={notas}
               onChange={(e) => setNotas(e.target.value)}
-              className="input-field min-h-24"
-              placeholder="Agrega cualquier observación relevante sobre la recepción del cilindro..."
+              className="input-field min-h-20 text-sm"
+              placeholder="Observaciones sobre la recepción..."
             />
           </section>
 
           {/* Botones de acción */}
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-2">
             <button
               onClick={handleVolver}
               className="btn-secondary flex-1"
             >
-              Volver
+              ← Volver
             </button>
             <button
               onClick={handleContinuar}
               disabled={!puedeContinuar}
               className="btn-primary flex-1"
             >
-              Continuar al Peritaje →
+              Continuar →
             </button>
           </div>
         </div>

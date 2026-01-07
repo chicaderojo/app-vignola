@@ -105,16 +105,16 @@ function DashboardPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center">
+        <div className="max-w-7xl mx-auto px-3 md:px-4 py-2 md:py-3">
+          <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Vignola</h1>
-              <p className="text-sm text-gray-600">Inspección Hidráulica</p>
+              <h1 className="text-xl md:text-2xl font-bold text-gray-900">Vignola</h1>
+              <p className="text-xs md:text-sm text-gray-600">Inspección Hidráulica</p>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 md:gap-4 flex-wrap">
               {/* Estado de sincronización */}
-              <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm ${
+              <div className={`hidden md:flex items-center gap-2 px-2 py-1 rounded-full text-xs ${
                 syncStatus.online
                   ? 'bg-green-100 text-green-800'
                   : 'bg-yellow-100 text-yellow-800'
@@ -123,19 +123,19 @@ function DashboardPage() {
                 {syncStatus.online ? 'En línea' : 'Sin conexión'}
               </div>
 
-              {/* Usuario */}
-              <div className="flex items-center gap-2">
-                <UserIcon className="w-5 h-5 text-gray-600" />
-                <span className="text-sm font-medium text-gray-700">
-                  {user?.nombre || 'Mecánico'}
+              {/* Usuario - más compacto en mobile */}
+              <div className="flex items-center gap-1 md:gap-2">
+                <UserIcon className="w-4 h-4 md:w-5 md:h-5 text-gray-600" />
+                <span className="text-xs md:text-sm font-medium text-gray-700">
+                  {user?.nombre?.split(' ')[0] || 'Mecánico'}
                 </span>
               </div>
 
               <button
                 onClick={handleCerrarSesion}
-                className="text-sm text-gray-600 hover:text-gray-900"
+                className="text-xs md:text-sm text-gray-600 hover:text-gray-900 px-2 py-1"
               >
-                Cerrar sesión
+                Salir
               </button>
             </div>
           </div>
@@ -149,12 +149,12 @@ function DashboardPage() {
           <section className="card">
             <h2 className="card-header">Seleccionar Cliente</h2>
 
-            <div className="flex flex-wrap gap-3 mb-4">
+            <div className="flex flex-wrap gap-2 mb-3">
               {clientes.map((cliente) => (
                 <button
                   key={cliente.id}
                   onClick={() => setClienteSeleccionado(cliente.id)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  className={`px-3 py-1.5 rounded-lg font-medium text-sm transition-colors ${
                     clienteSeleccionado === cliente.id
                       ? 'bg-primary-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'

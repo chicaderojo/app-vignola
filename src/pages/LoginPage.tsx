@@ -40,24 +40,24 @@ function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-600 to-primary-800 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-600 to-primary-800 px-4 py-8">
       <div className="max-w-md w-full">
         {/* Logo y título */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">Vignola</h1>
-          <p className="text-primary-100 text-lg">Sistema de Inspección Hidráulica</p>
+        <div className="text-center mb-6">
+          <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">Vignola</h1>
+          <p className="text-primary-100 text-sm md:text-base">Sistema de Inspección Hidráulica</p>
         </div>
 
         {/* Formulario de login */}
-        <div className="bg-white rounded-lg shadow-xl p-8">
+        <div className="bg-white rounded-lg shadow-xl p-4 md:p-6">
           {/* Alerta de modo demo */}
-          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm text-blue-800 font-medium">
-              🔵 Modo Demo: Usa cualquier email y contraseña para probar
+          <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-xs text-blue-800 font-medium">
+              🔵 Modo Demo: Usa cualquier credencial
             </p>
           </div>
 
-          <h2 className="text-2xl font-semibold text-gray-900 mb-6">Iniciar Sesión</h2>
+          <h2 className="text-xl md:text-2xl font-semibold text-gray-900 mb-4">Iniciar Sesión</h2>
 
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
