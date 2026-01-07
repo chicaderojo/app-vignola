@@ -41,7 +41,7 @@ function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 selection:bg-primary/30 selection:text-primary transition-colors duration-200 relative">
+    <div className="font-display bg-background-light dark:bg-background-dark min-h-screen flex flex-col items-center justify-center p-4 selection:bg-primary/30 selection:text-primary transition-colors duration-200 relative">
 
       {/* Main Container */}
       <div className="w-full max-w-[400px] flex flex-col gap-8 relative z-10">
@@ -115,7 +115,7 @@ function LoginPage() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-0 top-0 h-full px-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors flex items-center"
+                className="absolute right-0 top-0 h-full px-4 text-slate-400 hover:text-white transition-colors flex items-center"
               >
                 <span className="material-symbols-outlined text-[20px]">
                   {showPassword ? 'visibility_off' : 'visibility'}
