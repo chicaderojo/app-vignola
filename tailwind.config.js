@@ -12,6 +12,7 @@ export default {
         "background-light": "#f6f7f8",
         "background-dark": "#111921",
         "surface-dark": "#1a2632",
+        "surface-card": "#243647",
         "border-dark": "#344d65",
       },
       fontFamily: {

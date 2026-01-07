@@ -1,29 +1,53 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { PlusIcon, MagnifyingGlassIcon, UserIcon } from '@heroicons/react/24/outline'
 import { authService } from '../services/api'
-import { Cliente, Cilindro } from '../types'
 import { v4 as uuidv4 } from 'uuid'
+
+// Mock data para tareas
+const MOCK_TAREAS = [
+  {
+    id: 'HYD-1102',
+    titulo: 'Cilindro Telescópico',
+    cliente: 'AgroTech S.A.',
+    estado: 'Limpieza',
+    estadoColor: 'primary',
+    fecha: 'Hoy, 14:00',
+    ubicacion: 'Taller B',
+    progreso: 45
+  },
+  {
+    id: 'HYD-4592',
+    titulo: 'Cilindro Doble Efecto',
+    cliente: 'Mining Corp',
+    estado: 'Espera Repuesto',
+    estadoColor: 'orange',
+    fecha: 'Ayer, 09:30',
+    ubicacion: 'Almacén',
+    progreso: 30
+  },
+  {
+    id: 'HYD-8821',
+    titulo: 'Vástago Cromado',
+    cliente: 'TransVial',
+    estado: 'Listo',
+    estadoColor: 'green',
+    fecha: 'Ayer, 16:45',
+    ubicacion: 'Taller A',
+    progreso: 100
+  }
+]
 
 function DashboardPage() {
   const navigate = useNavigate()
   const user = authService.getCurrentUser()
 
-  const [clientes, setClientes] = useState<Cliente[]>([])
-  const [clienteSeleccionado, setClienteSeleccionado] = useState<string>('')
-  const [busqueda, setBusqueda] = useState('')
-  const [cilindroEncontrado, setCilindroEncontrado] = useState<Cilindro | null>(null)
-  const [loading, setLoading] = useState(false)
   const [syncStatus, setSyncStatus] = useState({ pendiente: false, numero_items: 0, online: true })
+  const [activeNav, setActiveNav] = useState('inicio')
 
-  // Cargar clientes al montar
+  // Verificar estado online al montar
   useEffect(() => {
-    cargarClientes()
     verificarEstadoOnline()
-  }, [])
 
-  // Escuchar cambios de conexión
-  useEffect(() => {
     const handleOnline = () => setSyncStatus(prev => ({ ...prev, online: true }))
     const handleOffline = () => setSyncStatus(prev => ({ ...prev, online: false }))
 
@@ -36,15 +60,6 @@ function DashboardPage() {
     }
   }, [])
 
-  const cargarClientes = async () => {
-    // TODO: Cargar desde API o cache local
-    setClientes([
-      { id: '1', nombre: 'Arauco', planta: 'Constitución' },
-      { id: '2', nombre: 'GLV', planta: 'San Fernando' },
-      { id: '3', nombre: 'CMPC', planta: 'Laja' }
-    ])
-  }
-
   const verificarEstadoOnline = () => {
     setSyncStatus({
       pendiente: false,
@@ -54,46 +69,8 @@ function DashboardPage() {
   }
 
   const handleNuevaInspeccion = () => {
-    if (!cilindroEncontrado) {
-      alert('Primero debes buscar o seleccionar un cilindro')
-      return
-    }
-
     const inspeccionId = uuidv4()
-    navigate(`/inspeccion/${inspeccionId}/recepcion`, {
-      state: { cilindro: cilindroEncontrado }
-    })
-  }
-
-  const handleBuscarCilindro = async () => {
-    if (!busqueda.trim()) return
-
-    setLoading(true)
-
-    // TODO: Buscar en API o cache local por ID o SAP
-    // Simulación
-    setTimeout(() => {
-      setCilindroEncontrado({
-        id_codigo: busqueda.toUpperCase(),
-        tipo: 'Oleohidráulico',
-        fabricante: 'Rexroth',
-        diametro_camisa: 'Ø63',
-        diametro_vastago: 'Ø36',
-        carrera: '100mm',
-        cliente_id: clienteSeleccionado || undefined
-      })
-      setLoading(false)
-    }, 500)
-  }
-
-  const handleCrearNuevoCliente = () => {
-    // TODO: Implementar modal para crear cliente
-    alert('Funcionalidad de crear cliente pendiente')
-  }
-
-  const handleCrearNuevoEquipo = () => {
-    // TODO: Implementar modal para crear nuevo equipo
-    alert('Funcionalidad de crear equipo pendiente')
+    navigate(`/inspeccion/${inspeccionId}/recepcion`)
   }
 
   const handleCerrarSesion = () => {
@@ -102,158 +79,261 @@ function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto bg-background-light dark:bg-background-dark pb-24">
+
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-3 md:px-4 py-2 md:py-3">
-          <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2">
-            <div>
-              <h1 className="text-xl md:text-2xl font-bold text-gray-900">Vignola</h1>
-              <p className="text-xs md:text-sm text-gray-600">Inspección Hidráulica</p>
+      <header className="sticky top-0 z-30 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800">
+        <div className="flex items-center p-4 justify-between">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 ring-2 ring-primary/20"
+                style={{
+                  backgroundImage: "url('https://images.unsplash.com/photo-1565435391196-0c797872e1e1?w=100&h=100&fit=crop')",
+                }}>
+              </div>
+              <div className={`absolute bottom-0 right-0 size-3 rounded-full border-2 border-background-dark ${
+                syncStatus.online ? 'bg-green-500' : 'bg-yellow-500'
+              }`}></div>
             </div>
-
-            <div className="flex items-center gap-2 md:gap-4 flex-wrap">
-              {/* Estado de sincronización */}
-              <div className={`hidden md:flex items-center gap-2 px-2 py-1 rounded-full text-xs ${
-                syncStatus.online
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-yellow-100 text-yellow-800'
+            <div className="flex flex-col">
+              <h2 className="text-sm font-semibold leading-tight text-slate-900 dark:text-white">
+                {user?.nombre || 'Juan Pérez'}
+              </h2>
+              <span className="text-xs text-slate-500 dark:text-slate-400">
+                {user?.rol === 'mecanico' ? 'Mecánico Senior' : 'Supervisor'}
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center justify-end gap-2">
+            {/* Sync Status */}
+            <div className={`flex items-center gap-1 px-2 py-1 rounded-full ${
+              syncStatus.online ? 'bg-green-500/10' : 'bg-yellow-500/10'
+            }`}>
+              <span className={`material-symbols-outlined text-[14px] ${
+                syncStatus.online ? 'text-green-500' : 'text-yellow-500'
               }`}>
-                <span className="w-2 h-2 rounded-full bg-current"></span>
-                {syncStatus.online ? 'En línea' : 'Sin conexión'}
-              </div>
-
-              {/* Usuario - más compacto en mobile */}
-              <div className="flex items-center gap-1 md:gap-2">
-                <UserIcon className="w-4 h-4 md:w-5 md:h-5 text-gray-600" />
-                <span className="text-xs md:text-sm font-medium text-gray-700">
-                  {user?.nombre?.split(' ')[0] || 'Mecánico'}
-                </span>
-              </div>
-
-              <button
-                onClick={handleCerrarSesion}
-                className="text-xs md:text-sm text-gray-600 hover:text-gray-900 px-2 py-1"
-              >
-                Salir
-              </button>
+                {syncStatus.online ? 'cloud_done' : 'cloud_off'}
+              </span>
+              <span className={`text-[10px] font-medium uppercase tracking-wide ${
+                syncStatus.online ? 'text-green-500' : 'text-yellow-500'
+              }`}>
+                {syncStatus.online ? 'Online' : 'Offline'}
+              </span>
             </div>
+            <button className="flex items-center justify-center rounded-full size-10 bg-transparent text-slate-700 dark:text-white hover:bg-slate-100 dark:hover:bg-surface-dark transition-colors">
+              <span className="material-symbols-outlined">notifications</span>
+            </button>
           </div>
         </div>
       </header>
 
-      {/* Contenido principal */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="space-y-6">
-          {/* Filtros de clientes */}
-          <section className="card">
-            <h2 className="card-header">Seleccionar Cliente</h2>
+      {/* Welcome Message */}
+      <div className="px-4 pt-6 pb-2">
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+          Turno de <span className="text-primary">Mañana</span>
+        </h1>
+        <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+          Aquí tienes un resumen de tu actividad.
+        </p>
+      </div>
 
-            <div className="flex flex-wrap gap-2 mb-3">
-              {clientes.map((cliente) => (
-                <button
-                  key={cliente.id}
-                  onClick={() => setClienteSeleccionado(cliente.id)}
-                  className={`px-3 py-1.5 rounded-lg font-medium text-sm transition-colors ${
-                    clienteSeleccionado === cliente.id
-                      ? 'bg-primary-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {cliente.nombre}
-                </button>
-              ))}
-            </div>
-
-            <button
-              onClick={handleCrearNuevoCliente}
-              className="btn-secondary"
-            >
-              + Nuevo Cliente
-            </button>
-          </section>
-
-          {/* Buscador de cilindros */}
-          <section className="card">
-            <h2 className="card-header">Buscar Cilindro</h2>
-
-            <div className="flex gap-3">
-              <input
-                type="text"
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleBuscarCilindro()}
-                className="input-field flex-1"
-                placeholder="ID del cilindro (ej: CE05CIL0513) o SAP del cliente"
-                disabled={loading}
-              />
-
-              <button
-                onClick={handleBuscarCilindro}
-                disabled={loading || !busqueda.trim()}
-                className="btn-primary flex items-center gap-2"
-              >
-                <MagnifyingGlassIcon className="w-5 h-5" />
-                {loading ? 'Buscando...' : 'Buscar'}
-              </button>
-
-              <button
-                onClick={handleCrearNuevoEquipo}
-                className="btn-secondary"
-              >
-                + Nuevo Equipo
-              </button>
-            </div>
-          </section>
-
-          {/* Resultado de búsqueda */}
-          {cilindroEncontrado && (
-            <section className="card border-l-4 border-l-primary-600">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    Cilindro Encontrado
-                  </h3>
-                  <dl className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <dt className="text-gray-600">Código:</dt>
-                      <dd className="font-medium">{cilindroEncontrado.id_codigo}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-gray-600">Tipo:</dt>
-                      <dd className="font-medium">{cilindroEncontrado.tipo}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-gray-600">Fabricante:</dt>
-                      <dd className="font-medium">{cilindroEncontrado.fabricante || 'N/A'}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-gray-600">Carrera:</dt>
-                      <dd className="font-medium">{cilindroEncontrado.carrera || 'N/A'}</dd>
-                    </div>
-                  </dl>
-                </div>
-
-                <button
-                  onClick={handleNuevaInspeccion}
-                  className="btn-primary flex items-center gap-2"
-                >
-                  <PlusIcon className="w-5 h-5" />
-                  Nueva Inspección
-                </button>
-              </div>
-            </section>
-          )}
-
-          {/* Inspecciones recientes */}
-          <section className="card">
-            <h2 className="card-header">Inspecciones Recientes</h2>
-            <p className="text-gray-600 text-sm">
-              No hay inspecciones recientes. Inicia una nueva inspección para verla aquí.
-            </p>
-          </section>
+      {/* KPI Stats */}
+      <div className="flex overflow-x-auto gap-3 px-4 py-4 w-full hide-scrollbar">
+        {/* Pendientes */}
+        <div className="flex min-w-[140px] flex-1 flex-col gap-3 rounded-xl p-4 bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">Pendientes</span>
+            <span className="material-symbols-outlined text-orange-500 text-[20px]">schedule</span>
+          </div>
+          <p className="text-slate-900 dark:text-white text-3xl font-bold">5</p>
+          <div className="w-full bg-slate-100 dark:bg-slate-700 h-1 rounded-full overflow-hidden">
+            <div className="bg-orange-500 h-full w-[45%]"></div>
+          </div>
         </div>
-      </main>
+
+        {/* En Progreso */}
+        <div className="flex min-w-[140px] flex-1 flex-col gap-3 rounded-xl p-4 bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 shadow-sm ring-1 ring-primary/20">
+          <div className="flex items-center justify-between">
+            <span className="text-primary text-sm font-medium">En Progreso</span>
+            <span className="material-symbols-outlined text-primary text-[20px]">pending</span>
+          </div>
+          <p className="text-slate-900 dark:text-white text-3xl font-bold">2</p>
+          <div className="w-full bg-slate-100 dark:bg-slate-700 h-1 rounded-full overflow-hidden">
+            <div className="bg-primary h-full w-[60%]"></div>
+          </div>
+        </div>
+
+        {/* Listas */}
+        <div className="flex min-w-[140px] flex-1 flex-col gap-3 rounded-xl p-4 bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">Listas</span>
+            <span className="material-symbols-outlined text-green-500 text-[20px]">check_circle</span>
+          </div>
+          <p className="text-slate-900 dark:text-white text-3xl font-bold">12</p>
+          <div className="w-full bg-slate-100 dark:bg-slate-700 h-1 rounded-full overflow-hidden">
+            <div className="bg-green-500 h-full w-[90%]"></div>
+          </div>
+        </div>
+      </div>
+
+      {/* Primary Action */}
+      <div className="px-4 py-2">
+        <button
+          onClick={handleNuevaInspeccion}
+          className="w-full flex items-center justify-between bg-primary hover:bg-primary/90 active:bg-primary/80 text-white rounded-xl p-4 shadow-lg shadow-primary/20 transition-all group"
+        >
+          <div className="flex flex-col items-start">
+            <span className="font-bold text-lg">Nueva Inspección</span>
+            <span className="text-primary-100 text-sm">Escanear QR o ingresar ID</span>
+          </div>
+          <div className="bg-white/20 rounded-lg p-2 group-hover:bg-white/30 transition-colors">
+            <span className="material-symbols-outlined text-[28px]">qr_code_scanner</span>
+          </div>
+        </button>
+      </div>
+
+      {/* Quick Actions Grid */}
+      <div className="px-4 pt-6">
+        <h3 className="text-slate-900 dark:text-white text-lg font-bold mb-3">Acciones Rápidas</h3>
+        <div className="grid grid-cols-2 gap-3">
+          <button className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-dark transition-colors">
+            <div className="flex items-center justify-center size-10 rounded-full bg-blue-500/10 text-blue-500">
+              <span className="material-symbols-outlined">history</span>
+            </div>
+            <span className="font-medium text-sm text-slate-700 dark:text-slate-200">Historial</span>
+          </button>
+
+          <button className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-dark transition-colors">
+            <div className="flex items-center justify-center size-10 rounded-full bg-purple-500/10 text-purple-500">
+              <span className="material-symbols-outlined">inventory_2</span>
+            </div>
+            <span className="font-medium text-sm text-slate-700 dark:text-slate-200">Inventario</span>
+          </button>
+
+          <button className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-dark transition-colors">
+            <div className="flex items-center justify-center size-10 rounded-full bg-orange-500/10 text-orange-500">
+              <span className="material-symbols-outlined">warning</span>
+            </div>
+            <span className="font-medium text-sm text-slate-700 dark:text-slate-200">Reportar</span>
+          </button>
+
+          <button className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-dark transition-colors">
+            <div className="flex items-center justify-center size-10 rounded-full bg-teal-500/10 text-teal-500">
+              <span className="material-symbols-outlined">tune</span>
+            </div>
+            <span className="font-medium text-sm text-slate-700 dark:text-slate-200">Calibrar</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Recent Inspections List */}
+      <div className="px-4 pt-6 pb-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-slate-900 dark:text-white text-lg font-bold">Mis Tareas</h3>
+          <button className="text-primary text-sm font-semibold">Ver todo</button>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          {MOCK_TAREAS.map((tarea) => (
+            <div
+              key={tarea.id}
+              className={`bg-white dark:bg-surface-card rounded-xl p-4 border border-slate-200 dark:border-slate-700 shadow-sm relative overflow-hidden group ${
+                tarea.progreso === 100 ? 'opacity-60' : tarea.progreso < 50 ? 'opacity-80' : ''
+              }`}
+            >
+              <div className={`absolute left-0 top-0 bottom-0 w-1 ${
+                tarea.estadoColor === 'primary' ? 'bg-primary' :
+                tarea.estadoColor === 'orange' ? 'bg-orange-500' : 'bg-green-500'
+              }`}></div>
+
+              <div className="flex justify-between items-start mb-2">
+                <div>
+                  <span className="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-mono px-2 py-1 rounded">
+                    #{tarea.id}
+                  </span>
+                  <h4 className="text-slate-900 dark:text-white font-bold mt-2">{tarea.titulo}</h4>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm">Cliente: {tarea.cliente}</p>
+                </div>
+                <span className={`flex items-center gap-1 ${
+                  tarea.estadoColor === 'primary' ? 'bg-primary/10 text-primary' :
+                  tarea.estadoColor === 'orange' ? 'bg-orange-500/10 text-orange-500' :
+                  'bg-green-500/10 text-green-500'
+                } px-2 py-1 rounded text-xs font-bold`}>
+                  {tarea.progreso < 100 && (
+                    <span className={`size-1.5 rounded-full ${
+                      tarea.estadoColor === 'primary' ? 'bg-primary' :
+                      tarea.estadoColor === 'orange' ? 'bg-orange-500' : 'bg-green-500'
+                    } ${tarea.estado === 'Limpieza' ? 'animate-pulse' : ''}`}></span>
+                  )}
+                  {tarea.progreso === 100 && (
+                    <span className="material-symbols-outlined text-[14px]">check</span>
+                  )}
+                  {tarea.estado}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-4 mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
+                <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400 text-xs">
+                  <span className="material-symbols-outlined text-[16px]">calendar_today</span>
+                  <span>{tarea.fecha}</span>
+                </div>
+                <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400 text-xs">
+                  <span className="material-symbols-outlined text-[16px]">location_on</span>
+                  <span>{tarea.ubicacion}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-surface-card/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-700 pb-safe z-50 max-w-md mx-auto">
+        <div className="flex justify-around items-center h-16 px-2">
+          <button
+            onClick={() => setActiveNav('inicio')}
+            className={`flex flex-1 flex-col items-center justify-center gap-1 ${
+              activeNav === 'inicio' ? 'text-primary' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
+            } transition-colors`}
+          >
+            <span className="material-symbols-outlined text-[24px]">dashboard</span>
+            <span className="text-[10px] font-medium">Inicio</span>
+          </button>
+
+          <button
+            onClick={() => setActiveNav('buscar')}
+            className={`flex flex-1 flex-col items-center justify-center gap-1 ${
+              activeNav === 'buscar' ? 'text-primary' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
+            } transition-colors`}
+          >
+            <span className="material-symbols-outlined text-[24px]">search</span>
+            <span className="text-[10px] font-medium">Buscar</span>
+          </button>
+
+          <button
+            onClick={() => setActiveNav('tareas')}
+            className={`flex flex-1 flex-col items-center justify-center gap-1 ${
+              activeNav === 'tareas' ? 'text-primary' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
+            } transition-colors`}
+          >
+            <div className="relative">
+              <span className="material-symbols-outlined text-[24px]">assignment</span>
+              <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-red-500 text-[8px] text-white"></span>
+            </div>
+            <span className="text-[10px] font-medium">Tareas</span>
+          </button>
+
+          <button
+            onClick={handleCerrarSesion}
+            className={`flex flex-1 flex-col items-center justify-center gap-1 ${
+              activeNav === 'ajustes' ? 'text-primary' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
+            } transition-colors`}
+          >
+            <span className="material-symbols-outlined text-[24px]">settings</span>
+            <span className="text-[10px] font-medium">Ajustes</span>
+          </button>
+        </div>
+      </nav>
     </div>
   )
 }
