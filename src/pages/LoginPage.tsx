@@ -4,8 +4,8 @@ import { authService } from '../services/api'
 
 function LoginPage() {
   const navigate = useNavigate()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [email, setEmail] = useState('demo@vignola.cl')
+  const [password, setPassword] = useState('demo123')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -15,8 +15,24 @@ function LoginPage() {
     setLoading(true)
 
     try {
-      await authService.login(email, password)
-      navigate('/')
+      // MODO DEMO: Autenticación local sin backend
+      if (email && password) {
+        // Crear usuario de prueba
+        const demoUser = {
+          id: 'demo-user-1',
+          nombre: 'Juan Méndez',
+          email: email,
+          rol: 'mecanico' as const
+        }
+
+        // Guardar token falso
+        localStorage.setItem('auth_token', 'demo-token-' + Date.now())
+        localStorage.setItem('user', JSON.stringify(demoUser))
+
+        navigate('/')
+      } else {
+        setError('Por favor ingresa email y contraseña')
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al iniciar sesión')
     } finally {
@@ -35,6 +51,13 @@ function LoginPage() {
 
         {/* Formulario de login */}
         <div className="bg-white rounded-lg shadow-xl p-8">
+          {/* Alerta de modo demo */}
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-800 font-medium">
+              🔵 Modo Demo: Usa cualquier email y contraseña para probar
+            </p>
+          </div>
+
           <h2 className="text-2xl font-semibold text-gray-900 mb-6">Iniciar Sesión</h2>
 
           {error && (
