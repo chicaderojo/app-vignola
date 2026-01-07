@@ -4,60 +4,73 @@
 
 @layer base {
   body {
-    @apply bg-gray-50 text-gray-900;
+    @apply bg-background-light dark:bg-background-dark text-slate-900 dark:text-white min-h-screen font-display;
+    min-height: max(884px, 100dvh);
+  }
+
+  /* Material Symbols Outlined */
+  .material-symbols-outlined {
+    font-variation-settings:
+      'FILL' 0,
+      'wght' 400,
+      'GRAD' 0,
+      'opsz' 24;
+    font-size: 24px;
   }
 
   /* Estilos para inputs en modo industrial */
   input[type="file"] {
     @apply file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0
-           file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700
-           hover:file:bg-primary-100;
+           file:text-sm file:font-semibold file:bg-primary/10 file:text-primary
+           hover:file:bg-primary/20;
   }
 }
 
 @layer components {
   /* Botones más compactos para mobile */
   .btn-primary {
-    @apply px-3 py-2 bg-primary-600 text-white rounded-lg font-medium text-sm
-           hover:bg-primary-700 active:bg-primary-800
+    @apply px-3 py-2 bg-primary hover:bg-blue-600 active:bg-blue-700 text-white rounded-xl font-medium text-sm
            disabled:bg-gray-300 disabled:cursor-not-allowed
-           transition-colors duration-200;
+           transition-all shadow-lg shadow-primary/25;
   }
 
   .btn-secondary {
-    @apply px-3 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg font-medium text-sm
-           hover:bg-gray-50 active:bg-gray-100
-           disabled:bg-gray-100 disabled:cursor-not-allowed
+    @apply px-3 py-2 bg-white dark:bg-surface-dark text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-border-dark rounded-xl font-medium text-sm
+           hover:bg-gray-50 dark:hover:bg-white/5 active:bg-gray-100 dark:active:bg-white/10
+           disabled:bg-gray-100 dark:disabled:bg-white/5 disabled:cursor-not-allowed
            transition-colors duration-200;
   }
 
   /* Inputs más compactos y legibles */
   .input-field {
-    @apply w-full px-3 py-2 text-sm border border-gray-300 rounded-lg
-           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
-           disabled:bg-gray-100 disabled:cursor-not-allowed;
+    @apply w-full px-3 py-2 text-sm border border-gray-300 dark:border-border-dark rounded-xl
+           bg-white dark:bg-surface-dark
+           focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary
+           disabled:bg-gray-100 dark:disabled:bg-white/5 disabled:cursor-not-allowed
+           placeholder:text-gray-400 dark:placeholder:text-gray-500
+           transition-all;
   }
 
   /* Cards con padding responsivo */
   .card {
-    @apply bg-white rounded-lg shadow-md p-3 md:p-6;
+    @apply bg-white dark:bg-surface-dark rounded-xl shadow-md p-3 md:p-6 border border-gray-200 dark:border-border-dark;
   }
 
   .card-header {
-    @apply text-lg md:text-xl font-semibold text-gray-900 mb-3 md:mb-4;
+    @apply text-lg md:text-xl font-semibold text-gray-900 dark:text-white mb-3 md:mb-4;
   }
 
   /* Estados de componentes para peritaje */
   .estado-bueno {
-    @apply bg-green-100 text-green-800 border-green-300;
+    @apply bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border border-green-300 dark:border-green-700;
   }
 
   .estado-cambio {
-    @apply bg-red-100 text-red-800 border-red-300;
+    @apply bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 border border-red-300 dark:border-red-700;
   }
 
   .estado-mantencion {
-    @apply bg-yellow-100 text-yellow-800 border-yellow-300;
+    @apply bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-700;
   }
 }
 
