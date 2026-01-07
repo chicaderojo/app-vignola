@@ -11,7 +11,6 @@ function RecepcionPage() {
   const [fotoArmado, setFotoArmado] = useState<FotoUpload | null>(null)
   const [fotoDespiece, setFotoDespiece] = useState<FotoUpload | null>(null)
   const [notas, setNotas] = useState('')
-  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (!cilindro) {

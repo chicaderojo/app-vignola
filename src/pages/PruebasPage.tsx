@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { ArrowLeftIcon, CheckCircleIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline'
-import { Cilindro, FotoUpload, ComponentePeritaje } from '../types'
+import { ComponentePeritaje } from '../types'
 
 function PruebasPage() {
   const navigate = useNavigate()
@@ -83,7 +83,7 @@ function PruebasPage() {
     return null
   }
 
-  const componentesConProblemas = componentes.filter(c => c.estado !== 'Bueno')
+  const componentesConProblemas = componentes.filter((c: ComponentePeritaje) => c.estado !== 'Bueno')
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -133,7 +133,7 @@ function PruebasPage() {
               <div className="bg-white p-4 rounded-lg">
                 <dt className="text-sm text-gray-600">Buen Estado</dt>
                 <dd className="text-2xl font-bold text-green-600">
-                  {componentes.filter(c => c.estado === 'Bueno').length}
+                  {componentes.filter((c: ComponentePeritaje) => c.estado === 'Bueno').length}
                 </dd>
               </div>
               <div className="bg-white p-4 rounded-lg">
@@ -148,7 +148,7 @@ function PruebasPage() {
               <div className="mt-4">
                 <h4 className="text-sm font-semibold text-gray-700 mb-2">Componentes que requieren atención:</h4>
                 <ul className="text-sm space-y-1">
-                  {componentesConProblemas.map((comp, index) => (
+                  {componentesConProblemas.map((comp: ComponentePeritaje, index: number) => (
                     <li key={index} className="flex items-center gap-2">
                       <span className={`w-2 h-2 rounded-full ${
                         comp.estado === 'Cambio' ? 'bg-red-600' : 'bg-yellow-600'

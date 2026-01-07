@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { ArrowLeftIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline'
-import { Cilindro, FotoUpload, ComponentePeritaje, EstadoComponente, COMPONENTES_BASE, DETALLES_TECNICOS, ACCIONES_PROPUESTAS } from '../types'
+import { ComponentePeritaje, EstadoComponente, COMPONENTES_BASE, DETALLES_TECNICOS, ACCIONES_PROPUESTAS } from '../types'
 
 function PeritajePage() {
   const navigate = useNavigate()

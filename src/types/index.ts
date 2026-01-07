@@ -214,4 +214,5 @@ export interface ComponentePeritaje {
   detalle_tecnico: string
   accion_propuesta: string
   es_base: boolean
+  observaciones?: string
 }

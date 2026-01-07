@@ -1,5 +1,4 @@
 import axios, { AxiosInstance, AxiosError } from 'axios'
-import { db } from '../db/dexie'
 
 /**
  * Configuración base de la API

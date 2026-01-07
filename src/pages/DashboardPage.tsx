@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PlusIcon, MagnifyingGlassIcon, UserIcon } from '@heroicons/react/24/outline'
 import { authService } from '../services/api'
-import { Cliente, Cilindro, FiltroBusqueda } from '../types'
+import { Cliente, Cilindro } from '../types'
 import { v4 as uuidv4 } from 'uuid'
 
 function DashboardPage() {
@@ -14,8 +14,6 @@ function DashboardPage() {
   const [busqueda, setBusqueda] = useState('')
   const [cilindroEncontrado, setCilindroEncontrado] = useState<Cilindro | null>(null)
   const [loading, setLoading] = useState(false)
-  const [mostrarNuevoCliente, setMostrarNuevoCliente] = useState(false)
-  const [mostrarNuevoEquipo, setMostrarNuevoEquipo] = useState(false)
   const [syncStatus, setSyncStatus] = useState({ pendiente: false, numero_items: 0, online: true })
 
   // Cargar clientes al montar
@@ -94,7 +92,8 @@ function DashboardPage() {
   }
 
   const handleCrearNuevoEquipo = () => {
-    setMostrarNuevoEquipo(true)
+    // TODO: Implementar modal para crear nuevo equipo
+    alert('Funcionalidad de crear equipo pendiente')
   }
 
   const handleCerrarSesion = () => {

@@ -71,11 +71,14 @@ export class InspeccionDB extends Dexie {
    * Incrementar contador de intentos y actualizar last_attempt
    */
   async incrementAttempts(id: number, error?: string): Promise<void> {
-    await this.syncQueue.update(id, {
-      intentos: Dexie.customIncrement(),
-      last_attempt: new Date().toISOString(),
-      error
-    })
+    const current = await this.syncQueue.get(id)
+    if (current) {
+      await this.syncQueue.update(id, {
+        intentos: (current.intentos || 0) + 1,
+        last_attempt: new Date().toISOString(),
+        error
+      })
+    }
   }
 
   /**
@@ -92,10 +95,12 @@ export class InspeccionDB extends Dexie {
    * Limpiar tareas fallidas después de muchos intentos
    */
   async cleanupFailedItems(): Promise<void> {
-    await this.syncQueue
+    const itemsToDelete = await this.syncQueue
       .where('intentos')
-      .greaterThanOrEqual(5)
-      .delete()
+      .aboveOrEqual(5)
+      .primaryKeys()
+
+    await this.syncQueue.bulkDelete(itemsToDelete)
   }
 
   /**

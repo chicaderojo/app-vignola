@@ -28,13 +28,17 @@ class SyncService {
       while (item) {
         try {
           await this.processItem(item)
-          await db.markAsCompleted(item.id!)
-          console.log(`Item ${item.id} sincronizado exitosamente`)
+          if (item.id) {
+            await db.markAsCompleted(item.id)
+            console.log(`Item ${item.id} sincronizado exitosamente`)
+          }
 
           // Obtener siguiente item
           item = await db.getNextPendingItem()
         } catch (error) {
-          console.error(`Error procesando item ${item.id}:`, error)
+          console.error(`Error procesando item ${item?.id}:`, error)
+
+          if (!item) break
 
           // Incrementar intentos y guardar error
           await db.incrementAttempts(
