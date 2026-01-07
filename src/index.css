@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-900;
+  }
+
+  /* Estilos para inputs en modo industrial */
+  input[type="file"] {
+    @apply file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0
+           file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700
+           hover:file:bg-primary-100;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply px-4 py-2 bg-primary-600 text-white rounded-lg font-medium
+           hover:bg-primary-700 active:bg-primary-800
+           disabled:bg-gray-300 disabled:cursor-not-allowed
+           transition-colors duration-200;
+  }
+
+  .btn-secondary {
+    @apply px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg font-medium
+           hover:bg-gray-50 active:bg-gray-100
+           disabled:bg-gray-100 disabled:cursor-not-allowed
+           transition-colors duration-200;
+  }
+
+  .input-field {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-lg
+           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
+           disabled:bg-gray-100 disabled:cursor-not-allowed;
+  }
+
+  .card {
+    @apply bg-white rounded-lg shadow-md p-6;
+  }
+
+  .card-header {
+    @apply text-xl font-semibold text-gray-900 mb-4;
+  }
+
+  /* Estados de componentes para peritaje */
+  .estado-bueno {
+    @apply bg-green-100 text-green-800 border-green-300;
+  }
+
+  .estado-cambio {
+    @apply bg-red-100 text-red-800 border-red-300;
+  }
+
+  .estado-mantencion {
+    @apply bg-yellow-100 text-yellow-800 border-yellow-300;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
