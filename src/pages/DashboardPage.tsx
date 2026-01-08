@@ -182,12 +182,9 @@ function DashboardPage() {
           onClick={handleNuevaInspeccion}
           className="w-full flex items-center justify-between bg-primary hover:bg-primary/90 active:bg-primary/80 text-white rounded-xl p-4 shadow-lg shadow-primary/20 transition-all group"
         >
-          <div className="flex flex-col items-start">
-            <span className="font-bold text-lg">Nueva Inspección</span>
-            <span className="text-primary-100 text-sm">Escanear QR o ingresar ID</span>
-          </div>
+          <span className="font-bold text-lg">Nueva Inspección</span>
           <div className="bg-white/20 rounded-lg p-2 group-hover:bg-white/30 transition-colors">
-            <span className="material-symbols-outlined text-[28px]">qr_code_scanner</span>
+            <span className="material-symbols-outlined text-[28px]">add</span>
           </div>
         </button>
       </div>
