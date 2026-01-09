@@ -84,6 +84,10 @@ function DashboardPage() {
     window.location.href = '/login'
   }
 
+  const handleVerTareas = () => {
+    navigate('/tareas')
+  }
+
   return (
     <div className="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto bg-background-light dark:bg-background-dark pb-24">
 
@@ -326,7 +330,7 @@ function DashboardPage() {
           </button>
 
           <button
-            onClick={() => setActiveNav('tareas')}
+            onClick={handleVerTareas}
             className={`flex flex-1 flex-col items-center justify-center gap-1 ${
               activeNav === 'tareas' ? 'text-primary' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
             } transition-colors`}
