@@ -159,7 +159,10 @@ function DashboardPage() {
       {/* KPI Stats */}
       <div className="flex overflow-x-auto gap-3 px-4 py-4 w-full hide-scrollbar">
         {/* Inspección */}
-        <div className="flex min-w-[140px] flex-1 flex-col gap-3 rounded-xl p-4 bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 shadow-sm">
+        <button
+          onClick={handleVerInspeccionesPendientes}
+          className="flex min-w-[140px] flex-1 flex-col gap-3 rounded-xl p-4 bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 shadow-sm hover:bg-slate-50 dark:hover:bg-surface-dark active:scale-[0.98] transition-all cursor-pointer text-left"
+        >
           <div className="flex items-center justify-between">
             <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">Inspección</span>
             <span className="material-symbols-outlined text-orange-500 text-[20px]">schedule</span>
@@ -168,7 +171,7 @@ function DashboardPage() {
           <div className="w-full bg-slate-100 dark:bg-slate-700 h-1 rounded-full overflow-hidden">
             <div className="bg-orange-500 h-full w-[45%]"></div>
           </div>
-        </div>
+        </button>
 
         {/* Mantención */}
         <div className="flex min-w-[140px] flex-1 flex-col gap-3 rounded-xl p-4 bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 shadow-sm ring-1 ring-primary/20">
