@@ -1,46 +1,48 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
-import { CameraIcon, ArrowLeftIcon } from '@heroicons/react/24/outline'
-import { Cilindro, FotoUpload } from '../types'
+import { useNavigate, useParams } from 'react-router-dom'
+import { useTheme } from '../hooks/useTheme'
 
 function RecepcionPage() {
   const navigate = useNavigate()
-  const location = useLocation()
-  const cilindro = location.state?.cilindro as Cilindro
+  const { id } = useParams()
+  const { isDark, toggleTheme } = useTheme()
 
-  const [fotoArmado, setFotoArmado] = useState<FotoUpload | null>(null)
-  const [fotoDespiece, setFotoDespiece] = useState<FotoUpload | null>(null)
-  const [notas, setNotas] = useState('')
+  // Form state
+  const [nombreCliente, setNombreCliente] = useState('')
+  const [ordenTrabajo, setOrdenTrabajo] = useState('')
+  const [contacto, setContacto] = useState('')
+  const [tipoComponente, setTipoComponente] = useState('Cilindro Hidráulico')
+  const [prioridad, setPrioridad] = useState<'Normal' | 'Urgente'>('Normal')
+  const [diametro, setDiametro] = useState('')
+  const [largo, setLargo] = useState('')
+  const [fotoArmado, setFotoArmado] = useState<File | null>(null)
+  const [fotoDespiece, setFotoDespiece] = useState<File | null>(null)
+  const [previewArmado, setPreviewArmado] = useState<string | null>(null)
+  const [previewDespiece, setPreviewDespiece] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (!cilindro) {
-      navigate('/')
-    }
-  }, [cilindro, navigate])
+  const handleCerrar = () => {
+    navigate('/')
+  }
 
   const handleCapturarFoto = async (tipo: 'armado' | 'despiece') => {
-    // Crear input file invisible
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = 'image/*'
-    input.capture = 'environment' // Usar cámara en móviles
+    input.capture = 'environment'
 
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0]
       if (file) {
-        // Crear preview
         const reader = new FileReader()
         reader.onloadend = () => {
-          const fotoUpload: FotoUpload = {
-            file,
-            tipo,
-            preview: reader.result as string
-          }
+          const preview = reader.result as string
 
           if (tipo === 'armado') {
-            setFotoArmado(fotoUpload)
+            setFotoArmado(file)
+            setPreviewArmado(preview)
           } else {
-            setFotoDespiece(fotoUpload)
+            setFotoDespiece(file)
+            setPreviewDespiece(preview)
           }
         }
         reader.readAsDataURL(file)
@@ -50,228 +52,295 @@ function RecepcionPage() {
     input.click()
   }
 
-  const handleContinuar = () => {
-    if (!fotoArmado || !fotoDespiece) {
-      alert('Debes capturar ambas fotos obligatorias (Armado y Despiece) antes de continuar')
+  const handleGuardar = () => {
+    if (!fotoArmado) {
+      alert('Debes capturar la foto obligatoria de Armado antes de guardar')
       return
     }
 
-    // Pasar a la siguiente pantalla con los datos
-    navigate(`/inspeccion/${location.pathname.split('/')[2]}/peritaje`, {
-      state: {
-        cilindro,
-        fotos: {
-          armado: fotoArmado,
-          despiece: fotoDespiece
-        },
-        notas
-      }
+    // Aquí iría la lógica para guardar los datos
+    console.log({
+      cliente: nombreCliente,
+      ordenTrabajo,
+      contacto,
+      tipoComponente,
+      prioridad,
+      diametro,
+      largo,
+      fotos: { armado: fotoArmado, despiece: fotoDespiece }
     })
-  }
 
-  const handleVolver = () => {
-    navigate('/')
+    // Navegar a la siguiente página
+    navigate(`/inspeccion/${id}/peritaje`)
   }
-
-  if (!cilindro) {
-    return null
-  }
-
-  const puedeContinuar = fotoArmado !== null && fotoDespiece !== null
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={handleVolver}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <ArrowLeftIcon className="w-5 h-5 text-gray-600" />
-            </button>
+    <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden pb-24 max-w-md mx-auto bg-background-light dark:bg-background-dark">
 
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold text-gray-900">Recepción del Cilindro</h1>
-              <p className="text-sm text-gray-600">{cilindro.id_codigo}</p>
-            </div>
-
-            {/* Progreso */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">Paso 1 de 3</span>
-              <div className="flex gap-1">
-                <div className="w-8 h-2 bg-primary-600 rounded-full"></div>
-                <div className="w-8 h-2 bg-gray-300 rounded-full"></div>
-                <div className="w-8 h-2 bg-gray-300 rounded-full"></div>
-              </div>
-            </div>
-          </div>
+      {/* Top App Bar */}
+      <header className="sticky top-0 z-10 flex items-center justify-between bg-white dark:bg-background-dark p-4 shadow-sm dark:shadow-none border-b border-gray-200 dark:border-border-dark/50">
+        <button
+          onClick={handleCerrar}
+          className="flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-surface-dark transition-colors cursor-pointer"
+        >
+          <span className="material-symbols-outlined text-slate-600 dark:text-white">close</span>
+        </button>
+        <h2 className="text-lg font-bold leading-tight tracking-tight flex-1 text-center pr-10 text-slate-900 dark:text-white">Nueva Recepción</h2>
+        <div className="hidden w-10 items-center justify-end">
+          {/* Placeholder for balance if needed */}
         </div>
       </header>
 
-      {/* Contenido principal */}
-      <main className="max-w-4xl mx-auto px-3 md:px-4 py-4 md:py-6">
-        <div className="space-y-4 md:space-y-6">
-          {/* Información del cilindro */}
-          <section className="card">
-            <h2 className="card-header">Información del Cilindro</h2>
-            <dl className="grid grid-cols-2 gap-2 text-xs">
-              <div>
-                <dt className="text-gray-600">Código:</dt>
-                <dd className="font-medium">{cilindro.id_codigo}</dd>
+      {/* Main Content */}
+      <main className="flex-1 px-4 py-2 space-y-6">
+        {/* Section: Información del Cliente */}
+        <section>
+          <div className="flex items-center gap-2 py-4">
+            <span className="material-symbols-outlined text-primary text-[20px]">person</span>
+            <h3 className="text-base font-bold leading-tight tracking-tight text-slate-800 dark:text-white">Información del Cliente</h3>
+          </div>
+          <div className="flex flex-col gap-4">
+            {/* Cliente Autocomplete */}
+            <label className="flex flex-col flex-1 group">
+              <p className="text-sm font-medium leading-normal pb-2 text-slate-600 dark:text-text-muted-dark">Nombre del Cliente</p>
+              <div className="flex w-full items-center rounded-xl border border-gray-300 dark:border-border-dark bg-white dark:bg-surface-dark overflow-hidden focus-within:ring-2 focus-within:ring-primary focus-within:border-primary transition-all shadow-sm">
+                <input
+                  type="text"
+                  value={nombreCliente}
+                  onChange={(e) => setNombreCliente(e.target.value)}
+                  className="w-full min-w-0 flex-1 border-none bg-transparent h-12 px-4 text-base font-normal placeholder:text-gray-400 dark:placeholder:text-text-muted-dark/50 focus:ring-0 text-slate-900 dark:text-white"
+                  placeholder="Buscar cliente..."
+                />
+                <div className="flex items-center justify-center px-4 text-gray-400 dark:text-text-muted-dark">
+                  <span className="material-symbols-outlined">search</span>
+                </div>
               </div>
-              <div>
-                <dt className="text-gray-600">Tipo:</dt>
-                <dd className="font-medium">{cilindro.tipo}</dd>
-              </div>
-              <div>
-                <dt className="text-gray-600">Fabricante:</dt>
-                <dd className="font-medium">{cilindro.fabricante || 'N/A'}</dd>
-              </div>
-              <div>
-                <dt className="text-gray-600">Carrera:</dt>
-                <dd className="font-medium">{cilindro.carrera || 'N/A'}</dd>
-              </div>
-            </dl>
-          </section>
+            </label>
 
-          {/* Alerta de fotos obligatorias */}
-          <div className="bg-blue-50 border-l-4 border-blue-600 p-4 rounded-lg">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-blue-800">
-                  Fotos obligatorias
-                </h3>
-                <div className="mt-2 text-sm text-blue-700">
-                  <p>Debes capturar obligatoriamente ambas fotos antes de continuar con el peritaje técnico.</p>
+            <div className="flex flex-row gap-4">
+              {/* Orden de Trabajo */}
+              <label className="flex flex-col flex-1 min-w-[140px]">
+                <p className="text-sm font-medium leading-normal pb-2 text-slate-600 dark:text-text-muted-dark">Orden de Trabajo</p>
+                <input
+                  type="number"
+                  value={ordenTrabajo}
+                  onChange={(e) => setOrdenTrabajo(e.target.value)}
+                  className="w-full rounded-xl border border-gray-300 dark:border-border-dark bg-white dark:bg-surface-dark h-12 px-4 text-base font-normal placeholder:text-gray-400 dark:placeholder:text-text-muted-dark/50 focus:ring-2 focus:ring-primary focus:border-primary transition-all shadow-sm text-slate-900 dark:text-white"
+                  placeholder="Ej: 45092"
+                />
+              </label>
+
+              {/* Contacto */}
+              <label className="flex flex-col flex-1 min-w-[140px]">
+                <p className="text-sm font-medium leading-normal pb-2 text-slate-600 dark:text-text-muted-dark">Contacto</p>
+                <input
+                  type="text"
+                  value={contacto}
+                  onChange={(e) => setContacto(e.target.value)}
+                  className="w-full rounded-xl border border-gray-300 dark:border-border-dark bg-white dark:bg-surface-dark h-12 px-4 text-base font-normal placeholder:text-gray-400 dark:placeholder:text-text-muted-dark/50 focus:ring-2 focus:ring-primary focus:border-primary transition-all shadow-sm text-slate-900 dark:text-white"
+                  placeholder="Nombre"
+                />
+              </label>
+            </div>
+          </div>
+        </section>
+
+        {/* Divider */}
+        <div className="h-px bg-gray-200 dark:bg-border-dark w-full"></div>
+
+        {/* Section: Especificaciones del Cilindro */}
+        <section>
+          <div className="flex items-center gap-2 py-4">
+            <span className="material-symbols-outlined text-primary text-[20px]">fluid</span>
+            <h3 className="text-base font-bold leading-tight tracking-tight text-slate-800 dark:text-white">Especificaciones del Cilindro</h3>
+          </div>
+          <div className="flex flex-col gap-4">
+            {/* Tipo y Prioridad Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Tipo Selector */}
+              <label className="flex flex-col flex-1">
+                <p className="text-sm font-medium leading-normal pb-2 text-slate-600 dark:text-text-muted-dark">Tipo de Componente</p>
+                <div className="relative">
+                  <select
+                    value={tipoComponente}
+                    onChange={(e) => setTipoComponente(e.target.value)}
+                    className="w-full appearance-none rounded-xl border border-gray-300 dark:border-border-dark bg-white dark:bg-surface-dark h-12 pl-4 pr-10 text-base font-normal focus:ring-2 focus:ring-primary focus:border-primary transition-all shadow-sm text-slate-900 dark:text-white"
+                  >
+                    <option>Cilindro Hidráulico</option>
+                    <option>Cilindro Neumático</option>
+                    <option>Vástago</option>
+                    <option>Camisa</option>
+                    <option>Bomba</option>
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500 dark:text-text-muted-dark">
+                    <span className="material-symbols-outlined">expand_more</span>
+                  </div>
+                </div>
+              </label>
+
+              {/* Prioridad Toggle */}
+              <div className="flex flex-col flex-1">
+                <p className="text-sm font-medium leading-normal pb-2 text-slate-600 dark:text-text-muted-dark">Prioridad</p>
+                <div className="flex h-12 w-full items-center rounded-xl bg-gray-200 dark:bg-surface-dark/50 p-1 border border-gray-300 dark:border-border-dark">
+                  <button
+                    onClick={() => setPrioridad('Normal')}
+                    className={`flex-1 h-full rounded-lg text-sm font-semibold transition-all ${
+                      prioridad === 'Normal'
+                        ? 'bg-white dark:bg-surface-dark text-slate-900 dark:text-white shadow-sm'
+                        : 'text-slate-500 dark:text-text-muted-dark hover:bg-gray-100 dark:hover:bg-white/5'
+                    }`}
+                  >
+                    Normal
+                  </button>
+                  <button
+                    onClick={() => setPrioridad('Urgente')}
+                    className={`flex-1 h-full rounded-lg text-sm font-medium transition-all ${
+                      prioridad === 'Urgente'
+                        ? 'bg-white dark:bg-surface-dark text-slate-900 dark:text-white shadow-sm'
+                        : 'text-slate-500 dark:text-text-muted-dark hover:bg-gray-100 dark:hover:bg-white/5'
+                    }`}
+                  >
+                    Urgente
+                  </button>
                 </div>
               </div>
             </div>
+
+            {/* Dimensiones */}
+            <div className="flex gap-4">
+              <label className="flex flex-col flex-1">
+                <p className="text-sm font-medium leading-normal pb-2 text-slate-600 dark:text-text-muted-dark">Diámetro (mm)</p>
+                <input
+                  type="number"
+                  value={diametro}
+                  onChange={(e) => setDiametro(e.target.value)}
+                  className="w-full rounded-xl border border-gray-300 dark:border-border-dark bg-white dark:bg-surface-dark h-12 px-4 text-base font-normal placeholder:text-gray-400 dark:placeholder:text-text-muted-dark/50 focus:ring-2 focus:ring-primary focus:border-primary transition-all shadow-sm text-slate-900 dark:text-white"
+                  placeholder="0"
+                />
+              </label>
+              <label className="flex flex-col flex-1">
+                <p className="text-sm font-medium leading-normal pb-2 text-slate-600 dark:text-text-muted-dark">Largo (mm)</p>
+                <input
+                  type="number"
+                  value={largo}
+                  onChange={(e) => setLargo(e.target.value)}
+                  className="w-full rounded-xl border border-gray-300 dark:border-border-dark bg-white dark:bg-surface-dark h-12 px-4 text-base font-normal placeholder:text-gray-400 dark:placeholder:text-text-muted-dark/50 focus:ring-2 focus:ring-primary focus:border-primary transition-all shadow-sm text-slate-900 dark:text-white"
+                  placeholder="0"
+                />
+              </label>
+            </div>
+          </div>
+        </section>
+
+        {/* Divider */}
+        <div className="h-px bg-gray-200 dark:bg-border-dark w-full"></div>
+
+        {/* Section: Evidencia Fotográfica */}
+        <section>
+          <div className="flex items-center justify-between py-4">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary text-[20px]">add_a_photo</span>
+              <h3 className="text-base font-bold leading-tight tracking-tight text-slate-800 dark:text-white">Evidencia Fotográfica</h3>
+            </div>
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Foto 1 obligatoria</span>
           </div>
 
-          {/* Foto 1: Armado */}
-          <section className={`card border-2 ${fotoArmado ? 'border-green-300' : 'border-red-300'}`}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">
-                1. Foto Recepción (Armado)
-                {fotoArmado && <span className="ml-2 text-green-600">✓</span>}
-              </h3>
-              <span className="px-2 py-1 bg-red-100 text-red-800 text-xs font-medium rounded">
-                Obligatoria
-              </span>
-            </div>
-
-            <p className="text-sm text-gray-600 mb-4">
-              Estado exterior, pintura y condiciones generales del cilindro armado.
-            </p>
-
-            {fotoArmado ? (
-              <div className="space-y-2">
-                <img
-                  src={fotoArmado.preview}
-                  alt="Foto de armado"
-                  className="w-full h-48 md:h-64 object-cover rounded-lg"
-                />
-                <button
-                  onClick={() => handleCapturarFoto('armado')}
-                  className="btn-secondary w-full text-xs"
-                >
-                  Recapturar
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => handleCapturarFoto('armado')}
-                className="w-full py-6 md:py-8 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-colors flex flex-col items-center gap-2"
-              >
-                <CameraIcon className="w-10 h-10 md:w-12 md:h-12 text-gray-400" />
-                <span className="text-xs md:text-sm font-medium text-gray-600">
-                  Capturar Foto de Armado
-                </span>
-              </button>
-            )}
-          </section>
-
-          {/* Foto 2: Despiece */}
-          <section className={`card border-2 ${fotoDespiece ? 'border-green-300' : 'border-red-300'}`}>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-base md:text-lg font-semibold text-gray-900">
-                2. Foto Recepción (Por partes)
-                {fotoDespiece && <span className="ml-2 text-green-600">✓</span>}
-              </h3>
-              <span className="px-2 py-1 bg-red-100 text-red-800 text-xs font-medium rounded">
-                Obligatoria
-              </span>
-            </div>
-
-            <p className="text-xs md:text-sm text-gray-600 mb-3">
-              Despiece inicial y estado de sellos internos. Muestra todos los componentes por separado.
-            </p>
-
-            {fotoDespiece ? (
-              <div className="space-y-2">
-                <img
-                  src={fotoDespiece.preview}
-                  alt="Foto de despiece"
-                  className="w-full h-48 md:h-64 object-cover rounded-lg"
-                />
-                <button
-                  onClick={() => handleCapturarFoto('despiece')}
-                  className="btn-secondary w-full text-xs"
-                >
-                  Recapturar
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => handleCapturarFoto('despiece')}
-                className="w-full py-6 md:py-8 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-colors flex flex-col items-center gap-2"
-              >
-                <CameraIcon className="w-10 h-10 md:w-12 md:h-12 text-gray-400" />
-                <span className="text-xs md:text-sm font-medium text-gray-600">
-                  Capturar Foto de Despiece
-                </span>
-              </button>
-            )}
-          </section>
-
-          {/* Notas adicionales */}
-          <section className="card">
-            <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-2">
-              Notas Adicionales (Opcional)
-            </h3>
-            <textarea
-              value={notas}
-              onChange={(e) => setNotas(e.target.value)}
-              className="input-field min-h-20 text-sm"
-              placeholder="Observaciones sobre la recepción..."
-            />
-          </section>
-
-          {/* Botones de acción */}
-          <div className="flex flex-col sm:flex-row gap-2">
+          <div className="grid grid-cols-2 gap-4">
+            {/* Foto Armado */}
             <button
-              onClick={handleVolver}
-              className="btn-secondary flex-1"
+              onClick={() => handleCapturarFoto('armado')}
+              className="group relative flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-gray-300 dark:border-border-dark bg-gray-50 dark:bg-surface-dark/30 p-4 transition-all hover:border-primary dark:hover:border-primary hover:bg-primary/5 active:scale-[0.98] h-40"
             >
-              ← Volver
+              {previewArmado ? (
+                <>
+                  <img
+                    src={previewArmado}
+                    alt="Foto de armado"
+                    className="absolute inset-0 w-full h-full object-cover rounded-xl"
+                  />
+                  <div className="absolute inset-0 bg-black/40 rounded-xl flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="flex size-12 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm">
+                        <span className="material-symbols-outlined text-[24px]">photo_camera</span>
+                      </div>
+                      <p className="text-sm font-semibold text-white mt-2">Recapturar</p>
+                    </div>
+                  </div>
+                  <div className="absolute top-2 right-2 flex size-6 items-center justify-center rounded-full bg-green-500 text-white">
+                    <span className="material-symbols-outlined text-[16px]">check</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex size-12 items-center justify-center rounded-full bg-gray-200 dark:bg-surface-dark text-gray-500 dark:text-text-muted-dark group-hover:bg-primary group-hover:text-white transition-colors shadow-sm">
+                    <span className="material-symbols-outlined text-[24px]">photo_camera</span>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">Armado</p>
+                    <p className="text-xs text-slate-500 dark:text-text-muted-dark mt-1">Estado inicial</p>
+                  </div>
+                </>
+              )}
             </button>
+
+            {/* Foto Despiece */}
             <button
-              onClick={handleContinuar}
-              disabled={!puedeContinuar}
-              className="btn-primary flex-1"
+              onClick={() => handleCapturarFoto('despiece')}
+              className="group relative flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-gray-300 dark:border-border-dark bg-gray-50 dark:bg-surface-dark/30 p-4 transition-all hover:border-primary dark:hover:border-primary hover:bg-primary/5 active:scale-[0.98] h-40"
             >
-              Continuar →
+              {previewDespiece ? (
+                <>
+                  <img
+                    src={previewDespiece}
+                    alt="Foto de despiece"
+                    className="absolute inset-0 w-full h-full object-cover rounded-xl"
+                  />
+                  <div className="absolute inset-0 bg-black/40 rounded-xl flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="flex size-12 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm">
+                        <span className="material-symbols-outlined text-[24px]">build</span>
+                      </div>
+                      <p className="text-sm font-semibold text-white mt-2">Recapturar</p>
+                    </div>
+                  </div>
+                  <div className="absolute top-2 right-2 flex size-6 items-center justify-center rounded-full bg-green-500 text-white">
+                    <span className="material-symbols-outlined text-[16px]">check</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex size-12 items-center justify-center rounded-full bg-gray-200 dark:bg-surface-dark text-gray-500 dark:text-text-muted-dark group-hover:bg-primary group-hover:text-white transition-colors shadow-sm">
+                    <span className="material-symbols-outlined text-[24px]">build</span>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">Despiece</p>
+                    <p className="text-xs text-slate-500 dark:text-text-muted-dark mt-1">Componentes</p>
+                  </div>
+                </>
+              )}
             </button>
           </div>
-        </div>
+          <p className="mt-4 text-xs text-center text-slate-400 dark:text-text-muted-dark/60">
+            Las fotos se subirán automáticamente al guardar la orden.
+          </p>
+        </section>
       </main>
+
+      {/* Fixed Footer Action */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 dark:bg-background-dark/95 backdrop-blur-md border-t border-gray-200 dark:border-border-dark z-20 max-w-md mx-auto">
+        <div className="max-w-3xl mx-auto flex gap-3">
+          <button
+            onClick={handleGuardar}
+            className="flex-1 rounded-xl bg-primary h-14 text-white text-base font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 active:scale-[0.99] transition-all flex items-center justify-center gap-2"
+          >
+            <span className="material-symbols-outlined">save</span>
+            Guardar Recepción
+          </button>
+        </div>
+      </div>
+
+      {/* Background Pattern Effect */}
+      <div className="fixed inset-0 pointer-events-none opacity-[0.03] dark:opacity-[0.05] z-0" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
     </div>
   )
 }

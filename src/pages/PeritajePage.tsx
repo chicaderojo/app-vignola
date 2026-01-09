@@ -1,311 +1,386 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
-import { ArrowLeftIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline'
-import { ComponentePeritaje, EstadoComponente, COMPONENTES_BASE, DETALLES_TECNICOS, ACCIONES_PROPUESTAS } from '../types'
+import { useNavigate, useParams } from 'react-router-dom'
+import { useTheme } from '../hooks/useTheme'
+
+type ComponenteStatus = 'pending' | 'bueno' | 'mantencion' | 'cambio'
+
+interface Componente {
+  id: string
+  nombre: string
+  estado: ComponenteStatus
+  observaciones: string
+  fotos: string[]
+  expandido: boolean
+}
 
 function PeritajePage() {
   const navigate = useNavigate()
-  const location = useLocation()
-  const { cilindro, fotos, notas } = location.state || {}
+  const { id } = useParams()
+  const { isDark } = useTheme()
 
-  const [componentes, setComponentes] = useState<ComponentePeritaje[]>([])
-  const [nuevoComponente, setNuevoComponente] = useState('')
-  const [mostrarAgregarComponente, setMostrarAgregarComponente] = useState(false)
-
-  useEffect(() => {
-    if (!cilindro) {
-      navigate('/')
-    } else {
-      // Inicializar componentes base
-      const componentesIniciales: ComponentePeritaje[] = COMPONENTES_BASE.map(nombre => ({
-        nombre,
-        estado: 'Bueno' as EstadoComponente,
-        detalle_tecnico: '',
-        accion_propuesta: '',
-        es_base: true
-      }))
-      setComponentes(componentesIniciales)
+  // Mock data para componentes
+  const [componentes, setComponentes] = useState<Componente[]>([
+    {
+      id: '1',
+      nombre: 'Vástago (Rod)',
+      estado: 'mantencion',
+      observaciones: 'Desgaste severo en cromo duro, presenta ralladuras longitudinales profundas en zona de trabajo.',
+      fotos: ['https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&h=200&fit=crop'],
+      expandido: true
+    },
+    {
+      id: '2',
+      nombre: 'Camisa (Barrel)',
+      estado: 'bueno',
+      observaciones: '',
+      fotos: [],
+      expandido: false
+    },
+    {
+      id: '3',
+      nombre: 'Sellos (Seals)',
+      estado: 'cambio',
+      observaciones: 'Kit de sellos completo dañado por uso intensivo.',
+      fotos: [],
+      expandido: false
+    },
+    {
+      id: '4',
+      nombre: 'Pistón (Piston)',
+      estado: 'pending',
+      observaciones: '',
+      fotos: [],
+      expandido: false
+    },
+    {
+      id: '5',
+      nombre: 'Puerto de Aceite',
+      estado: 'pending',
+      observaciones: '',
+      fotos: [],
+      expandido: false
     }
-  }, [cilindro, navigate])
+  ])
 
-  const actualizarComponente = (index: number, campo: keyof ComponentePeritaje, valor: string) => {
-    const nuevosComponentes = [...componentes]
-    nuevosComponentes[index] = {
-      ...nuevosComponentes[index],
-      [campo]: valor
-    }
-    setComponentes(nuevosComponentes)
+  const handleBack = () => {
+    navigate(`/inspeccion/${id}/recepcion`)
   }
 
-  const agregarComponenteManual = () => {
-    if (!nuevoComponente.trim()) return
-
-    const nuevoComponentePeritaje: ComponentePeritaje = {
-      nombre: nuevoComponente.trim(),
-      estado: 'Bueno' as EstadoComponente,
-      detalle_tecnico: '',
-      accion_propuesta: '',
-      es_base: false
-    }
-
-    setComponentes([...componentes, nuevoComponentePeritaje])
-    setNuevoComponente('')
-    setMostrarAgregarComponente(false)
+  const handleGuardar = () => {
+    console.log('Guardando peritaje:', componentes)
+    // Aquí iría la lógica para guardar
   }
 
-  const eliminarComponenteManual = (index: number) => {
-    if (componentes[index].es_base) return // No eliminar componentes base
-
-    const nuevosComponentes = componentes.filter((_, i) => i !== index)
-    setComponentes(nuevosComponentes)
-  }
-
-  const handleContinuar = () => {
-    // Validar que todos los componentes tengan estado
-    const componentesSinEstado = componentes.filter(c => !c.estado)
-    if (componentesSinEstado.length > 0) {
-      alert('Todos los componentes deben tener un estado asignado')
+  const handleFinalizar = () => {
+    const componentesPendientes = componentes.filter(c => c.estado === 'pending')
+    if (componentesPendientes.length > 0) {
+      alert(`Falta evaluar ${componentesPendientes.length} componente(s)`)
       return
     }
+    navigate(`/inspeccion/${id}/pruebas`)
+  }
 
-    // Pasar a la siguiente pantalla con los datos
-    navigate(`/inspeccion/${location.pathname.split('/')[2]}/pruebas`, {
-      state: {
-        cilindro,
-        fotos,
-        notas,
-        componentes
+  const actualizarEstado = (index: number, nuevoEstado: ComponenteStatus) => {
+    const nuevosComponentes = [...componentes]
+    nuevosComponentes[index].estado = nuevoEstado
+
+    // Si se selecciona un estado diferente de pending, expandir el componente
+    if (nuevoEstado !== 'pending') {
+      nuevosComponentes[index].expandido = true
+    }
+
+    setComponentes(nuevosComponentes)
+  }
+
+  const toggleExpandido = (index: number) => {
+    const nuevosComponentes = [...componentes]
+    nuevosComponentes[index].expandido = !nuevosComponentes[index].expandido
+    setComponentes(nuevosComponentes)
+  }
+
+  const actualizarObservaciones = (index: number, texto: string) => {
+    const nuevosComponentes = [...componentes]
+    nuevosComponentes[index].observaciones = texto
+    setComponentes(nuevosComponentes)
+  }
+
+  const handleAgregarFoto = (index: number) => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'image/*'
+    input.capture = 'environment'
+
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0]
+      if (file) {
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          const nuevosComponentes = [...componentes]
+          nuevosComponentes[index].fotos.push(reader.result as string)
+          setComponentes(nuevosComponentes)
+        }
+        reader.readAsDataURL(file)
       }
-    })
+    }
+
+    input.click()
   }
 
-  const handleVolver = () => {
-    navigate(`/inspeccion/${location.pathname.split('/')[2]}/recepcion`, {
-      state: { cilindro }
-    })
+  const getEstadoColor = (estado: ComponenteStatus) => {
+    switch (estado) {
+      case 'bueno': return 'status-good'
+      case 'mantencion': return 'status-maintain'
+      case 'cambio': return 'status-replace'
+      default: return ''
+    }
   }
 
-  if (!cilindro) {
-    return null
+  const getEstadoLabel = (estado: ComponenteStatus) => {
+    switch (estado) {
+      case 'bueno': return 'BUENO'
+      case 'mantencion': return 'MANTENCIÓN'
+      case 'cambio': return 'CAMBIO'
+      case 'pending': return 'Pendiente'
+    }
   }
+
+  const getEstadoIcon = (estado: ComponenteStatus) => {
+    switch (estado) {
+      case 'bueno': return 'check_circle'
+      case 'mantencion': return 'build'
+      case 'cambio': return 'cancel'
+      case 'pending': return 'help'
+    }
+  }
+
+  const componentesCompletados = componentes.filter(c => c.estado !== 'pending').length
+  const progreso = (componentesCompletados / componentes.length) * 100
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center gap-4">
+    <div className="min-h-screen bg-background-light dark:bg-background-dark pb-20">
+      {/* Top App Bar */}
+      <header className="sticky top-0 z-50 bg-background-light dark:bg-background-dark border-b border-slate-200 dark:border-slate-800">
+        <div className="flex items-center p-4 justify-between">
+          <div className="flex items-center gap-3">
             <button
-              onClick={handleVolver}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              onClick={handleBack}
+              className="text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-primary transition-colors"
             >
-              <ArrowLeftIcon className="w-5 h-5 text-gray-600" />
+              <span className="material-symbols-outlined">arrow_back</span>
             </button>
-
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold text-gray-900">Peritaje Técnico</h1>
-              <p className="text-sm text-gray-600">{cilindro.id_codigo}</p>
-            </div>
-
-            {/* Progreso */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">Paso 2 de 3</span>
-              <div className="flex gap-1">
-                <div className="w-8 h-2 bg-green-600 rounded-full"></div>
-                <div className="w-8 h-2 bg-primary-600 rounded-full"></div>
-                <div className="w-8 h-2 bg-gray-300 rounded-full"></div>
-              </div>
+            <div className="flex flex-col">
+              <h2 className="text-lg font-bold leading-tight tracking-tight text-slate-900 dark:text-white">Peritaje OT #9942</h2>
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Vignola Industrial</span>
             </div>
           </div>
+          <button
+            onClick={handleGuardar}
+            className="bg-primary/10 hover:bg-primary/20 text-primary px-4 py-2 rounded-full text-sm font-bold transition-colors"
+          >
+            Guardar
+          </button>
         </div>
       </header>
 
-      {/* Contenido principal */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="space-y-6">
-          {/* Instrucciones */}
-          <div className="bg-blue-50 border-l-4 border-blue-600 p-4 rounded-lg">
-            <div className="flex">
-              <svg className="h-5 w-5 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-              </svg>
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-blue-800">
-                  Instrucciones de peritaje
-                </h3>
-                <div className="mt-2 text-sm text-blue-700">
-                  <p>Evalúa cada componente del cilindro. Selecciona el estado (Bueno/Cambio/Mantención) y agrega detalles técnicos o acciones propuestas según corresponda.</p>
-                </div>
-              </div>
-            </div>
+      {/* Job Context Meta */}
+      <div className="bg-white dark:bg-surface-dark px-4 py-3 shadow-sm border-b border-slate-200 dark:border-slate-700/50">
+        <div className="flex items-start gap-3">
+          <div className="mt-1 bg-blue-500/10 p-2 rounded-lg shrink-0">
+            <span className="material-symbols-outlined text-primary text-[20px]">fluid</span>
           </div>
-
-          {/* Botón agregar componente manual */}
-          <div className="flex justify-end">
-            <button
-              onClick={() => setMostrarAgregarComponente(!mostrarAgregarComponente)}
-              className="btn-secondary flex items-center gap-2"
-            >
-              <PlusIcon className="w-5 h-5" />
-              Agregar Componente Manual
-            </button>
-          </div>
-
-          {/* Formulario para agregar componente manual */}
-          {mostrarAgregarComponente && (
-            <div className="card border-2 border-primary-300">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Nuevo Componente
-              </h3>
-              <div className="flex gap-3">
-                <input
-                  type="text"
-                  value={nuevoComponente}
-                  onChange={(e) => setNuevoComponente(e.target.value)}
-                  className="input-field flex-1"
-                  placeholder="Nombre del componente (ej: Glands, Tirantes, Tuberías)"
-                  onKeyPress={(e) => e.key === 'Enter' && agregarComponenteManual()}
-                />
-                <button
-                  onClick={agregarComponenteManual}
-                  className="btn-primary"
-                >
-                  Agregar
-                </button>
-                <button
-                  onClick={() => {
-                    setMostrarAgregarComponente(false)
-                    setNuevoComponente('')
-                  }}
-                  className="btn-secondary"
-                >
-                  Cancelar
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Lista de componentes */}
-          <div className="space-y-4">
-            {componentes.map((componente, index) => (
-              <section key={index} className="card">
-                <div className="flex items-start justify-between mb-3">
-                  <h3 className="text-base md:text-lg font-semibold text-gray-900">
-                    {componente.nombre}
-                    {componente.es_base && (
-                      <span className="ml-2 text-xs font-normal text-gray-500">(Base)</span>
-                    )}
-                  </h3>
-
-                  {!componente.es_base && (
-                    <button
-                      onClick={() => eliminarComponenteManual(index)}
-                      className="p-1 hover:bg-red-100 rounded transition-colors"
-                      title="Eliminar componente"
-                    >
-                      <XMarkIcon className="w-4 h-4 md:w-5 md:h-5 text-red-600" />
-                    </button>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {/* Estado */}
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                      Estado *
-                    </label>
-                    <select
-                      value={componente.estado}
-                      onChange={(e) => actualizarComponente(index, 'estado', e.target.value)}
-                      className="input-field"
-                    >
-                      <option value="Bueno">Bueno</option>
-                      <option value="Mantención">Mantención</option>
-                      <option value="Cambio">Cambio</option>
-                    </select>
-                  </div>
-
-                  {/* Detalle técnico */}
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                      Detalle Técnico
-                    </label>
-                    <select
-                      value={componente.detalle_tecnico}
-                      onChange={(e) => actualizarComponente(index, 'detalle_tecnico', e.target.value)}
-                      className="input-field"
-                    >
-                      <option value="">Seleccionar...</option>
-                      {DETALLES_TECNICOS.map(detalle => (
-                        <option key={detalle} value={detalle}>{detalle}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Acción propuesta */}
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                      Acción Propuesta
-                    </label>
-                    <select
-                      value={componente.accion_propuesta}
-                      onChange={(e) => actualizarComponente(index, 'accion_propuesta', e.target.value)}
-                      className="input-field"
-                    >
-                      <option value="">Seleccionar...</option>
-                      {ACCIONES_PROPUESTAS.map(accion => (
-                        <option key={accion} value={accion}>{accion}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Detalles visuales según estado */}
-                <div className="mt-3 p-2 rounded-lg border-2 ${
-                  componente.estado === 'Bueno' ? 'estado-bueno' :
-                  componente.estado === 'Cambio' ? 'estado-cambio' :
-                  'estado-mantencion'
-                }">
-                  <p className="text-xs font-medium">
-                    {componente.estado === 'Bueno' && '✓ Componente en buen estado'}
-                    {componente.estado === 'Cambio' && '⚠️ Requiere cambio'}
-                    {componente.estado === 'Mantención' && '🔧 Requiere mantención'}
-                  </p>
-                </div>
-
-                {/* Campo para detalles adicionales */}
-                <div className="mt-3">
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
-                    Observaciones
-                  </label>
-                  <textarea
-                    value={componente.observaciones || ''}
-                    onChange={(e) => actualizarComponente(index, 'observaciones', e.target.value)}
-                    className="input-field min-h-16 text-sm"
-                    placeholder="Observaciones adicionales..."
-                  />
-                </div>
-              </section>
-            ))}
-          </div>
-
-          {/* Botones de acción */}
-          <div className="flex flex-col sm:flex-row gap-2">
-            <button
-              onClick={handleVolver}
-              className="btn-secondary flex-1"
-            >
-              ← Volver
-            </button>
-            <button
-              onClick={handleContinuar}
-              className="btn-primary flex-1"
-            >
-              Continuar →
-            </button>
+          <div>
+            <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">Cilindro Telescópico</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Cliente: Minera Escondida • Planta Coloso</p>
           </div>
         </div>
-      </main>
+      </div>
+
+      {/* Progress Bar */}
+      <div className="flex flex-col gap-2 px-4 py-5">
+        <div className="flex gap-6 justify-between items-end">
+          <p className="text-slate-700 dark:text-slate-200 text-sm font-bold">Progreso de Inspección</p>
+          <p className="text-primary text-xs font-bold bg-primary/10 px-2 py-0.5 rounded">
+            {componentesCompletados}/{componentes.length} items
+          </p>
+        </div>
+        <div className="h-2 w-full rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+          <div
+            className="h-full rounded-full bg-primary transition-all duration-500 ease-out"
+            style={{ width: `${progreso}%` }}
+          ></div>
+        </div>
+      </div>
+
+      {/* Section Header */}
+      <div className="px-4 pb-2 pt-2 flex items-center justify-between">
+        <h3 className="text-slate-900 dark:text-white text-lg font-bold">Componentes</h3>
+        <button className="text-xs font-medium text-primary flex items-center gap-1">
+          <span className="material-symbols-outlined text-[16px]">filter_list</span>
+          Filtrar
+        </button>
+      </div>
+
+      {/* Component List */}
+      <div className="flex flex-col gap-4 px-4 pb-4">
+        {componentes.map((componente, index) => (
+          <div
+            key={componente.id}
+            className={`bg-white dark:bg-surface-dark rounded-xl shadow-sm border overflow-hidden relative group ${
+              componente.estado === 'pending'
+                ? 'border-slate-200 dark:border-slate-700/50 opacity-60'
+                : componente.estado !== 'bueno' && componente.expandido
+                ? `border-${getEstadoColor(componente.estado)}/50`
+                : 'border-transparent'
+            }`}
+          >
+            {/* Barra lateral de color */}
+            {componente.estado !== 'pending' && componente.expandido && componente.estado !== 'bueno' && (
+              <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-${getEstadoColor(componente.estado)}`}></div>
+            )}
+
+            <div className="p-4">
+              <div className="flex justify-between items-start mb-4 pl-2">
+                <div>
+                  <h4 className="text-base font-bold text-slate-900 dark:text-white">
+                    {index + 1}. {componente.nombre}
+                  </h4>
+                  {componente.estado !== 'pending' && (
+                    <p className={`text-xs text-${getEstadoColor(componente.estado)} font-medium mt-0.5`}>
+                      {componente.estado === 'bueno' ? 'En buen estado' :
+                       componente.estado === 'mantencion' ? 'Requiere Atención' :
+                       'Requiere Cambio'}
+                    </p>
+                  )}
+                </div>
+                {componente.estado === 'mantencion' && componente.expandido && (
+                  <span className="material-symbols-outlined text-status-maintain">warning</span>
+                )}
+              </div>
+
+              {/* Status Selectors */}
+              <div className={`grid grid-cols-3 gap-2 mb-${componente.expandido && componente.estado !== 'bueno' ? '4' : '0'} pl-2`}>
+                <button
+                  onClick={() => actualizarEstado(index, 'bueno')}
+                  className={`h-12 flex flex-col items-center justify-center rounded transition-all ${
+                    componente.estado === 'bueno'
+                      ? 'bg-status-good text-white shadow-lg ring-2 ring-status-good/30'
+                      : 'border border-slate-200 dark:border-slate-700 bg-transparent text-slate-400 hover:border-status-good hover:text-status-good'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-[20px] mb-0.5">check_circle</span>
+                  <span className="text-[10px] font-bold uppercase">Bueno</span>
+                </button>
+
+                <button
+                  onClick={() => actualizarEstado(index, 'mantencion')}
+                  className={`h-12 flex flex-col items-center justify-center rounded transition-all ${
+                    componente.estado === 'mantencion'
+                      ? 'bg-status-maintain text-white shadow-lg ring-2 ring-status-maintain/30'
+                      : 'border border-slate-200 dark:border-slate-700 bg-transparent text-slate-400 hover:border-status-maintain hover:text-status-maintain'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-[20px] mb-0.5">build</span>
+                  <span className="text-[10px] font-bold uppercase">Mantención</span>
+                </button>
+
+                <button
+                  onClick={() => actualizarEstado(index, 'cambio')}
+                  className={`h-12 flex flex-col items-center justify-center rounded transition-all ${
+                    componente.estado === 'cambio'
+                      ? 'bg-status-replace text-white shadow-lg ring-2 ring-status-replace/30'
+                      : 'border border-slate-200 dark:border-slate-700 bg-transparent text-slate-400 hover:border-status-replace hover:text-status-replace'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-[20px] mb-0.5">cancel</span>
+                  <span className="text-[10px] font-bold uppercase">Cambio</span>
+                </button>
+              </div>
+
+              {/* Expanded Section */}
+              {componente.expandido && componente.estado !== 'pending' && componente.estado !== 'bueno' && (
+                <div className="pl-2 space-y-3">
+                  <div>
+                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5 block">
+                      Observaciones Técnicas
+                    </label>
+                    <textarea
+                      value={componente.observaciones}
+                      onChange={(e) => actualizarObservaciones(index, e.target.value)}
+                      className="w-full bg-background-light dark:bg-background-dark border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:ring-1 focus:ring-status-maintain focus:border-status-maintain outline-none resize-none"
+                      placeholder="Describa el estado del componente..."
+                      rows={3}
+                    />
+                  </div>
+
+                  {/* Evidence Section */}
+                  <div className="flex gap-2 overflow-x-auto pb-1">
+                    {componente.fotos.map((foto, fotoIndex) => (
+                      <div
+                        key={fotoIndex}
+                        className="relative size-16 shrink-0 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 group/img"
+                      >
+                        <img
+                          alt={`Evidencia ${fotoIndex + 1}`}
+                          className="object-cover w-full h-full opacity-80"
+                          src={foto}
+                        />
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity">
+                          <span className="material-symbols-outlined text-white text-sm">visibility</span>
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Add Photo Button */}
+                    <button
+                      onClick={() => handleAgregarFoto(index)}
+                      className="size-16 shrink-0 rounded-lg border border-dashed border-slate-400 dark:border-slate-600 flex flex-col items-center justify-center text-slate-500 hover:text-primary hover:border-primary hover:bg-primary/5 transition-all"
+                    >
+                      <span className="material-symbols-outlined text-[20px]">add_a_photo</span>
+                      <span className="text-[9px] font-medium mt-1">Foto</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Collapsed View (for completed items) */}
+              {componente.expandido === false && componente.estado !== 'pending' && (
+                <div className="flex items-center justify-between text-xs text-slate-500">
+                  <span className="truncate max-w-[200px]">
+                    {componente.observaciones || 'Sin observaciones'}
+                  </span>
+                  <button
+                    onClick={() => toggleExpandido(index)}
+                    className="text-primary hover:text-white hover:underline flex items-center gap-1"
+                  >
+                    Editar <span className="material-symbols-outlined text-[14px]">edit</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Manual Add Section */}
+      <div className="px-4 py-2">
+        <button className="w-full py-4 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl flex items-center justify-center gap-2 text-slate-500 dark:text-slate-400 hover:border-primary hover:text-primary hover:bg-primary/5 transition-all group">
+          <div className="bg-slate-200 dark:bg-slate-800 group-hover:bg-primary group-hover:text-white rounded-full p-1 transition-colors">
+            <span className="material-symbols-outlined text-[20px]">add</span>
+          </div>
+          <span className="font-semibold text-sm">Agregar Componente Manual</span>
+        </button>
+      </div>
+
+      {/* Floating Action Button Area / Sticky Footer */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background-dark via-background-dark to-transparent pt-8 max-w-md mx-auto">
+        <button
+          onClick={handleFinalizar}
+          className="w-full bg-primary hover:bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-900/50 flex items-center justify-center gap-2 transition-transform active:scale-[0.98]"
+        >
+          <span className="material-symbols-outlined">assignment_turned_in</span>
+          Finalizar Peritaje
+        </button>
+      </div>
     </div>
   )
 }

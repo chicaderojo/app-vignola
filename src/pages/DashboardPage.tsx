@@ -75,6 +75,10 @@ function DashboardPage() {
     navigate(`/inspeccion/${inspeccionId}/recepcion`)
   }
 
+  const handleVerHistorial = () => {
+    navigate('/historial')
+  }
+
   const handleCerrarSesion = () => {
     authService.logout()
     window.location.href = '/login'
@@ -204,7 +208,10 @@ function DashboardPage() {
       <div className="px-4 pt-6">
         <h3 className="text-slate-900 dark:text-white text-lg font-bold mb-3">Acciones Rápidas</h3>
         <div className="grid grid-cols-2 gap-3">
-          <button className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-dark transition-colors">
+          <button
+            onClick={handleVerHistorial}
+            className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-dark transition-colors"
+          >
             <div className="flex items-center justify-center size-10 rounded-full bg-blue-500/10 text-blue-500">
               <span className="material-symbols-outlined">history</span>
             </div>

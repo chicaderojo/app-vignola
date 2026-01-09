@@ -14,6 +14,10 @@ export default {
         "surface-dark": "#1a2632",
         "surface-card": "#243647",
         "border-dark": "#344d65",
+        "text-muted-dark": "#93adc8",
+        "status-good": "#10b981",
+        "status-maintain": "#f59e0b",
+        "status-replace": "#ef4444",
       },
       fontFamily: {
         display: ["Inter", "system-ui", "sans-serif"],
