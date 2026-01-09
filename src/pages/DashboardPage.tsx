@@ -98,6 +98,14 @@ function DashboardPage() {
     navigate('/tareas')
   }
 
+  const handleInicio = () => {
+    setActiveNav('inicio')
+  }
+
+  const handleBuscar = () => {
+    navigate('/buscar')
+  }
+
   return (
     <div className="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto bg-background-light dark:bg-background-dark pb-24">
 
@@ -325,7 +333,7 @@ function DashboardPage() {
       <nav className="fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-surface-card/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-700 pb-safe z-50 max-w-md mx-auto">
         <div className="flex justify-around items-center h-16 px-2">
           <button
-            onClick={() => setActiveNav('inicio')}
+            onClick={handleVerTareas}
             className={`flex flex-1 flex-col items-center justify-center gap-1 ${
               activeNav === 'inicio' ? 'text-primary' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
             } transition-colors`}
@@ -335,7 +343,7 @@ function DashboardPage() {
           </button>
 
           <button
-            onClick={() => setActiveNav('buscar')}
+            onClick={handleBuscar}
             className={`flex flex-1 flex-col items-center justify-center gap-1 ${
               activeNav === 'buscar' ? 'text-primary' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
             } transition-colors`}

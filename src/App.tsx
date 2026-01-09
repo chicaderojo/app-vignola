@@ -9,6 +9,7 @@ import PruebasPage from './pages/PruebasPage'
 import HistorialPage from './pages/HistorialPage'
 import DetallesInspeccionPage from './pages/DetallesInspeccionPage'
 import InspeccionesPendientesPage from './pages/InspeccionesPendientesPage'
+import BusquedaAvanzadaPage from './pages/BusquedaAvanzadaPage'
 import SyncStatusIndicator from './components/SyncStatusIndicator'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -81,6 +82,14 @@ function App() {
           element={
             <PrivateRoute>
               <InspeccionesPendientesPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/buscar"
+          element={
+            <PrivateRoute>
+              <BusquedaAvanzadaPage />
             </PrivateRoute>
           }
         />
