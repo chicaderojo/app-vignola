@@ -231,16 +231,16 @@ function DashboardPage() {
 
           <button className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-dark transition-colors">
             <div className="flex items-center justify-center size-10 rounded-full bg-orange-500/10 text-orange-500">
-              <span className="material-symbols-outlined">warning</span>
+              <span className="material-symbols-outlined">refresh</span>
             </div>
-            <span className="font-medium text-sm text-slate-700 dark:text-slate-200">Reportar</span>
+            <span className="font-medium text-sm text-slate-700 dark:text-slate-200">Reingresos</span>
           </button>
 
           <button className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-dark transition-colors">
             <div className="flex items-center justify-center size-10 rounded-full bg-teal-500/10 text-teal-500">
-              <span className="material-symbols-outlined">tune</span>
+              <span className="material-symbols-outlined">speed</span>
             </div>
-            <span className="font-medium text-sm text-slate-700 dark:text-slate-200">Calibrar</span>
+            <span className="font-medium text-sm text-slate-700 dark:text-slate-200">Pruebas</span>
           </button>
         </div>
       </div>
