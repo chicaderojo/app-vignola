@@ -1,11 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useTheme } from '../hooks/useTheme'
 
 function RecepcionPage() {
   const navigate = useNavigate()
   const { id } = useParams()
-  const { isDark, toggleTheme } = useTheme()
 
   // Form state
   const [nombreCliente, setNombreCliente] = useState('')

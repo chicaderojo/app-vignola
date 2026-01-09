@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useTheme } from '../hooks/useTheme'
 
 type ComponenteStatus = 'pending' | 'bueno' | 'mantencion' | 'cambio'
 
@@ -16,7 +15,6 @@ interface Componente {
 function PeritajePage() {
   const navigate = useNavigate()
   const { id } = useParams()
-  const { isDark } = useTheme()
 
   // Mock data para componentes
   const [componentes, setComponentes] = useState<Componente[]>([
@@ -132,24 +130,6 @@ function PeritajePage() {
       case 'mantencion': return 'status-maintain'
       case 'cambio': return 'status-replace'
       default: return ''
-    }
-  }
-
-  const getEstadoLabel = (estado: ComponenteStatus) => {
-    switch (estado) {
-      case 'bueno': return 'BUENO'
-      case 'mantencion': return 'MANTENCIÓN'
-      case 'cambio': return 'CAMBIO'
-      case 'pending': return 'Pendiente'
-    }
-  }
-
-  const getEstadoIcon = (estado: ComponenteStatus) => {
-    switch (estado) {
-      case 'bueno': return 'check_circle'
-      case 'mantencion': return 'build'
-      case 'cambio': return 'cancel'
-      case 'pending': return 'help'
     }
   }
 
