@@ -1,9 +1,12 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useLiveQuery } from 'dexie-react-hooks'
+import { db } from '../db/dexie'
+import { api } from '../services/api'
 import { v4 as uuidv4 } from 'uuid'
 
 type Priority = 'normal' | 'urgent'
-type Status = 'recepcion' | 'peritaje' | 'taller' | 'pruebas' | 'completado'
+type Status = 'borrador' | 'recepcion' | 'peritaje' | 'taller' | 'pruebas' | 'completado'
 
 interface InspeccionPendiente {
   id: string
@@ -14,6 +17,7 @@ interface InspeccionPendiente {
   estado: Status
   fecha: string
   progreso: number
+  etapas_completadas: string[]
 }
 
 function InspeccionesPendientesPage() {
@@ -21,73 +25,125 @@ function InspeccionesPendientesPage() {
 
   const [filtroActivo, setFiltroActivo] = useState<'todos' | 'peritaje' | 'pruebas' | 'urgentes'>('todos')
   const [busqueda, setBusqueda] = useState('')
+  const [online, setOnline] = useState(navigator.onLine)
+  const [sincronizando, setSincronizando] = useState(false)
 
-  // Mock data para inspecciones pendientes
-  const [inspecciones] = useState<InspeccionPendiente[]>([
-    {
-      id: '1',
-      codigo: 'CH-9942-B',
-      cliente: 'Minera Escondida',
-      equipo: 'CAT 797F',
-      prioridad: 'urgent',
-      estado: 'peritaje',
-      fecha: '12 Oct 2023',
-      progreso: 58
-    },
-    {
-      id: '2',
-      codigo: 'CH-8821-X',
-      cliente: 'BHP Billiton',
-      equipo: 'Komatsu 930E',
-      prioridad: 'normal',
-      estado: 'pruebas',
-      fecha: '15 Oct 2023',
-      progreso: 66
-    },
-    {
-      id: '3',
-      codigo: 'CH-7750-A',
-      cliente: 'Anglo American',
-      equipo: 'Los Bronces',
-      prioridad: 'normal',
-      estado: 'recepcion',
-      fecha: 'Hoy, 08:30 AM',
-      progreso: 20
-    },
-    {
-      id: '4',
-      codigo: 'CH-6523-C',
-      cliente: 'Codelco',
-      equipo: 'Liebherr T282',
-      prioridad: 'urgent',
-      estado: 'peritaje',
-      fecha: 'Ayer',
-      progreso: 45
+  // Obtener inspecciones locales con Dexie React Hooks
+  const inspeccionesLocales = useLiveQuery(
+    () => db.inspeccionesLocales.toArray(),
+    []
+  )
+
+  // Estado para inspecciones combinadas (locales + nube)
+  const [inspecciones, setInspecciones] = useState<InspeccionPendiente[]>([])
+
+  // Verificar estado de conexión
+  useEffect(() => {
+    const handleOnline = () => setOnline(true)
+    const handleOffline = () => setOnline(false)
+
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
     }
-  ])
+  }, [])
+
+  // Cargar inspecciones desde la API cuando está online
+  useEffect(() => {
+    if (online) {
+      cargarInspeccionesDesdeAPI()
+    }
+  }, [online])
+
+  // Combinar inspecciones locales y de la nube
+  useEffect(() => {
+    const listaCombinada: InspeccionPendiente[] = []
+
+    // Agregar inspecciones locales
+    if (inspeccionesLocales) {
+      inspeccionesLocales.forEach((insp: any) => {
+        const etapas = insp.etapas_completadas || []
+        const progreso = calcularProgreso(etapas)
+
+        listaCombinada.push({
+          id: insp.id,
+          codigo: insp.codigo || `CH-${insp.id.slice(-4)}`,
+          cliente: insp.cliente || 'Cliente local',
+          equipo: insp.equipo || 'Equipo no especificado',
+          prioridad: insp.prioridad || 'normal',
+          estado: determinarEstado(etapas),
+          fecha: new Date(insp.fecha_creacion).toLocaleDateString('es-CL'),
+          progreso,
+          etapas_completadas: etapas
+        })
+      })
+    }
+
+    setInspecciones(listaCombinada)
+  }, [inspeccionesLocales])
+
+  const cargarInspeccionesDesdeAPI = async () => {
+    try {
+      setSincronizando(true)
+      const response = await api.get('/inspecciones?estado=pendiente')
+      // Aquí podrías combinar con las inspecciones locales
+    } catch (error) {
+      console.error('Error cargando inspecciones desde API:', error)
+    } finally {
+      setSincronizando(false)
+    }
+  }
+
+  const calcularProgreso = (etapas: string[]): number => {
+    const totalEtapas = 4 // recepcion, peritaje, pruebas, finalizado
+    const completadas = etapas.length
+    return Math.round((completadas / totalEtapas) * 100)
+  }
+
+  const determinarEstado = (etapas: string[]): Status => {
+    if (etapas.includes('finalizado')) return 'completado'
+    if (etapas.includes('pruebas')) return 'pruebas'
+    if (etapas.includes('peritaje')) return 'taller'
+    if (etapas.includes('recepcion')) return 'peritaje'
+    return 'recepcion'
+  }
 
   const handleNuevaInspeccion = () => {
     const inspeccionId = uuidv4()
     navigate(`/inspeccion/${inspeccionId}/recepcion`)
   }
 
-  const handleContinuarInspeccion = (inspeccionId: string) => {
-    const inspeccion = inspecciones.find(i => i.id === inspeccionId)
-    if (!inspeccion) return
+  const handleContinuarInspeccion = async (inspeccionId: string) => {
+    try {
+      // Obtener datos de la inspección desde Dexie
+      const inspeccion = await db.inspeccionesLocales.get(inspeccionId)
 
-    // Navegar a la etapa correspondiente
-    switch (inspeccion.estado) {
-      case 'recepcion':
-        navigate(`/inspeccion/${inspeccionId}/recepcion`)
-        break
-      case 'peritaje':
-        navigate(`/inspeccion/${inspeccionId}/peritaje`)
-        break
-      case 'pruebas':
-        navigate(`/inspeccion/${inspeccionId}/pruebas`)
-        break
-      default:
-        navigate(`/inspeccion/${inspeccionId}/recepcion`)
+      if (!inspeccion) {
+        console.error('Inspección no encontrada')
+        return
+      }
+
+      const etapas = inspeccion.etapas_completadas || []
+      let ruta = `/inspeccion/${inspeccionId}/recepcion`
+
+      // Determinar a qué etapa navegar
+      if (!etapas.includes('recepcion')) {
+        ruta = `/inspeccion/${inspeccionId}/recepcion`
+      } else if (!etapas.includes('peritaje')) {
+        ruta = `/inspeccion/${inspeccionId}/peritaje`
+      } else if (!etapas.includes('pruebas')) {
+        ruta = `/inspeccion/${inspeccionId}/pruebas`
+      } else {
+        // Si todas las etapas están completas, ver detalles
+        ruta = `/inspeccion/${inspeccionId}/detalles`
+      }
+
+      navigate(ruta)
+    } catch (error) {
+      console.error('Error al continuar inspección:', error)
     }
   }
 
@@ -98,6 +154,7 @@ function InspeccionesPendientesPage() {
       case 'taller': return 'En Taller'
       case 'pruebas': return 'Esperando Banco de Pruebas'
       case 'completado': return 'Completado'
+      default: return 'Borrador'
     }
   }
 
@@ -108,13 +165,15 @@ function InspeccionesPendientesPage() {
       case 'taller': return 'bg-yellow-500'
       case 'pruebas': return 'bg-primary'
       case 'completado': return 'bg-green-500'
+      default: return 'bg-slate-400'
     }
   }
 
   // Filtrar inspecciones
   const inspeccionesFiltradas = inspecciones.filter(inspeccion => {
-    const cumpleFiltro = filtroActivo === 'todos' ||
-      (filtroActivo === 'peritaje' && inspeccion.estado === 'peritaje') ||
+    const cumpleFiltro =
+      filtroActivo === 'todos' ||
+      (filtroActivo === 'peritaje' && (inspeccion.estado === 'peritaje' || inspeccion.estado === 'recepcion')) ||
       (filtroActivo === 'pruebas' && inspeccion.estado === 'pruebas') ||
       (filtroActivo === 'urgentes' && inspeccion.prioridad === 'urgent')
 
@@ -125,7 +184,9 @@ function InspeccionesPendientesPage() {
     return cumpleFiltro && cumpleBusqueda
   })
 
-  const countPeritaje = inspecciones.filter(i => i.estado === 'peritaje').length
+  const countPeritaje = inspecciones.filter(i =>
+    i.estado === 'peritaje' || i.estado === 'recepcion'
+  ).length
   const countPruebas = inspecciones.filter(i => i.estado === 'pruebas').length
   const countUrgentes = inspecciones.filter(i => i.prioridad === 'urgent').length
 
@@ -144,9 +205,13 @@ function InspeccionesPendientesPage() {
             <h2 className="text-lg font-bold leading-tight tracking-tight">Inspecciones Pendientes</h2>
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 bg-green-500/10 text-green-500 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
-              <span className="size-2 bg-green-500 rounded-full animate-pulse"></span>
-              Online
+            <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+              online
+                ? 'bg-green-500/10 text-green-500'
+                : 'bg-yellow-500/10 text-yellow-500'
+            }`}>
+              <span className={`size-2 rounded-full ${online ? 'bg-green-500 animate-pulse' : 'bg-yellow-500'}`}></span>
+              {online ? 'Online' : 'Offline'}
             </div>
           </div>
         </div>
@@ -230,147 +295,180 @@ function InspeccionesPendientesPage() {
           </button>
         </div>
 
+        {/* Sync Status */}
+        {sincronizando && (
+          <div className="mx-4 mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-blue-500 animate-spin">sync</span>
+              <span className="text-sm text-blue-800 dark:text-blue-300">Sincronizando con el servidor...</span>
+            </div>
+          </div>
+        )}
+
         {/* Section Header */}
         <div className="flex items-center justify-between px-4 pt-2 pb-2">
           <h3 className="text-slate-900 dark:text-white text-base font-bold uppercase tracking-widest">Lista de Trabajo</h3>
-          <span className="text-slate-500 text-xs font-medium uppercase">Última act: 10:45 AM</span>
+          <span className="text-slate-500 text-xs font-medium uppercase">
+            {!online ? 'Modo Offline' : `Última act: ${new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}`}
+          </span>
         </div>
 
         {/* Inspection Cards List */}
         <div className="flex flex-col gap-4 p-4">
-          {inspeccionesFiltradas.map((inspeccion) => (
-            <div
-              key={inspeccion.id}
-              className={`relative overflow-hidden group ${
-                inspeccion.prioridad === 'urgent'
-                  ? 'flex flex-col rounded-xl border border-red-500/30 bg-white dark:bg-surface-dark shadow-lg dark:shadow-none overflow-hidden'
-                  : 'flex flex-col rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark shadow-sm overflow-hidden'
-              }`}
-            >
-              {/* Priority indicator */}
-              {inspeccion.prioridad === 'urgent' && (
-                <div className="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
+          {inspeccionesFiltradas.length === 0 ? (
+            <div className="text-center py-12">
+              <span className="material-symbols-outlined text-6xl text-gray-300 dark:text-gray-600">search_off</span>
+              <p className="text-gray-500 dark:text-gray-400 mt-4">
+                {!online ? 'Sin conexión. Mostrando solo datos locales.' : 'No se encontraron inspecciones pendientes'}
+              </p>
+              {busqueda && (
+                <button
+                  onClick={() => setBusqueda('')}
+                  className="mt-4 text-primary font-medium"
+                >
+                  Limpiar búsqueda
+                </button>
               )}
+            </div>
+          ) : (
+            inspeccionesFiltradas.map((inspeccion) => (
+              <div
+                key={inspeccion.id}
+                className={`relative overflow-hidden group ${
+                  inspeccion.prioridad === 'urgent'
+                    ? 'flex flex-col rounded-xl border border-red-500/30 bg-white dark:bg-surface-dark shadow-lg dark:shadow-none overflow-hidden'
+                    : 'flex flex-col rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark shadow-sm overflow-hidden'
+                }`}
+              >
+                {/* Priority indicator */}
+                {inspeccion.prioridad === 'urgent' && (
+                  <div className="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
+                )}
 
-              <div className="p-4 flex flex-col gap-3">
-                <div className="flex justify-between items-start">
-                  <div>
-                    {inspeccion.prioridad === 'urgent' && (
-                      <p className="text-red-500 text-[10px] font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
-                        <span className="material-symbols-outlined text-xs">priority_high</span>
-                        Prioridad Alta
+                <div className="p-4 flex flex-col gap-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      {inspeccion.prioridad === 'urgent' && (
+                        <p className="text-red-500 text-[10px] font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
+                          <span className="material-symbols-outlined text-xs">priority_high</span>
+                          Prioridad Alta
+                        </p>
+                      )}
+                      {inspeccion.estado === 'pruebas' && (
+                        <p className="text-primary text-[10px] font-bold uppercase tracking-wider mb-1">
+                          Prueba Hidráulica
+                        </p>
+                      )}
+                      {inspeccion.estado === 'recepcion' && (
+                        <p className="text-slate-400 dark:text-text-muted-dark text-[10px] font-bold uppercase tracking-wider mb-1">
+                          Recién Ingresado
+                        </p>
+                      )}
+                      {inspeccion.estado === 'peritaje' && (
+                        <p className="text-primary text-[10px] font-bold uppercase tracking-wider mb-1">
+                          En Evaluación
+                        </p>
+                      )}
+                      <h4 className="text-slate-900 dark:text-white text-xl font-black tracking-tight">{inspeccion.codigo}</h4>
+                      <p className="text-slate-500 dark:text-text-muted-dark text-sm font-medium">
+                        {inspeccion.cliente} • {inspeccion.equipo}
                       </p>
-                    )}
-                    {inspeccion.estado === 'pruebas' && (
-                      <p className="text-primary text-[10px] font-bold uppercase tracking-wider mb-1">
-                        Prueba Hidráulica
-                      </p>
-                    )}
-                    {inspeccion.estado === 'recepcion' && (
-                      <p className="text-slate-400 dark:text-text-muted-dark text-[10px] font-bold uppercase tracking-wider mb-1">
-                        Recién Ingresado
-                      </p>
-                    )}
-                    <h4 className="text-slate-900 dark:text-white text-xl font-black tracking-tight">{inspeccion.codigo}</h4>
-                    <p className="text-slate-500 dark:text-text-muted-dark text-sm font-medium">
-                      {inspeccion.cliente} • {inspeccion.equipo}
-                    </p>
-                  </div>
-                  {inspeccion.prioridad !== 'urgent' && inspeccion.estado !== 'recepcion' && (
-                    <div className="bg-slate-100 dark:bg-slate-800 p-2 rounded-lg">
-                      <span className="material-symbols-outlined text-slate-400">precision_manufacturing</span>
                     </div>
-                  )}
-                </div>
-
-                {/* Progress Bar */}
-                <div className="flex flex-col gap-2 py-2">
-                  {inspeccion.estado === 'peritaje' && (
-                    <>
-                      <div className="flex items-center justify-between text-xs text-slate-500 dark:text-text-muted-dark">
-                        <span>Recepción</span>
-                        <span>Peritaje</span>
-                        <span className="opacity-40">Taller</span>
+                    {inspeccion.prioridad !== 'urgent' && inspeccion.estado !== 'recepcion' && (
+                      <div className="bg-slate-100 dark:bg-slate-800 p-2 rounded-lg">
+                        <span className="material-symbols-outlined text-slate-400">precision_manufacturing</span>
                       </div>
-                      <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full flex">
-                        <div className="bg-green-500 h-full w-1/3 rounded-l-full border-r border-slate-900/10"></div>
-                        <div className="bg-primary h-full w-1/4 animate-pulse"></div>
-                      </div>
-                    </>
-                  )}
+                    )}
+                  </div>
 
-                  {inspeccion.estado === 'pruebas' && (
-                    <>
-                      <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full flex">
-                        <div className="bg-green-500 h-full w-2/3 rounded-l-full"></div>
-                      </div>
-                    </>
-                  )}
-
-                  {inspeccion.estado === 'recepcion' && (
-                    <>
-                      <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full">
-                        <div className={`${getProgresoColor(inspeccion.estado)} h-full w-1/5 rounded-full`}></div>
-                      </div>
-                    </>
-                  )}
-
-                  <p className="text-slate-400 dark:text-text-muted-dark text-xs">
-                    Recibido: {inspeccion.fecha} •{' '}
-                    <span className={inspeccion.estado === 'peritaje' ? 'text-primary font-semibold' : 'text-slate-300 dark:text-slate-400'}>
-                      {getEstadoLabel(inspeccion.estado)}
-                    </span>
-                  </p>
-                </div>
-
-                {/* Action Buttons */}
-                <div className={`gap-2 mt-2 ${inspeccion.estado === 'recepcion' ? 'flex' : 'flex'}`}>
-                  <button
-                    onClick={() => handleContinuarInspeccion(inspeccion.id)}
-                    className={`flex items-center justify-center gap-2 rounded-lg font-bold py-3 text-sm transition-transform active:scale-95 ${
-                      inspeccion.estado === 'recepcion'
-                        ? 'w-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white'
-                        : 'flex-1 bg-primary text-white'
-                    }`}
-                  >
-                    {inspeccion.estado === 'recepcion' ? (
-                      <>INICIAR PERITAJE</>
-                    ) : (
+                  {/* Progress Bar */}
+                  <div className="flex flex-col gap-2 py-2">
+                    {inspeccion.estado === 'peritaje' && (
                       <>
-                        <span className="material-symbols-outlined text-sm">play_arrow</span>
-                        CONTINUAR
+                        <div className="flex items-center justify-between text-xs text-slate-500 dark:text-text-muted-dark">
+                          <span>Recepción</span>
+                          <span>Peritaje</span>
+                          <span className="opacity-40">Taller</span>
+                        </div>
+                        <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full flex">
+                          <div className="bg-green-500 h-full w-1/3 rounded-l-full border-r border-slate-900/10"></div>
+                          <div className="bg-primary h-full w-1/4 animate-pulse"></div>
+                        </div>
                       </>
                     )}
-                  </button>
 
-                  {inspeccion.estado !== 'recepcion' && (
-                    <>
+                    {inspeccion.estado === 'pruebas' && (
+                      <>
+                        <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full flex">
+                          <div className="bg-green-500 h-full w-2/3 rounded-l-full"></div>
+                        </div>
+                      </>
+                    )}
+
+                    {inspeccion.estado === 'recepcion' && (
+                      <>
+                        <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full">
+                          <div className={`${getProgresoColor(inspeccion.estado)} h-full w-1/5 rounded-full`}></div>
+                        </div>
+                      </>
+                    )}
+
+                    {inspeccion.estado !== 'recepcion' && inspeccion.estado !== 'peritaje' && inspeccion.estado !== 'pruebas' && (
+                      <>
+                        <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full">
+                          <div className={`${getProgresoColor(inspeccion.estado)} h-full rounded-full`} style={{ width: `${inspeccion.progreso}%` }}></div>
+                        </div>
+                      </>
+                    )}
+
+                    <p className="text-slate-400 dark:text-text-muted-dark text-xs">
+                      Recibido: {inspeccion.fecha} •{' '}
+                      <span className={inspeccion.estado === 'peritaje' ? 'text-primary font-semibold' : 'text-slate-300 dark:text-slate-400'}>
+                        {getEstadoLabel(inspeccion.estado)}
+                      </span>
+                    </p>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className={`gap-2 mt-2 flex`}>
+                    <button
+                      onClick={() => handleContinuarInspeccion(inspeccion.id)}
+                      className={`flex items-center justify-center gap-2 rounded-lg font-bold py-3 text-sm transition-transform active:scale-95 ${
+                        inspeccion.estado === 'recepcion'
+                          ? 'w-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white'
+                          : 'flex-1 bg-primary text-white'
+                      }`}
+                    >
+                      {inspeccion.estado === 'recepcion' ? (
+                        <>INICIAR PERITAJE</>
+                      ) : (
+                        <>
+                          <span className="material-symbols-outlined text-sm">play_arrow</span>
+                          CONTINUAR
+                        </>
+                      )}
+                    </button>
+
+                    {inspeccion.estado !== 'recepcion' && (
                       <button className="w-12 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-400">
                         <span className="material-symbols-outlined">more_vert</span>
                       </button>
-                    </>
-                  )}
+                    )}
 
-                  {inspeccion.estado === 'pruebas' && (
-                    <button className="w-12 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-400">
-                      <span className="material-symbols-outlined text-sm">history</span>
-                    </button>
-                  )}
+                    {inspeccion.estado === 'pruebas' && (
+                      <button className="w-12 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-400">
+                        <span className="material-symbols-outlined text-sm">history</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-
-          {inspeccionesFiltradas.length === 0 && (
-            <div className="text-center py-12">
-              <span className="material-symbols-outlined text-6xl text-gray-300 dark:text-gray-600">search_off</span>
-              <p className="text-gray-500 dark:text-gray-400 mt-4">No se encontraron inspecciones pendientes</p>
-            </div>
+            ))
           )}
         </div>
 
         {/* Float Action Button (Quick New Inspection) */}
-        <div className="fixed bottom-6 right-6">
+        <div className="fixed bottom-6 right-6 z-40">
           <button
             onClick={handleNuevaInspeccion}
             className="size-14 rounded-full bg-primary text-white shadow-2xl flex items-center justify-center active:scale-90 transition-transform"

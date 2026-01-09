@@ -79,6 +79,10 @@ function DashboardPage() {
     navigate('/historial')
   }
 
+  const handleVerInspeccionesPendientes = () => {
+    navigate('/inspecciones-pendientes')
+  }
+
   const handleCerrarSesion = () => {
     authService.logout()
     window.location.href = '/login'
@@ -326,7 +330,10 @@ function DashboardPage() {
           </button>
 
           <button
-            onClick={() => setActiveNav('tareas')}
+            onClick={() => {
+              setActiveNav('tareas')
+              handleVerInspeccionesPendientes()
+            }}
             className={`flex flex-1 flex-col items-center justify-center gap-1 ${
               activeNav === 'tareas' ? 'text-primary' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
             } transition-colors`}
