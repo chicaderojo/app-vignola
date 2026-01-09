@@ -8,6 +8,7 @@ import PeritajePage from './pages/PeritajePage'
 import PruebasPage from './pages/PruebasPage'
 import HistorialPage from './pages/HistorialPage'
 import DetallesInspeccionPage from './pages/DetallesInspeccionPage'
+import InspeccionesPendientesPage from './pages/InspeccionesPendientesPage'
 import SyncStatusIndicator from './components/SyncStatusIndicator'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -64,6 +65,14 @@ function App() {
           element={
             <PrivateRoute>
               <HistorialPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/inspecciones-pendientes"
+          element={
+            <PrivateRoute>
+              <InspeccionesPendientesPage />
             </PrivateRoute>
           }
         />
