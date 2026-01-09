@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { authService } from '../services/api'
 import { v4 as uuidv4 } from 'uuid'
+import { useTheme } from '../hooks/useTheme'
 
 // Mock data para tareas
 const MOCK_TAREAS = [
@@ -40,6 +41,7 @@ const MOCK_TAREAS = [
 function DashboardPage() {
   const navigate = useNavigate()
   const user = authService.getCurrentUser()
+  const { isDark, toggleTheme } = useTheme()
 
   const [syncStatus, setSyncStatus] = useState({ pendiente: false, numero_items: 0, online: true })
   const [activeNav, setActiveNav] = useState('inicio')
@@ -120,6 +122,15 @@ function DashboardPage() {
                 {syncStatus.online ? 'Online' : 'Offline'}
               </span>
             </div>
+            <button
+              onClick={toggleTheme}
+              className="flex items-center justify-center rounded-full size-10 bg-transparent text-slate-700 dark:text-white hover:bg-slate-100 dark:hover:bg-surface-dark transition-colors"
+              aria-label="Cambiar tema"
+            >
+              <span className="material-symbols-outlined">
+                {isDark ? 'light_mode' : 'dark_mode'}
+              </span>
+            </button>
             <button className="flex items-center justify-center rounded-full size-10 bg-transparent text-slate-700 dark:text-white hover:bg-slate-100 dark:hover:bg-surface-dark transition-colors">
               <span className="material-symbols-outlined">notifications</span>
             </button>
