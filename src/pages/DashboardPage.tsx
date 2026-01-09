@@ -10,7 +10,7 @@ const MOCK_TAREAS = [
     id: 'HYD-1102',
     titulo: 'Cilindro Telescópico',
     cliente: 'AgroTech S.A.',
-    estado: 'Limpieza',
+    estado: 'Inspección',
     estadoColor: 'primary',
     fecha: 'Hoy, 14:00',
     ubicacion: 'Taller B',
@@ -20,7 +20,7 @@ const MOCK_TAREAS = [
     id: 'HYD-4592',
     titulo: 'Cilindro Doble Efecto',
     cliente: 'Mining Corp',
-    estado: 'Espera Repuesto',
+    estado: 'Mantención',
     estadoColor: 'orange',
     fecha: 'Ayer, 09:30',
     ubicacion: 'Almacén',
@@ -35,6 +35,16 @@ const MOCK_TAREAS = [
     fecha: 'Ayer, 16:45',
     ubicacion: 'Taller A',
     progreso: 100
+  },
+  {
+    id: 'HYD-9943',
+    titulo: 'Sistema Hidráulico',
+    cliente: 'Minera Escondida',
+    estado: 'Parámetros',
+    estadoColor: 'purple',
+    fecha: 'Hoy, 10:15',
+    ubicacion: 'Laboratorio',
+    progreso: 75
   }
 ]
 
@@ -262,7 +272,9 @@ function DashboardPage() {
             >
               <div className={`absolute left-0 top-0 bottom-0 w-1 ${
                 tarea.estadoColor === 'primary' ? 'bg-primary' :
-                tarea.estadoColor === 'orange' ? 'bg-orange-500' : 'bg-green-500'
+                tarea.estadoColor === 'orange' ? 'bg-orange-500' :
+                tarea.estadoColor === 'purple' ? 'bg-purple-500' :
+                'bg-green-500'
               }`}></div>
 
               <div className="flex justify-between items-start mb-2">
@@ -276,13 +288,16 @@ function DashboardPage() {
                 <span className={`flex items-center gap-1 ${
                   tarea.estadoColor === 'primary' ? 'bg-primary/10 text-primary' :
                   tarea.estadoColor === 'orange' ? 'bg-orange-500/10 text-orange-500' :
+                  tarea.estadoColor === 'purple' ? 'bg-purple-500/10 text-purple-500' :
                   'bg-green-500/10 text-green-500'
                 } px-2 py-1 rounded text-xs font-bold`}>
                   {tarea.progreso < 100 && (
                     <span className={`size-1.5 rounded-full ${
                       tarea.estadoColor === 'primary' ? 'bg-primary' :
-                      tarea.estadoColor === 'orange' ? 'bg-orange-500' : 'bg-green-500'
-                    } ${tarea.estado === 'Limpieza' ? 'animate-pulse' : ''}`}></span>
+                      tarea.estadoColor === 'orange' ? 'bg-orange-500' :
+                      tarea.estadoColor === 'purple' ? 'bg-purple-500' :
+                      'bg-green-500'
+                    } ${tarea.estado === 'Inspección' ? 'animate-pulse' : ''}`}></span>
                   )}
                   {tarea.progreso === 100 && (
                     <span className="material-symbols-outlined text-[14px]">check</span>

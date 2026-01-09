@@ -18,6 +18,7 @@ export default {
         "status-good": "#10b981",
         "status-maintain": "#f59e0b",
         "status-replace": "#ef4444",
+        purple: "#9333ea",
       },
       fontFamily: {
         display: ["Inter", "system-ui", "sans-serif"],
