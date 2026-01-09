@@ -66,8 +66,7 @@ function HistorialPage() {
   }
 
   const handleVerDetalles = (inspeccionId: string) => {
-    console.log('Ver detalles de inspección:', inspeccionId)
-    // Aquí navegaríamos a una página de detalles
+    navigate(`/inspeccion/${inspeccionId}/detalles`)
   }
 
   const getEstadoInfo = (estado: InspeccionStatus) => {
