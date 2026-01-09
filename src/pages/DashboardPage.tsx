@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { authService } from '../services/api'
 import { v4 as uuidv4 } from 'uuid'
+import { useTheme } from '../hooks/useTheme'
 
 // Mock data para tareas
 const MOCK_TAREAS = [
@@ -40,6 +41,7 @@ const MOCK_TAREAS = [
 function DashboardPage() {
   const navigate = useNavigate()
   const user = authService.getCurrentUser()
+  const { isDark, toggleTheme } = useTheme()
 
   const [syncStatus, setSyncStatus] = useState({ pendiente: false, numero_items: 0, online: true })
   const [activeNav, setActiveNav] = useState('inicio')
@@ -71,6 +73,10 @@ function DashboardPage() {
   const handleNuevaInspeccion = () => {
     const inspeccionId = uuidv4()
     navigate(`/inspeccion/${inspeccionId}/recepcion`)
+  }
+
+  const handleVerHistorial = () => {
+    navigate('/historial')
   }
 
   const handleCerrarSesion = () => {
@@ -120,6 +126,15 @@ function DashboardPage() {
                 {syncStatus.online ? 'Online' : 'Offline'}
               </span>
             </div>
+            <button
+              onClick={toggleTheme}
+              className="flex items-center justify-center rounded-full size-10 bg-transparent text-slate-700 dark:text-white hover:bg-slate-100 dark:hover:bg-surface-dark transition-colors"
+              aria-label="Cambiar tema"
+            >
+              <span className="material-symbols-outlined">
+                {isDark ? 'light_mode' : 'dark_mode'}
+              </span>
+            </button>
             <button className="flex items-center justify-center rounded-full size-10 bg-transparent text-slate-700 dark:text-white hover:bg-slate-100 dark:hover:bg-surface-dark transition-colors">
               <span className="material-symbols-outlined">notifications</span>
             </button>
@@ -193,7 +208,10 @@ function DashboardPage() {
       <div className="px-4 pt-6">
         <h3 className="text-slate-900 dark:text-white text-lg font-bold mb-3">Acciones Rápidas</h3>
         <div className="grid grid-cols-2 gap-3">
-          <button className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-dark transition-colors">
+          <button
+            onClick={handleVerHistorial}
+            className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-dark transition-colors"
+          >
             <div className="flex items-center justify-center size-10 rounded-full bg-blue-500/10 text-blue-500">
               <span className="material-symbols-outlined">history</span>
             </div>

@@ -6,6 +6,8 @@ import NuevaInspeccionPage from './pages/NuevaInspeccionPage'
 import RecepcionPage from './pages/RecepcionPage'
 import PeritajePage from './pages/PeritajePage'
 import PruebasPage from './pages/PruebasPage'
+import HistorialPage from './pages/HistorialPage'
+import DetallesInspeccionPage from './pages/DetallesInspeccionPage'
 import SyncStatusIndicator from './components/SyncStatusIndicator'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -54,6 +56,22 @@ function App() {
           element={
             <PrivateRoute>
               <PruebasPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/historial"
+          element={
+            <PrivateRoute>
+              <HistorialPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/inspeccion/:id/detalles"
+          element={
+            <PrivateRoute>
+              <DetallesInspeccionPage />
             </PrivateRoute>
           }
         />

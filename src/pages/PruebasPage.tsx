@@ -1,344 +1,337 @@
-import { useState, useEffect } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
-import { ArrowLeftIcon, CheckCircleIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline'
-import { ComponentePeritaje } from '../types'
+import { useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 
 function PruebasPage() {
   const navigate = useNavigate()
-  const location = useLocation()
-  const { cilindro, fotos, notas, componentes } = location.state || {}
+  const { id } = useParams()
 
-  const [presionPrueba, setPresionPrueba] = useState('180')
-  const [fugaExterna, setFugaExterna] = useState(false)
-  const [fugaInterna, setFugaInterna] = useState(false)
-  const [cicloCompleto, setCicloCompleto] = useState(false)
-  const [notasPruebas, setNotasPruebas] = useState('')
-  const [generandoPDF, setGenerandoPDF] = useState(false)
+  // Form state
+  const [presionObjetivo, setPresionObjetivo] = useState('250')
+  const [sostenimiento, setSostenimiento] = useState('15')
+  const [presionInicial, setPresionInicial] = useState('')
+  const [presionFinal, setPresionFinal] = useState('')
+  const [fugaVastago, setFugaVastago] = useState(false)
+  const [fugaPiston, setFugaPiston] = useState(false)
+  const [deformacion, setDeformacion] = useState(false)
+  const [observaciones, setObservaciones] = useState('')
+  const [fotos, setFotos] = useState<string[]>([])
 
-  useEffect(() => {
-    if (!cilindro || !componentes) {
-      navigate('/')
-    }
-  }, [cilindro, componentes, navigate])
+  const handleCancelar = () => {
+    navigate(`/inspeccion/${id}/peritaje`)
+  }
 
-  const handleGuardar = async () => {
-    // Validaciones
-    if (!presionPrueba || !cicloCompleto) {
-      alert('Debes ingresar la presión de prueba y confirmar que se completó el ciclo')
+  const handleGuardar = () => {
+    console.log('Guardando prueba:', {
+      presionObjetivo,
+      sostenimiento,
+      presionInicial,
+      presionFinal,
+      inspeccionVisual: {
+        fugaVastago,
+        fugaPiston,
+        deformacion
+      },
+      observaciones,
+      fotos
+    })
+    alert('Prueba guardada exitosamente')
+  }
+
+  const handleFinalizar = () => {
+    if (!presionInicial || !presionFinal) {
+      alert('Debes registrar las presiones inicial y final')
       return
     }
 
-    // Preparar datos de la inspección completa
-    const inspeccionCompleta = {
-      cilindro,
-      fotos,
-      notas,
-      componentes,
-      pruebas: {
-        presion_prueba: parseInt(presionPrueba),
-        fuga_interna: fugaInterna,
-        fuga_externa: fugaExterna,
-        ciclo_completo: cicloCompleto,
-        notas: notasPruebas
-      }
-    }
+    console.log('Finalizando prueba:', {
+      presionObjetivo,
+      sostenimiento,
+      presionInicial,
+      presionFinal,
+      inspeccionVisual: {
+        fugaVastago,
+        fugaPiston,
+        deformacion
+      },
+      observaciones,
+      fotos
+    })
 
-    // TODO: Guardar en la cola de sincronización
-    console.log('Inspección completa:', inspeccionCompleta)
-
-    // Mostrar confirmación
-    alert('Inspección guardada exitosamente')
-
-    // Volver al dashboard
+    alert('Prueba finalizada exitosamente')
     navigate('/')
   }
 
-  const handleGenerarPDF = async () => {
-    setGenerandoPDF(true)
+  const handleAgregarFoto = () => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'image/*'
+    input.capture = 'environment'
 
-    try {
-      // TODO: Implementar generación de PDF con react-pdf
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      alert('PDF generado exitosamente')
-    } catch (error) {
-      console.error('Error generando PDF:', error)
-      alert('Error al generar PDF')
-    } finally {
-      setGenerandoPDF(false)
-    }
-  }
-
-  const handleVolver = () => {
-    navigate(`/inspeccion/${location.pathname.split('/')[2]}/peritaje`, {
-      state: {
-        cilindro,
-        fotos,
-        notas,
-        componentes
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0]
+      if (file) {
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          setFotos([...fotos, reader.result as string])
+        }
+        reader.readAsDataURL(file)
       }
-    })
+    }
+
+    input.click()
   }
 
-  if (!cilindro || !componentes) {
-    return null
+  const handleEliminarFoto = (index: number) => {
+    const nuevasFotos = fotos.filter((_, i) => i !== index)
+    setFotos(nuevasFotos)
   }
 
-  const componentesConProblemas = componentes.filter((c: ComponentePeritaje) => c.estado !== 'Bueno')
+  const caidaPresion = presionInicial && presionFinal
+    ? (parseFloat(presionInicial) - parseFloat(presionFinal)).toFixed(1)
+    : '0.0'
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={handleVolver}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <ArrowLeftIcon className="w-5 h-5 text-gray-600" />
-            </button>
-
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold text-gray-900">Pruebas Hidráulicas</h1>
-              <p className="text-sm text-gray-600">{cilindro.id_codigo}</p>
-            </div>
-
-            {/* Progreso */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">Paso 3 de 3</span>
-              <div className="flex gap-1">
-                <div className="w-8 h-2 bg-green-600 rounded-full"></div>
-                <div className="w-8 h-2 bg-green-600 rounded-full"></div>
-                <div className="w-8 h-2 bg-primary-600 rounded-full"></div>
-              </div>
-            </div>
-          </div>
-        </div>
+    <div className="relative flex min-h-screen w-full flex-col overflow-hidden pb-24 max-w-md mx-auto bg-background-light dark:bg-background-dark">
+      {/* Top App Bar */}
+      <header className="sticky top-0 z-50 flex items-center justify-between bg-background-light dark:bg-background-dark px-4 py-3 border-b border-gray-200 dark:border-border-dark/50 backdrop-blur-md bg-opacity-95 dark:bg-opacity-95">
+        <button
+          onClick={handleCancelar}
+          className="text-base font-medium text-slate-500 dark:text-text-secondary hover:text-slate-800 dark:hover:text-white transition-colors"
+        >
+          Cancelar
+        </button>
+        <h1 className="text-lg font-bold leading-tight tracking-tight text-center flex-1 mx-2 truncate text-slate-900 dark:text-white">
+          Registro de Prueba
+        </h1>
+        <button
+          onClick={handleGuardar}
+          className="text-base font-bold text-primary hover:text-blue-400 transition-colors"
+        >
+          Guardar
+        </button>
       </header>
 
-      {/* Contenido principal */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="space-y-6">
-          {/* Resumen del peritaje */}
-          <section className="card bg-blue-50">
-            <h2 className="card-header flex items-center gap-2">
-              <CheckCircleIcon className="w-6 h-6 text-blue-600" />
-              Resumen del Peritaje
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-white p-4 rounded-lg">
-                <dt className="text-sm text-gray-600">Total Componentes</dt>
-                <dd className="text-2xl font-bold text-gray-900">{componentes.length}</dd>
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col gap-6 p-4">
+        {/* Cylinder Info Card */}
+        <section aria-label="Información del Cilindro">
+          <div className="flex items-stretch justify-between gap-4 rounded-xl bg-white dark:bg-surface-dark p-4 shadow-sm border border-gray-100 dark:border-border-dark/50">
+            <div className="flex flex-col justify-center gap-1 flex-[2]">
+              <div className="inline-flex items-center gap-2 mb-1">
+                <span className="bg-blue-100 dark:bg-primary/20 text-primary text-xs font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">En Proceso</span>
               </div>
-              <div className="bg-white p-4 rounded-lg">
-                <dt className="text-sm text-gray-600">Buen Estado</dt>
-                <dd className="text-2xl font-bold text-green-600">
-                  {componentes.filter((c: ComponentePeritaje) => c.estado === 'Bueno').length}
-                </dd>
-              </div>
-              <div className="bg-white p-4 rounded-lg">
-                <dt className="text-sm text-gray-600">Requieren Atención</dt>
-                <dd className="text-2xl font-bold text-red-600">
-                  {componentesConProblemas.length}
-                </dd>
-              </div>
+              <h2 className="text-lg font-bold leading-tight text-slate-900 dark:text-white">Cilindro #CIL-2044</h2>
+              <p className="text-slate-500 dark:text-text-secondary text-sm font-medium">Modelo: CAT-320D - Excavadora</p>
             </div>
+            <div
+              className="w-24 bg-center bg-no-repeat bg-cover rounded-lg shrink-0 border border-gray-200 dark:border-border-dark"
+              style={{
+                backgroundImage: "url('https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&h=200&fit=crop')",
+              }}
+            ></div>
+          </div>
+        </section>
 
-            {componentesConProblemas.length > 0 && (
-              <div className="mt-4">
-                <h4 className="text-sm font-semibold text-gray-700 mb-2">Componentes que requieren atención:</h4>
-                <ul className="text-sm space-y-1">
-                  {componentesConProblemas.map((comp: ComponentePeritaje, index: number) => (
-                    <li key={index} className="flex items-center gap-2">
-                      <span className={`w-2 h-2 rounded-full ${
-                        comp.estado === 'Cambio' ? 'bg-red-600' : 'bg-yellow-600'
-                      }`}></span>
-                      <span className="font-medium">{comp.nombre}</span>
-                      <span className="text-gray-600">- {comp.estado}</span>
-                      {comp.accion_propuesta && (
-                        <span className="text-gray-600">→ {comp.accion_propuesta}</span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </section>
-
-          {/* Pruebas hidráulicas */}
-          <section className="card">
-            <h2 className="card-header">Pruebas Hidráulicas</h2>
-
-            <div className="space-y-6">
-              {/* Presión de prueba */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Presión de Prueba (bar) *
-                </label>
+        {/* Test Parameters Section */}
+        <section>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="material-symbols-outlined text-primary">tune</span>
+            <h3 className="text-lg font-bold leading-tight tracking-tight text-slate-900 dark:text-white">Parámetros de Prueba</h3>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <label className="flex flex-col gap-2">
+              <span className="text-sm font-medium text-slate-600 dark:text-text-secondary">Presión Objetivo</span>
+              <div className="relative">
                 <input
                   type="number"
-                  value={presionPrueba}
-                  onChange={(e) => setPresionPrueba(e.target.value)}
-                  className="input-field"
-                  placeholder="ej: 180"
-                  min="0"
+                  inputMode="numeric"
+                  value={presionObjetivo}
+                  onChange={(e) => setPresionObjetivo(e.target.value)}
+                  className="w-full rounded-xl bg-white dark:bg-surface-dark border border-gray-300 dark:border-border-dark p-3 pr-10 text-base font-medium focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all outline-none text-slate-900 dark:text-white"
+                  placeholder="0"
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  Presión máxima de trabajo del cilindro
-                </p>
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 dark:text-gray-500 pointer-events-none">BAR</span>
               </div>
+            </label>
 
-              {/* Ciclo de prueba */}
-              <div>
-                <label className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={cicloCompleto}
-                    onChange={(e) => setCicloCompleto(e.target.checked)}
-                    className="w-5 h-5 text-primary-600 rounded focus:ring-primary-500"
-                  />
-                  <div>
-                    <span className="text-sm font-medium text-gray-900">
-                      Ciclo de prueba completado (5 minutos)
-                    </span>
-                    <p className="text-xs text-gray-600">
-                      Confirmar que se realizó el ciclo completo de prueba
-                    </p>
-                  </div>
-                </label>
-              </div>
-
-              {/* Verificación de fugas */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Fuga externa */}
-                <label className={`flex items-center gap-3 p-4 rounded-lg cursor-pointer border-2 transition-colors ${
-                  fugaExterna ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-gray-300'
-                }`}>
-                  <input
-                    type="checkbox"
-                    checked={fugaExterna}
-                    onChange={(e) => setFugaExterna(e.target.checked)}
-                    className="w-5 h-5 text-red-600 rounded focus:ring-red-500"
-                  />
-                  <div>
-                    <span className="text-sm font-medium text-gray-900">
-                      Fuga Externa Detectada
-                    </span>
-                    <p className="text-xs text-gray-600">
-                      Uniones camisa-tapas, conexiones
-                    </p>
-                  </div>
-                </label>
-
-                {/* Fuga interna */}
-                <label className={`flex items-center gap-3 p-4 rounded-lg cursor-pointer border-2 transition-colors ${
-                  fugaInterna ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-gray-300'
-                }`}>
-                  <input
-                    type="checkbox"
-                    checked={fugaInterna}
-                    onChange={(e) => setFugaInterna(e.target.checked)}
-                    className="w-5 h-5 text-red-600 rounded focus:ring-red-500"
-                  />
-                  <div>
-                    <span className="text-sm font-medium text-gray-900">
-                      Fuga Interna Detectada
-                    </span>
-                    <p className="text-xs text-gray-600">
-                      Entre cámaras del cilindro
-                    </p>
-                  </div>
-                </label>
-              </div>
-
-              {/* Notas de pruebas */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Notas de Prueba (Opcional)
-                </label>
-                <textarea
-                  value={notasPruebas}
-                  onChange={(e) => setNotasPruebas(e.target.value)}
-                  className="input-field min-h-24"
-                  placeholder="Observaciones durante las pruebas hidráulicas..."
+            <label className="flex flex-col gap-2">
+              <span className="text-sm font-medium text-slate-600 dark:text-text-secondary">Sostenimiento</span>
+              <div className="relative">
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  value={sostenimiento}
+                  onChange={(e) => setSostenimiento(e.target.value)}
+                  className="w-full rounded-xl bg-white dark:bg-surface-dark border border-gray-300 dark:border-border-dark p-3 pr-10 text-base font-medium focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all outline-none text-slate-900 dark:text-white"
+                  placeholder="0"
                 />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 dark:text-gray-500 pointer-events-none">MIN</span>
+              </div>
+            </label>
+          </div>
+        </section>
+
+        {/* Measurements Section */}
+        <section>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="material-symbols-outlined text-primary">speed</span>
+            <h3 className="text-lg font-bold leading-tight tracking-tight text-slate-900 dark:text-white">Resultados de Medición</h3>
+          </div>
+          <div className="rounded-xl bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark p-4 space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-medium text-slate-600 dark:text-text-secondary">Presión Inicial</span>
+                <div className="relative">
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    value={presionInicial}
+                    onChange={(e) => setPresionInicial(e.target.value)}
+                    className="w-full rounded-lg bg-slate-50 dark:bg-background-dark border border-gray-200 dark:border-border-dark/50 p-3 pr-10 text-base font-medium focus:ring-1 focus:ring-primary focus:border-primary outline-none text-slate-900 dark:text-white"
+                    placeholder="0"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 dark:text-gray-500 pointer-events-none">BAR</span>
+                </div>
+              </label>
+
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-medium text-slate-600 dark:text-text-secondary">Presión Final</span>
+                <div className="relative">
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    value={presionFinal}
+                    onChange={(e) => setPresionFinal(e.target.value)}
+                    className="w-full rounded-lg bg-slate-50 dark:bg-background-dark border border-gray-200 dark:border-border-dark/50 p-3 pr-10 text-base font-medium focus:ring-1 focus:ring-primary focus:border-primary outline-none text-slate-900 dark:text-white"
+                    placeholder="0"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 dark:text-gray-500 pointer-events-none">BAR</span>
+                </div>
+              </label>
+            </div>
+
+            {/* Calculated Field */}
+            <div className="flex items-center justify-between rounded-lg bg-blue-50 dark:bg-primary/10 p-3 border border-blue-100 dark:border-primary/20">
+              <span className="text-sm font-medium text-slate-700 dark:text-white">Caída de Presión</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xl font-bold text-primary">{caidaPresion}</span>
+                <span className="text-xs font-bold text-primary/70">BAR</span>
               </div>
             </div>
-          </section>
+          </div>
+        </section>
 
-          {/* Advertencias según resultados */}
-          {(fugaExterna || fugaInterna) && (
-            <div className="bg-red-50 border-l-4 border-red-600 p-4 rounded-lg">
-              <div className="flex">
-                <svg className="h-5 w-5 text-red-600" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                </svg>
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-red-800">
-                    Atención: Fugas detectadas
-                  </h3>
-                  <div className="mt-2 text-sm text-red-700">
-                    <p>Se detectaron fugas durante las pruebas. Esto requiere atención inmediata antes de volver a poner el cilindro en servicio.</p>
+        {/* Visual Inspection Section */}
+        <section>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="material-symbols-outlined text-primary">visibility</span>
+            <h3 className="text-lg font-bold leading-tight tracking-tight text-slate-900 dark:text-white">Inspección Visual</h3>
+          </div>
+          <div className="divide-y divide-gray-200 dark:divide-border-dark rounded-xl bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark overflow-hidden">
+            {/* Item 1 */}
+            <div className="flex items-center justify-between p-4">
+              <span className="text-base font-medium text-slate-900 dark:text-white">Fuga en Vástago</span>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={fugaVastago}
+                  onChange={(e) => setFugaVastago(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-primary/40 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+              </label>
+            </div>
+
+            {/* Item 2 */}
+            <div className="flex items-center justify-between p-4">
+              <span className="text-base font-medium text-slate-900 dark:text-white">Fuga en Pistón</span>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={fugaPiston}
+                  onChange={(e) => setFugaPiston(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-primary/40 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+              </label>
+            </div>
+
+            {/* Item 3 */}
+            <div className="flex items-center justify-between p-4">
+              <span className="text-base font-medium text-slate-900 dark:text-white">Deformación</span>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={deformacion}
+                  onChange={(e) => setDeformacion(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-primary/40 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+              </label>
+            </div>
+          </div>
+        </section>
+
+        {/* Observations Section */}
+        <section>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="material-symbols-outlined text-primary">description</span>
+            <h3 className="text-lg font-bold leading-tight tracking-tight text-slate-900 dark:text-white">Observaciones & Evidencia</h3>
+          </div>
+          <div className="flex flex-col gap-4">
+            <textarea
+              value={observaciones}
+              onChange={(e) => setObservaciones(e.target.value)}
+              className="w-full min-h-[120px] rounded-xl bg-white dark:bg-surface-dark border border-gray-300 dark:border-border-dark p-4 text-base text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-text-secondary focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none resize-none"
+              placeholder="Escriba aquí cualquier anomalía detectada durante la prueba..."
+            />
+
+            {/* Evidence Carousel */}
+            <div className="flex gap-3 overflow-x-auto pb-2">
+              {/* Add Button */}
+              <button
+                onClick={handleAgregarFoto}
+                className="flex flex-col items-center justify-center min-w-[100px] h-[100px] rounded-xl border-2 border-dashed border-gray-300 dark:border-border-dark bg-white dark:bg-surface-dark text-slate-500 dark:text-text-secondary active:scale-95 transition-transform"
+              >
+                <span className="material-symbols-outlined !text-3xl mb-1">add_a_photo</span>
+                <span className="text-xs font-medium">Adjuntar</span>
+              </button>
+
+              {/* Photo Previews */}
+              {fotos.map((foto, index) => (
+                <div
+                  key={index}
+                  className="relative min-w-[100px] h-[100px] rounded-xl overflow-hidden group"
+                >
+                  <div
+                    className="absolute inset-0 bg-cover bg-center"
+                    style={{ backgroundImage: `url('${foto}')` }}
+                  ></div>
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <span
+                      onClick={() => handleEliminarFoto(index)}
+                      className="material-symbols-outlined text-white cursor-pointer"
+                    >
+                      delete
+                    </span>
                   </div>
                 </div>
-              </div>
+              ))}
             </div>
-          )}
-
-          {/* Fotos de recepción (resumen) */}
-          <section className="card">
-            <h2 className="card-header">Fotos de Recepción</h2>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-gray-600 mb-2">Foto Armado</p>
-                {fotos?.armado && (
-                  <img
-                    src={fotos.armado.preview}
-                    alt="Armado"
-                    className="w-full h-48 object-cover rounded-lg"
-                  />
-                )}
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 mb-2">Foto Despiece</p>
-                {fotos?.despiece && (
-                  <img
-                    src={fotos.despiece.preview}
-                    alt="Despiece"
-                    className="w-full h-48 object-cover rounded-lg"
-                  />
-                )}
-              </div>
-            </div>
-          </section>
-
-          {/* Botones de acción */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button
-              onClick={handleVolver}
-              className="btn-secondary"
-            >
-              ← Volver
-            </button>
-
-            <button
-              onClick={handleGenerarPDF}
-              disabled={generandoPDF}
-              className="btn-secondary flex items-center justify-center gap-2"
-            >
-              <DocumentArrowDownIcon className="w-5 h-5" />
-              {generandoPDF ? 'Generando...' : 'Generar PDF'}
-            </button>
-
-            <button
-              onClick={handleGuardar}
-              className="btn-primary"
-            >
-              Guardar Inspección
-            </button>
           </div>
-        </div>
+        </section>
       </main>
+
+      {/* Sticky Footer Action */}
+      <div className="fixed bottom-0 left-0 w-full p-4 bg-background-light dark:bg-background-dark/80 backdrop-blur-lg border-t border-gray-200 dark:border-border-dark z-40 max-w-md mx-auto">
+        <button
+          onClick={handleFinalizar}
+          className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary hover:bg-blue-600 text-white font-bold h-14 text-lg shadow-lg shadow-blue-500/30 active:scale-[0.98] transition-all"
+        >
+          <span className="material-symbols-outlined">check_circle</span>
+          Finalizar Prueba
+        </button>
+      </div>
     </div>
   )
 }
