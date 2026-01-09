@@ -18,7 +18,7 @@ function HistorialPage() {
   const navigate = useNavigate()
 
   // Mock data para inspecciones
-  const [inspecciones, setInspecciones] = useState<Inspeccion[]>([
+  const [inspecciones] = useState<Inspeccion[]>([
     {
       id: '1',
       codigo: 'HYD-4592',
