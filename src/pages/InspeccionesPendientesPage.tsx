@@ -88,7 +88,7 @@ function InspeccionesPendientesPage() {
   const cargarInspeccionesDesdeAPI = async () => {
     try {
       setSincronizando(true)
-      const response = await api.get('/inspecciones?estado=pendiente')
+      await api.get('/inspecciones?estado=pendiente')
       // Aquí podrías combinar con las inspecciones locales
     } catch (error) {
       console.error('Error cargando inspecciones desde API:', error)
@@ -119,7 +119,7 @@ function InspeccionesPendientesPage() {
   const handleContinuarInspeccion = async (inspeccionId: string) => {
     try {
       // Obtener datos de la inspección desde Dexie
-      const inspeccion = await db.inspeccionesLocales.get(inspeccionId)
+      const inspeccion = await db.inspeccionesLocales.get(inspeccionId) as any
 
       if (!inspeccion) {
         console.error('Inspección no encontrada')
