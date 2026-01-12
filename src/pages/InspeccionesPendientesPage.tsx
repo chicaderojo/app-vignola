@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/dexie'
-import { api } from '../services/api'
+import { supabaseService } from '../services/supabaseService'
+import { Inspeccion } from '../types'
 import { v4 as uuidv4 } from 'uuid'
 
 type Priority = 'normal' | 'urgent'
@@ -18,6 +19,7 @@ interface InspeccionPendiente {
   fecha: string
   progreso: number
   etapas_completadas: string[]
+  estado_inspeccion?: string // Para identificar inspecciones de Supabase
 }
 
 function InspeccionesPendientesPage() {
@@ -26,7 +28,8 @@ function InspeccionesPendientesPage() {
   const [filtroActivo, setFiltroActivo] = useState<'todos' | 'peritaje' | 'pruebas' | 'urgentes'>('todos')
   const [busqueda, setBusqueda] = useState('')
   const [online, setOnline] = useState(navigator.onLine)
-  const [sincronizando, setSincronizando] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   // Obtener inspecciones locales con Dexie React Hooks
   const inspeccionesLocales = useLiveQuery(
@@ -34,12 +37,16 @@ function InspeccionesPendientesPage() {
     []
   )
 
-  // Estado para inspecciones combinadas (locales + nube)
+  // Estado para inspecciones combinadas (locales + Supabase)
   const [inspecciones, setInspecciones] = useState<InspeccionPendiente[]>([])
+  const [inspeccionesSupabase, setInspeccionesSupabase] = useState<Inspeccion[]>([])
 
   // Verificar estado de conexión
   useEffect(() => {
-    const handleOnline = () => setOnline(true)
+    const handleOnline = () => {
+      setOnline(true)
+      cargarDatosDesdeSupabase()
+    }
     const handleOffline = () => setOnline(false)
 
     window.addEventListener('online', handleOnline)
@@ -51,49 +58,83 @@ function InspeccionesPendientesPage() {
     }
   }, [])
 
-  // Cargar inspecciones desde la API cuando está online
+  // Cargar inspecciones desde Supabase al montar
   useEffect(() => {
     if (online) {
-      cargarInspeccionesDesdeAPI()
+      cargarDatosDesdeSupabase()
+    } else {
+      setLoading(false)
     }
-  }, [online])
+  }, [])
 
-  // Combinar inspecciones locales y de la nube
+  // Combinar inspecciones locales y de Supabase
   useEffect(() => {
     const listaCombinada: InspeccionPendiente[] = []
 
-    // Agregar inspecciones locales
+    // 1. Agregar inspecciones de Supabase (solo borradores y completas)
+    inspeccionesSupabase.forEach((insp: any) => {
+      const cilindro = insp.cilindro as any
+      const etapas = (insp as any).etapas_completadas || []
+      const progreso = etapas.length > 0 ? Math.round((etapas.length / 4) * 100) : 25
+
+      listaCombinada.push({
+        id: insp.id,
+        codigo: cilindro?.id_codigo || insp.cilindro_id,
+        cliente: cilindro?.cliente?.nombre || 'Cliente',
+        equipo: `${cilindro?.tipo || 'Cilindro'} - ${cilindro?.fabricante || 'Fabricante'}`,
+        prioridad: 'normal',
+        estado: insp.estado_inspeccion === 'borrador' ? 'borrador' : 'completado',
+        fecha: new Date(insp.created_at).toLocaleDateString('es-CL'),
+        progreso,
+        etapas_completadas: etapas,
+        estado_inspeccion: insp.estado_inspeccion
+      })
+    })
+
+    // 2. Agregar inspecciones locales (IndexedDB)
     if (inspeccionesLocales) {
       inspeccionesLocales.forEach((insp: any) => {
-        const etapas = insp.etapas_completadas || []
-        const progreso = calcularProgreso(etapas)
+        // Evitar duplicados si ya existe en Supabase
+        if (!listaCombinada.find(item => item.id === insp.id)) {
+          const etapas = insp.etapas_completadas || []
+          const progreso = calcularProgreso(etapas)
 
-        listaCombinada.push({
-          id: insp.id,
-          codigo: insp.codigo || `CH-${insp.id.slice(-4)}`,
-          cliente: insp.cliente || 'Cliente local',
-          equipo: insp.equipo || 'Equipo no especificado',
-          prioridad: insp.prioridad || 'normal',
-          estado: determinarEstado(etapas),
-          fecha: new Date(insp.fecha_creacion).toLocaleDateString('es-CL'),
-          progreso,
-          etapas_completadas: etapas
-        })
+          listaCombinada.push({
+            id: insp.id,
+            codigo: insp.codigo || `CH-${insp.id.slice(-4)}`,
+            cliente: insp.cliente || 'Cliente local',
+            equipo: insp.equipo || 'Equipo no especificado',
+            prioridad: insp.prioridad || 'normal',
+            estado: determinarEstado(etapas),
+            fecha: new Date(insp.fecha_creacion).toLocaleDateString('es-CL'),
+            progreso,
+            etapas_completadas: etapas
+          })
+        }
       })
     }
 
     setInspecciones(listaCombinada)
-  }, [inspeccionesLocales])
+  }, [inspeccionesSupabase, inspeccionesLocales])
 
-  const cargarInspeccionesDesdeAPI = async () => {
+  const cargarDatosDesdeSupabase = async () => {
+    if (!online) return
+
     try {
-      setSincronizando(true)
-      await api.get('/inspecciones?estado=pendiente')
-      // Aquí podrías combinar con las inspecciones locales
-    } catch (error) {
-      console.error('Error cargando inspecciones desde API:', error)
+      setLoading(true)
+      setError(null)
+      console.log('Cargando inspecciones pendientes desde Supabase...')
+
+      // Cargar inspecciones en estado borrador
+      const datos = await supabaseService.getInspeccionesByEstado('borrador')
+
+      console.log('Inspecciones pendientes de Supabase:', datos)
+      setInspeccionesSupabase(datos)
+    } catch (err: any) {
+      console.error('Error cargando inspecciones desde Supabase:', err)
+      setError(err.message || 'Error al cargar inspecciones')
     } finally {
-      setSincronizando(false)
+      setLoading(false)
     }
   }
 
@@ -295,27 +336,47 @@ function InspeccionesPendientesPage() {
           </button>
         </div>
 
-        {/* Sync Status */}
-        {sincronizando && (
-          <div className="mx-4 mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+        {/* Error message */}
+        {error && (
+          <div className="mx-4 mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-blue-500 animate-spin">sync</span>
-              <span className="text-sm text-blue-800 dark:text-blue-300">Sincronizando con el servidor...</span>
+              <span className="material-symbols-outlined text-red-500 text-[20px]">error</span>
+              <div className="flex-1">
+                <p className="text-red-600 dark:text-red-400 text-sm font-medium">Error de conexión</p>
+                <p className="text-red-500/70 dark:text-red-400/70 text-xs">{error}</p>
+              </div>
+              <button
+                onClick={cargarDatosDesdeSupabase}
+                className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded transition-colors"
+              >
+                Reintentar
+              </button>
             </div>
           </div>
         )}
 
+        {/* Loading state */}
+        {loading && (
+          <div className="flex flex-col items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+            <p className="text-slate-500 dark:text-slate-400">Cargando inspecciones...</p>
+          </div>
+        )}
+
         {/* Section Header */}
-        <div className="flex items-center justify-between px-4 pt-2 pb-2">
-          <h3 className="text-slate-900 dark:text-white text-base font-bold uppercase tracking-widest">Lista de Trabajo</h3>
-          <span className="text-slate-500 text-xs font-medium uppercase">
-            {!online ? 'Modo Offline' : `Última act: ${new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}`}
-          </span>
-        </div>
+        {!loading && (
+          <div className="flex items-center justify-between px-4 pt-2 pb-2">
+            <h3 className="text-slate-900 dark:text-white text-base font-bold uppercase tracking-widest">Lista de Trabajo</h3>
+            <span className="text-slate-500 text-xs font-medium uppercase">
+              {!online ? 'Modo Offline' : `Última act: ${new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}`}
+            </span>
+          </div>
+        )}
 
         {/* Inspection Cards List */}
-        <div className="flex flex-col gap-4 p-4">
-          {inspeccionesFiltradas.length === 0 ? (
+        {!loading && (
+          <div className="flex flex-col gap-4 p-4">
+            {inspeccionesFiltradas.length === 0 ? (
             <div className="text-center py-12">
               <span className="material-symbols-outlined text-6xl text-gray-300 dark:text-gray-600">search_off</span>
               <p className="text-gray-500 dark:text-gray-400 mt-4">
@@ -466,6 +527,7 @@ function InspeccionesPendientesPage() {
             ))
           )}
         </div>
+        )}
 
         {/* Float Action Button (Quick New Inspection) */}
         <div className="fixed bottom-6 right-6 z-40">

@@ -284,12 +284,27 @@ export const supabaseService = {
     inspeccionesCompletas: number
     cilindrosActivos: number
   }> {
+    console.log('Obteniendo estadísticas de Supabase...')
+
     const [totalResult, pendientesResult, completasResult, cilindrosResult] = await Promise.all([
       supabase.from('inspecciones').select('id', { count: 'exact', head: true }),
       supabase.from('inspecciones').select('id', { count: 'exact', head: true }).eq('estado_inspeccion', 'borrador'),
       supabase.from('inspecciones').select('id', { count: 'exact', head: true }).in('estado_inspeccion', ['completa', 'sincronizada']),
-      supabase.from('cilindros').select('id_codigo', { count: 'exact', head: true }).eq('activo', true)
+      supabase.from('cilindros').select('id_codigo', { count: 'exact', head: true })
     ])
+
+    // Log de errores si existen
+    if (totalResult.error) console.error('Error totalInspecciones:', totalResult.error)
+    if (pendientesResult.error) console.error('Error inspeccionesPendientes:', pendientesResult.error)
+    if (completasResult.error) console.error('Error inspeccionesCompletas:', completasResult.error)
+    if (cilindrosResult.error) console.error('Error cilindrosActivos:', cilindrosResult.error)
+
+    console.log('Resultados:', {
+      total: totalResult.count,
+      pendientes: pendientesResult.count,
+      completas: completasResult.count,
+      cilindros: cilindrosResult.count
+    })
 
     return {
       totalInspecciones: totalResult.count || 0,
