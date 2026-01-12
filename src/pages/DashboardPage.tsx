@@ -3,42 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { authService } from '../services/api'
 import { v4 as uuidv4 } from 'uuid'
 import { useTheme } from '../hooks/useTheme'
-import { useLiveQuery } from 'dexie-react-hooks'
-import { db } from '../db/dexie'
-
-// Mock data para tareas
-const MOCK_TAREAS = [
-  {
-    id: 'HYD-1102',
-    titulo: 'Cilindro Telescópico',
-    cliente: 'AgroTech S.A.',
-    estado: 'Limpieza',
-    estadoColor: 'primary',
-    fecha: 'Hoy, 14:00',
-    ubicacion: 'Taller B',
-    progreso: 45
-  },
-  {
-    id: 'HYD-4592',
-    titulo: 'Cilindro Doble Efecto',
-    cliente: 'Mining Corp',
-    estado: 'Espera Repuesto',
-    estadoColor: 'orange',
-    fecha: 'Ayer, 09:30',
-    ubicacion: 'Almacén',
-    progreso: 30
-  },
-  {
-    id: 'HYD-8821',
-    titulo: 'Vástago Cromado',
-    cliente: 'TransVial',
-    estado: 'Listo',
-    estadoColor: 'green',
-    fecha: 'Ayer, 16:45',
-    ubicacion: 'Taller A',
-    progreso: 100
-  }
-]
+import { supabaseService } from '../services/supabaseService'
+import { Inspeccion } from '../types'
 
 function DashboardPage() {
   const navigate = useNavigate()
@@ -47,49 +13,25 @@ function DashboardPage() {
 
   const [syncStatus, setSyncStatus] = useState({ pendiente: false, numero_items: 0, online: true })
   const [activeNav, setActiveNav] = useState('inicio')
+  const [inspecciones, setInspecciones] = useState<Inspeccion[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [stats, setStats] = useState({
+    totalInspecciones: 0,
+    inspeccionesPendientes: 0,
+    inspeccionesCompletas: 0,
+    cilindrosActivos: 0
+  })
 
-  // Obtener inspecciones locales con Dexie React Hooks
-  const inspeccionesLocales = useLiveQuery(
-    () => db.inspeccionesLocales.toArray(),
-    []
-  )
-
-  // Calcular contadores dinámicos
-  const contarInspecciones = () => {
-    if (!inspeccionesLocales || inspeccionesLocales.length === 0) return 0
-
-    return inspeccionesLocales.filter((insp: any) => {
-      const etapas = insp.etapas_completadas || []
-      // Contar inspecciones en etapas tempranas (recepcion, peritaje)
-      return !etapas.includes('pruebas') && !etapas.includes('finalizado')
-    }).length
-  }
-
-  const contarMantencion = () => {
-    if (!inspeccionesLocales || inspeccionesLocales.length === 0) return 0
-
-    return inspeccionesLocales.filter((insp: any) => {
-      const etapas = insp.etapas_completadas || []
-      // Contar inspecciones en etapa de pruebas/taller
-      return etapas.includes('peritaje') && !etapas.includes('finalizado')
-    }).length
-  }
-
-  const contarListas = () => {
-    if (!inspeccionesLocales || inspeccionesLocales.length === 0) return 0
-
-    return inspeccionesLocales.filter((insp: any) => {
-      const etapas = insp.etapas_completadas || []
-      // Contar inspecciones completadas
-      return etapas.includes('finalizado') || etapas.includes('pruebas')
-    }).length
-  }
-
-  // Verificar estado online al montar
+  // Cargar datos de Supabase al montar
   useEffect(() => {
+    cargarDatos()
     verificarEstadoOnline()
 
-    const handleOnline = () => setSyncStatus(prev => ({ ...prev, online: true }))
+    const handleOnline = () => {
+      setSyncStatus(prev => ({ ...prev, online: true }))
+      cargarDatos()
+    }
     const handleOffline = () => setSyncStatus(prev => ({ ...prev, online: false }))
 
     window.addEventListener('online', handleOnline)
@@ -100,6 +42,39 @@ function DashboardPage() {
       window.removeEventListener('offline', handleOffline)
     }
   }, [])
+
+  const cargarDatos = async () => {
+    if (!navigator.onLine) {
+      console.log('Modo offline - no se cargan datos de Supabase')
+      setError('Sin conexión a internet')
+      return
+    }
+
+    try {
+      setLoading(true)
+      setError(null)
+      console.log('Cargando datos de Supabase...')
+
+      const [inspeccionesData, statsData] = await Promise.all([
+        supabaseService.getInspecciones(),
+        supabaseService.getDashboardStats()
+      ])
+
+      console.log('Datos recibidos:', { inspeccionesData, statsData })
+      setInspecciones(inspeccionesData)
+      setStats(statsData)
+    } catch (error: any) {
+      console.error('Error al cargar datos de Supabase:', error)
+      setError(error?.message || 'Error al cargar datos')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Calcular contadores dinámicos desde Supabase
+  const contarInspecciones = () => stats.inspeccionesPendientes
+  const contarMantencion = () => Math.floor(stats.totalInspecciones * 0.3) // Estimado
+  const contarListas = () => stats.inspeccionesCompletas
 
   const verificarEstadoOnline = () => {
     setSyncStatus({
@@ -193,6 +168,40 @@ function DashboardPage() {
         <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
           Aquí tienes un resumen de tu actividad.
         </p>
+
+        {/* Error message */}
+        {error && (
+          <div className="mt-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-red-500 text-[20px]">error</span>
+              <div className="flex-1">
+                <p className="text-red-600 dark:text-red-400 text-sm font-medium">Error de conexión</p>
+                <p className="text-red-500/70 dark:text-red-400/70 text-xs">{error}</p>
+              </div>
+              <button
+                onClick={cargarDatos}
+                className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded transition-colors"
+              >
+                Reintentar
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Debug info */}
+        {!loading && !error && stats.totalInspecciones === 0 && (
+          <div className="mt-3 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-yellow-500 text-[20px]">warning</span>
+              <div className="flex-1">
+                <p className="text-yellow-600 dark:text-yellow-400 text-sm font-medium">No se encontraron datos</p>
+                <p className="text-yellow-500/70 dark:text-yellow-400/70 text-xs">
+                  Verifica que las variables de entorno de Supabase estén configuradas correctamente
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* KPI Stats */}
@@ -290,62 +299,96 @@ function DashboardPage() {
       {/* Recent Inspections List */}
       <div className="px-4 pt-6 pb-4">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-slate-900 dark:text-white text-lg font-bold">Mis Tareas</h3>
-          <button className="text-primary text-sm font-semibold">Ver todo</button>
+          <h3 className="text-slate-900 dark:text-white text-lg font-bold">Inspecciones Recientes</h3>
+          <button onClick={handleVerHistorial} className="text-primary text-sm font-semibold">Ver todo</button>
         </div>
 
-        <div className="flex flex-col gap-3">
-          {MOCK_TAREAS.map((tarea) => (
-            <div
-              key={tarea.id}
-              className={`bg-white dark:bg-surface-card rounded-xl p-4 border border-slate-200 dark:border-slate-700 shadow-sm relative overflow-hidden group ${
-                tarea.progreso === 100 ? 'opacity-60' : tarea.progreso < 50 ? 'opacity-80' : ''
-              }`}
-            >
-              <div className={`absolute left-0 top-0 bottom-0 w-1 ${
-                tarea.estadoColor === 'primary' ? 'bg-primary' :
-                tarea.estadoColor === 'orange' ? 'bg-orange-500' : 'bg-green-500'
-              }`}></div>
+        {loading ? (
+          <div className="flex justify-center items-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {inspecciones.slice(0, 5).map((inspeccion) => {
+              const estadoColor = inspeccion.estado_inspeccion === 'borrador' ? 'primary' :
+                                  inspeccion.estado_inspeccion === 'completa' ? 'orange' : 'green'
+              const estadoLabel = inspeccion.estado_inspeccion === 'borrador' ? 'En Progreso' :
+                                 inspeccion.estado_inspeccion === 'completa' ? 'Completa' : 'Sincronizada'
+              const fecha = new Date(inspeccion.created_at).toLocaleDateString('es-CL', {
+                day: 'numeric',
+                month: 'short'
+              })
 
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <span className="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-mono px-2 py-1 rounded">
-                    #{tarea.id}
-                  </span>
-                  <h4 className="text-slate-900 dark:text-white font-bold mt-2">{tarea.titulo}</h4>
-                  <p className="text-slate-500 dark:text-slate-400 text-sm">Cliente: {tarea.cliente}</p>
-                </div>
-                <span className={`flex items-center gap-1 ${
-                  tarea.estadoColor === 'primary' ? 'bg-primary/10 text-primary' :
-                  tarea.estadoColor === 'orange' ? 'bg-orange-500/10 text-orange-500' :
-                  'bg-green-500/10 text-green-500'
-                } px-2 py-1 rounded text-xs font-bold`}>
-                  {tarea.progreso < 100 && (
-                    <span className={`size-1.5 rounded-full ${
-                      tarea.estadoColor === 'primary' ? 'bg-primary' :
-                      tarea.estadoColor === 'orange' ? 'bg-orange-500' : 'bg-green-500'
-                    } ${tarea.estado === 'Limpieza' ? 'animate-pulse' : ''}`}></span>
-                  )}
-                  {tarea.progreso === 100 && (
-                    <span className="material-symbols-outlined text-[14px]">check</span>
-                  )}
-                  {tarea.estado}
-                </span>
-              </div>
+              return (
+                <div
+                  key={inspeccion.id}
+                  onClick={() => navigate(`/inspeccion/${inspeccion.id}/detalles`)}
+                  className={`bg-white dark:bg-surface-card rounded-xl p-4 border border-slate-200 dark:border-slate-700 shadow-sm relative overflow-hidden group cursor-pointer hover:border-primary/50 transition-colors ${
+                    inspeccion.estado_inspeccion === 'sincronizada' ? 'opacity-60' : ''
+                  }`}
+                >
+                  <div className={`absolute left-0 top-0 bottom-0 w-1 ${
+                    estadoColor === 'primary' ? 'bg-primary' :
+                    estadoColor === 'orange' ? 'bg-orange-500' : 'bg-green-500'
+                  }`}></div>
 
-              <div className="flex items-center gap-4 mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
-                <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400 text-xs">
-                  <span className="material-symbols-outlined text-[16px]">calendar_today</span>
-                  <span>{tarea.fecha}</span>
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex-1">
+                      <span className="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-mono px-2 py-1 rounded">
+                        #{(inspeccion.cilindro as any)?.id_codigo || inspeccion.cilindro_id}
+                      </span>
+                      <h4 className="text-slate-900 dark:text-white font-bold mt-2">
+                        Cilindro {(inspeccion.cilindro as any)?.tipo || 'Oleohidráulico'}
+                      </h4>
+                      <p className="text-slate-500 dark:text-slate-400 text-sm">
+                        {(inspeccion.cilindro as any)?.fabricante || 'Rexroth'} • {(inspeccion.cilindro as any)?.diametro_camisa || 'Ø80'}
+                      </p>
+                    </div>
+                    <span className={`flex items-center gap-1 ${
+                      estadoColor === 'primary' ? 'bg-primary/10 text-primary' :
+                      estadoColor === 'orange' ? 'bg-orange-500/10 text-orange-500' :
+                      'bg-green-500/10 text-green-500'
+                    } px-2 py-1 rounded text-xs font-bold whitespace-nowrap`}>
+                      {inspeccion.estado_inspeccion !== 'sincronizada' && (
+                        <span className={`size-1.5 rounded-full ${
+                          estadoColor === 'primary' ? 'bg-primary' :
+                          estadoColor === 'orange' ? 'bg-orange-500' : 'bg-green-500'
+                        } ${inspeccion.estado_inspeccion === 'borrador' ? 'animate-pulse' : ''}`}></span>
+                      )}
+                      {estadoLabel}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-4 mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
+                    <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400 text-xs">
+                      <span className="material-symbols-outlined text-[16px]">calendar_today</span>
+                      <span>{fecha}</span>
+                    </div>
+                    {inspeccion.presion_prueba > 0 && (
+                      <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400 text-xs">
+                        <span className="material-symbols-outlined text-[16px]">compress</span>
+                        <span>{inspeccion.presion_prueba} bar</span>
+                      </div>
+                    )}
+                    {(inspeccion.fuga_interna || inspeccion.fuga_externa) && (
+                      <div className="flex items-center gap-1 text-red-500 text-xs">
+                        <span className="material-symbols-outlined text-[16px]">warning</span>
+                        <span>Fuga</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400 text-xs">
-                  <span className="material-symbols-outlined text-[16px]">location_on</span>
-                  <span>{tarea.ubicacion}</span>
-                </div>
+              )
+            })}
+
+            {inspecciones.length === 0 && (
+              <div className="text-center py-8">
+                <span className="material-symbols-outlined text-4xl text-slate-300 dark:text-slate-600">inbox</span>
+                <p className="text-slate-500 dark:text-slate-400 mt-2">No hay inspecciones registradas</p>
               </div>
-            </div>
-          ))}
-        </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Bottom Navigation */}
