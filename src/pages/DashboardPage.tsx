@@ -101,6 +101,22 @@ function DashboardPage() {
     navigate('/trabajos-listos')
   }
 
+  const handleVerPruebas = () => {
+    // Navegar a una inspección pendiente o crear una nueva para pruebas
+    const inspeccionPendiente = inspecciones.find(
+      insp => insp.estado_inspeccion === 'borrador' &&
+               (insp as any).etapas_completadas?.includes('peritaje')
+    )
+
+    if (inspeccionPendiente) {
+      navigate(`/inspeccion/${inspeccionPendiente.id}/pruebas`)
+    } else {
+      // Si no hay inspección en etapa de pruebas, crear una nueva
+      const inspeccionId = uuidv4()
+      navigate(`/inspeccion/${inspeccionId}/pruebas`)
+    }
+  }
+
   const handleCerrarSesion = () => {
     authService.logout()
     window.location.href = '/login'
@@ -294,7 +310,10 @@ function DashboardPage() {
             <span className="font-medium text-sm text-slate-700 dark:text-slate-200">Reingresos</span>
           </button>
 
-          <button className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-dark transition-colors">
+          <button
+            onClick={handleVerPruebas}
+            className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-dark transition-colors"
+          >
             <div className="flex items-center justify-center size-10 rounded-full bg-teal-500/10 text-teal-500">
               <span className="material-symbols-outlined">speed</span>
             </div>

@@ -236,6 +236,30 @@ export const supabaseService = {
   },
 
   /**
+   * Guardar resultados de pruebas hidrostáticas
+   */
+  async savePruebas(
+    inspeccionId: string,
+    datosPrueba: {
+      presion_objetivo: number
+      sostenimiento: number
+      presion_inicial: number
+      presion_final: number
+      fuga_vastago: boolean
+      fuga_piston: boolean
+      deformacion: boolean
+      observaciones: string
+    }
+  ): Promise<void> {
+    await this.updateInspeccion(inspeccionId, {
+      presion_prueba: datosPrueba.presion_objetivo,
+      fuga_interna: datosPrueba.fuga_piston,
+      fuga_externa: datosPrueba.fuga_vastago || datosPrueba.deformacion,
+      estado_inspeccion: 'completa'
+    })
+  },
+
+  /**
    * Crear detalles de inspección
    */
   async createInspeccionDetalles(detalles: Omit<InspeccionDetalle, 'id' | 'created_at'>[]): Promise<InspeccionDetalle[]> {
@@ -246,6 +270,30 @@ export const supabaseService = {
 
     if (error) throw error
     return data || []
+  },
+
+  /**
+   * Guardar detalles de peritaje (elimina los anteriores y crea nuevos)
+   */
+  async savePeritaje(inspeccionId: string, componentes: any[]): Promise<void> {
+    // Eliminar detalles anteriores
+    await this.deleteInspeccionDetalles(inspeccionId)
+
+    // Crear nuevos detalles
+    const detalles = componentes
+      .filter(c => c.estado !== 'pending')
+      .map((c, index) => ({
+        inspeccion_id: inspeccionId,
+        componente: c.nombre,
+        estado: (c.estado === 'bueno' ? 'Bueno' : c.estado === 'mantencion' ? 'Mantención' : 'Cambio') as 'Bueno' | 'Mantención' | 'Cambio',
+        detalle_tecnico: c.observaciones || undefined,
+        accion_propuesta: undefined,
+        orden: index
+      }))
+
+    if (detalles.length > 0) {
+      await this.createInspeccionDetalles(detalles)
+    }
   },
 
   /**
@@ -261,6 +309,31 @@ export const supabaseService = {
 
     if (error) throw error
     return data
+  },
+
+  /**
+   * Subir foto a Supabase Storage
+   */
+  async uploadFoto(file: File, inspeccionId: string, tipo: 'armado' | 'despiece' | 'evidencia'): Promise<string> {
+    const fileExt = file.name.split('.').pop()
+    const fileName = `${inspeccionId}/${tipo}_${Date.now()}.${fileExt}`
+    const filePath = `${fileName}`
+
+    const { error } = await supabase.storage
+      .from('inspecciones-fotos')
+      .upload(filePath, file)
+
+    if (error) {
+      console.error('Error subiendo foto:', error)
+      throw error
+    }
+
+    // Obtener URL pública
+    const { data: { publicUrl } } = supabase.storage
+      .from('inspecciones-fotos')
+      .getPublicUrl(filePath)
+
+    return publicUrl
   },
 
   /**

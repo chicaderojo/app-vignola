@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { supabaseService } from '../services/supabaseService'
 
 function PruebasPage() {
   const navigate = useNavigate()
@@ -15,50 +16,69 @@ function PruebasPage() {
   const [deformacion, setDeformacion] = useState(false)
   const [observaciones, setObservaciones] = useState('')
   const [fotos, setFotos] = useState<string[]>([])
+  const [loading, setLoading] = useState(false)
 
   const handleCancelar = () => {
     navigate(`/inspeccion/${id}/peritaje`)
   }
 
-  const handleGuardar = () => {
-    console.log('Guardando prueba:', {
-      presionObjetivo,
-      sostenimiento,
-      presionInicial,
-      presionFinal,
-      inspeccionVisual: {
-        fugaVastago,
-        fugaPiston,
-        deformacion
-      },
-      observaciones,
-      fotos
-    })
-    alert('Prueba guardada exitosamente')
+  const handleGuardar = async () => {
+    if (!id) {
+      alert('Error: ID de inspección no válido')
+      return
+    }
+
+    try {
+      setLoading(true)
+      await supabaseService.savePruebas(id, {
+        presion_objetivo: parseFloat(presionObjetivo),
+        sostenimiento: parseFloat(sostenimiento),
+        presion_inicial: parseFloat(presionInicial),
+        presion_final: parseFloat(presionFinal),
+        fuga_vastago: fugaVastago,
+        fuga_piston: fugaPiston,
+        deformacion: deformacion,
+        observaciones
+      })
+      alert('Prueba guardada exitosamente')
+    } catch (error: any) {
+      console.error('Error guardando prueba:', error)
+      alert(`Error al guardar: ${error.message}`)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handleFinalizar = () => {
+  const handleFinalizar = async () => {
     if (!presionInicial || !presionFinal) {
       alert('Debes registrar las presiones inicial y final')
       return
     }
 
-    console.log('Finalizando prueba:', {
-      presionObjetivo,
-      sostenimiento,
-      presionInicial,
-      presionFinal,
-      inspeccionVisual: {
-        fugaVastago,
-        fugaPiston,
-        deformacion
-      },
-      observaciones,
-      fotos
-    })
+    if (!id) {
+      alert('Error: ID de inspección no válido')
+      return
+    }
 
-    alert('Prueba finalizada exitosamente')
-    navigate('/')
+    try {
+      setLoading(true)
+      await supabaseService.savePruebas(id, {
+        presion_objetivo: parseFloat(presionObjetivo),
+        sostenimiento: parseFloat(sostenimiento),
+        presion_inicial: parseFloat(presionInicial),
+        presion_final: parseFloat(presionFinal),
+        fuga_vastago: fugaVastago,
+        fuga_piston: fugaPiston,
+        deformacion: deformacion,
+        observaciones
+      })
+      alert('Prueba finalizada exitosamente')
+      navigate('/')
+    } catch (error: any) {
+      console.error('Error finalizando prueba:', error)
+      alert(`Error al guardar: ${error.message}`)
+      setLoading(false)
+    }
   }
 
   const handleAgregarFoto = () => {
@@ -105,9 +125,10 @@ function PruebasPage() {
         </h1>
         <button
           onClick={handleGuardar}
-          className="text-base font-bold text-primary hover:text-blue-400 transition-colors"
+          disabled={loading}
+          className="text-base font-bold text-primary hover:text-blue-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Guardar
+          {loading ? 'Guardando...' : 'Guardar'}
         </button>
       </header>
 
@@ -326,10 +347,20 @@ function PruebasPage() {
       <div className="fixed bottom-0 left-0 w-full p-4 bg-background-light dark:bg-background-dark/80 backdrop-blur-lg border-t border-gray-200 dark:border-border-dark z-40 max-w-md mx-auto">
         <button
           onClick={handleFinalizar}
-          className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary hover:bg-blue-600 text-white font-bold h-14 text-lg shadow-lg shadow-blue-500/30 active:scale-[0.98] transition-all"
+          disabled={loading}
+          className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary hover:bg-blue-600 text-white font-bold h-14 text-lg shadow-lg shadow-blue-500/30 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <span className="material-symbols-outlined">check_circle</span>
-          Finalizar Prueba
+          {loading ? (
+            <>
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+              Procesando...
+            </>
+          ) : (
+            <>
+              <span className="material-symbols-outlined">check_circle</span>
+              Finalizar Prueba
+            </>
+          )}
         </button>
       </div>
     </div>
