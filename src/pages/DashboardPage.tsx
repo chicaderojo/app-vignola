@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { authService } from '../services/api'
 import { v4 as uuidv4 } from 'uuid'
 import { useTheme } from '../hooks/useTheme'
+import { useLiveQuery } from 'dexie-react-hooks'
+import { db } from '../db/dexie'
 
 // Mock data para tareas
 const MOCK_TAREAS = [
@@ -45,6 +47,43 @@ function DashboardPage() {
 
   const [syncStatus, setSyncStatus] = useState({ pendiente: false, numero_items: 0, online: true })
   const [activeNav, setActiveNav] = useState('inicio')
+
+  // Obtener inspecciones locales con Dexie React Hooks
+  const inspeccionesLocales = useLiveQuery(
+    () => db.inspeccionesLocales.toArray(),
+    []
+  )
+
+  // Calcular contadores dinámicos
+  const contarInspecciones = () => {
+    if (!inspeccionesLocales || inspeccionesLocales.length === 0) return 0
+
+    return inspeccionesLocales.filter((insp: any) => {
+      const etapas = insp.etapas_completadas || []
+      // Contar inspecciones en etapas tempranas (recepcion, peritaje)
+      return !etapas.includes('pruebas') && !etapas.includes('finalizado')
+    }).length
+  }
+
+  const contarMantencion = () => {
+    if (!inspeccionesLocales || inspeccionesLocales.length === 0) return 0
+
+    return inspeccionesLocales.filter((insp: any) => {
+      const etapas = insp.etapas_completadas || []
+      // Contar inspecciones en etapa de pruebas/taller
+      return etapas.includes('peritaje') && !etapas.includes('finalizado')
+    }).length
+  }
+
+  const contarListas = () => {
+    if (!inspeccionesLocales || inspeccionesLocales.length === 0) return 0
+
+    return inspeccionesLocales.filter((insp: any) => {
+      const etapas = insp.etapas_completadas || []
+      // Contar inspecciones completadas
+      return etapas.includes('finalizado') || etapas.includes('pruebas')
+    }).length
+  }
 
   // Verificar estado online al montar
   useEffect(() => {
@@ -167,7 +206,7 @@ function DashboardPage() {
             <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">Inspección</span>
             <span className="material-symbols-outlined text-orange-500 text-[20px]">schedule</span>
           </div>
-          <p className="text-slate-900 dark:text-white text-3xl font-bold">5</p>
+          <p className="text-slate-900 dark:text-white text-3xl font-bold">{contarInspecciones()}</p>
           <div className="w-full bg-slate-100 dark:bg-slate-700 h-1 rounded-full overflow-hidden">
             <div className="bg-orange-500 h-full w-[45%]"></div>
           </div>
@@ -179,7 +218,7 @@ function DashboardPage() {
             <span className="text-primary text-sm font-medium">Mantención</span>
             <span className="material-symbols-outlined text-primary text-[20px]">build</span>
           </div>
-          <p className="text-slate-900 dark:text-white text-3xl font-bold">2</p>
+          <p className="text-slate-900 dark:text-white text-3xl font-bold">{contarMantencion()}</p>
           <div className="w-full bg-slate-100 dark:bg-slate-700 h-1 rounded-full overflow-hidden">
             <div className="bg-primary h-full w-[60%]"></div>
           </div>
@@ -191,7 +230,7 @@ function DashboardPage() {
             <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">Listas</span>
             <span className="material-symbols-outlined text-green-500 text-[20px]">check_circle</span>
           </div>
-          <p className="text-slate-900 dark:text-white text-3xl font-bold">12</p>
+          <p className="text-slate-900 dark:text-white text-3xl font-bold">{contarListas()}</p>
           <div className="w-full bg-slate-100 dark:bg-slate-700 h-1 rounded-full overflow-hidden">
             <div className="bg-green-500 h-full w-[90%]"></div>
           </div>
