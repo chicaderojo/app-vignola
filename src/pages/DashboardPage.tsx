@@ -236,7 +236,7 @@ function DashboardPage() {
         {/* Listas */}
         <div className="flex min-w-[140px] flex-1 flex-col gap-3 rounded-xl p-4 bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">Listas</span>
+            <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">Finalizados</span>
             <span className="material-symbols-outlined text-green-500 text-[20px]">check_circle</span>
           </div>
           <p className="text-slate-900 dark:text-white text-3xl font-bold">{contarListas()}</p>
