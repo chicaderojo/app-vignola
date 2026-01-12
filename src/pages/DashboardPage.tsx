@@ -97,6 +97,10 @@ function DashboardPage() {
     navigate('/inspecciones-pendientes')
   }
 
+  const handleVerTrabajosListos = () => {
+    navigate('/trabajos-listos')
+  }
+
   const handleCerrarSesion = () => {
     authService.logout()
     window.location.href = '/login'
@@ -234,7 +238,10 @@ function DashboardPage() {
         </div>
 
         {/* Listas */}
-        <div className="flex min-w-[140px] flex-1 flex-col gap-3 rounded-xl p-4 bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 shadow-sm">
+        <button
+          onClick={handleVerTrabajosListos}
+          className="flex min-w-[140px] flex-1 flex-col gap-3 rounded-xl p-4 bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 shadow-sm hover:bg-slate-50 dark:hover:bg-surface-dark active:scale-[0.98] transition-all cursor-pointer text-left"
+        >
           <div className="flex items-center justify-between">
             <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">Finalizados</span>
             <span className="material-symbols-outlined text-green-500 text-[20px]">check_circle</span>
@@ -243,7 +250,7 @@ function DashboardPage() {
           <div className="w-full bg-slate-100 dark:bg-slate-700 h-1 rounded-full overflow-hidden">
             <div className="bg-green-500 h-full w-[90%]"></div>
           </div>
-        </div>
+        </button>
       </div>
 
       {/* Primary Action */}
