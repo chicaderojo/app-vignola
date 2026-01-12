@@ -86,6 +86,35 @@ function TrabajosListosPage() {
     alert(`Generando PDF para trabajo ${trabajoId}`)
   }
 
+  const handleReingreso = async (trabajoId: string) => {
+    if (confirm('¿Deseas crear un reingreso para esta inspección? Se creará una nueva inspección basada en los datos de esta.')) {
+      try {
+        // Crear nueva inspección basada en la existente
+        const inspeccionOriginal = await supabaseService.getInspeccionById(trabajoId)
+        if (inspeccionOriginal) {
+          const nuevaInspeccion = {
+            cilindro_id: inspeccionOriginal.cilindro_id,
+            usuario_id: inspeccionOriginal.usuario_id,
+            sap_cliente: inspeccionOriginal.sap_cliente,
+            foto_armado_url: '',
+            foto_despiece_url: '',
+            presion_prueba: 0,
+            fuga_interna: false,
+            fuga_externa: false,
+            estado_inspeccion: 'borrador' as const,
+            created_at: new Date().toISOString()
+          }
+
+          const nueva = await supabaseService.createInspeccion(nuevaInspeccion)
+          navigate(`/inspeccion/${nueva.id}/recepcion`)
+        }
+      } catch (error: any) {
+        console.error('Error creando reingreso:', error)
+        alert('Error al crear reingreso')
+      }
+    }
+  }
+
   // Filtrar trabajos por tab
   const trabajosFiltrados = trabajos.filter(trabajo => {
     if (tabActiva === 'finalizados') return true
@@ -226,20 +255,29 @@ function TrabajosListosPage() {
                       </div>
 
                       {/* Actions Bar */}
-                      <div className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+                      <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleVerResumen(trabajo.id)}
+                            className="flex-1 flex cursor-pointer items-center justify-center gap-2 rounded-lg h-10 px-4 bg-gray-100 dark:bg-surface-dark text-slate-900 dark:text-white text-sm font-bold hover:bg-gray-200 dark:hover:bg-white/10 transition-colors"
+                          >
+                            <span className="material-symbols-outlined !text-[18px]">visibility</span>
+                            <span>Ver Resumen</span>
+                          </button>
+                          <button
+                            onClick={() => handleGenerarPDF(trabajo.id)}
+                            className="flex-1 flex cursor-pointer items-center justify-center gap-2 rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-colors"
+                          >
+                            <span className="material-symbols-outlined !text-[18px]">picture_as_pdf</span>
+                            <span>Reporte PDF</span>
+                          </button>
+                        </div>
                         <button
-                          onClick={() => handleVerResumen(trabajo.id)}
-                          className="flex-1 flex cursor-pointer items-center justify-center gap-2 rounded-lg h-10 px-4 bg-gray-100 dark:bg-surface-dark text-slate-900 dark:text-white text-sm font-bold hover:bg-gray-200 dark:hover:bg-white/10 transition-colors"
+                          onClick={() => handleReingreso(trabajo.id)}
+                          className="w-full flex cursor-pointer items-center justify-center gap-2 rounded-lg h-10 px-4 bg-gray-100 dark:bg-surface-dark text-slate-900 dark:text-white text-sm font-bold hover:bg-gray-200 dark:hover:bg-white/10 transition-colors border border-gray-200 dark:border-gray-700"
                         >
-                          <span className="material-symbols-outlined !text-[18px]">visibility</span>
-                          <span>Ver Resumen</span>
-                        </button>
-                        <button
-                          onClick={() => handleGenerarPDF(trabajo.id)}
-                          className="flex-1 flex cursor-pointer items-center justify-center gap-2 rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-colors"
-                        >
-                          <span className="material-symbols-outlined !text-[18px]">picture_as_pdf</span>
-                          <span>Reporte PDF</span>
+                          <span className="material-symbols-outlined !text-[18px]">restart_alt</span>
+                          <span>Reingreso</span>
                         </button>
                       </div>
                     </div>

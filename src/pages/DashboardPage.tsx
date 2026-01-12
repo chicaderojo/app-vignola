@@ -101,6 +101,10 @@ function DashboardPage() {
     navigate('/trabajos-listos')
   }
 
+  const handleVerReingresos = () => {
+    navigate('/trabajos-listos')
+  }
+
   const handleVerPruebas = () => {
     // Navegar a una inspección pendiente o crear una nueva para pruebas
     const inspeccionPendiente = inspecciones.find(
@@ -303,7 +307,10 @@ function DashboardPage() {
             <span className="font-medium text-sm text-slate-700 dark:text-slate-200">Inventario</span>
           </button>
 
-          <button className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-dark transition-colors">
+          <button
+            onClick={handleVerReingresos}
+            className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-dark transition-colors"
+          >
             <div className="flex items-center justify-center size-10 rounded-full bg-orange-500/10 text-orange-500">
               <span className="material-symbols-outlined">refresh</span>
             </div>
