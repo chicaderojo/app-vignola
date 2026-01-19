@@ -105,6 +105,10 @@ function DashboardPage() {
     navigate('/trabajos-listos')
   }
 
+  const handleVerMantencion = () => {
+    navigate('/mantencion')
+  }
+
   const handleVerPruebas = () => {
     // Navegar a una inspección pendiente o crear una nueva para pruebas
     const inspeccionPendiente = inspecciones.find(
@@ -246,7 +250,10 @@ function DashboardPage() {
         </button>
 
         {/* Mantención */}
-        <div className="flex min-w-[140px] flex-1 flex-col gap-3 rounded-xl p-4 bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 shadow-sm ring-1 ring-primary/20">
+        <button
+          onClick={handleVerMantencion}
+          className="flex min-w-[140px] flex-1 flex-col gap-3 rounded-xl p-4 bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 shadow-sm hover:bg-slate-50 dark:hover:bg-surface-dark active:scale-[0.98] transition-all cursor-pointer text-left ring-1 ring-primary/20"
+        >
           <div className="flex items-center justify-between">
             <span className="text-primary text-sm font-medium">Mantención</span>
             <span className="material-symbols-outlined text-primary text-[20px]">build</span>
@@ -255,7 +262,7 @@ function DashboardPage() {
           <div className="w-full bg-slate-100 dark:bg-slate-700 h-1 rounded-full overflow-hidden">
             <div className="bg-primary h-full w-[60%]"></div>
           </div>
-        </div>
+        </button>
 
         {/* Listas */}
         <button
