@@ -180,23 +180,23 @@ function DashboardPage() {
 
       {/* KPI Stats */}
       <div className="flex overflow-x-auto gap-3 px-4 py-4 w-full hide-scrollbar">
-        {/* Pendientes */}
+        {/* Inspección */}
         <div className="flex min-w-[140px] flex-1 flex-col gap-3 rounded-xl p-4 bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">Pendientes</span>
-            <span className="material-symbols-outlined text-orange-500 text-[20px]">schedule</span>
+            <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">Inspección</span>
+            <span className="material-symbols-outlined text-blue-500 text-[20px]">search</span>
           </div>
           <p className="text-slate-900 dark:text-white text-3xl font-bold">5</p>
           <div className="w-full bg-slate-100 dark:bg-slate-700 h-1 rounded-full overflow-hidden">
-            <div className="bg-orange-500 h-full w-[45%]"></div>
+            <div className="bg-blue-500 h-full w-[45%]"></div>
           </div>
         </div>
 
-        {/* En Progreso */}
+        {/* Mantención */}
         <div className="flex min-w-[140px] flex-1 flex-col gap-3 rounded-xl p-4 bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 shadow-sm ring-1 ring-primary/20">
           <div className="flex items-center justify-between">
-            <span className="text-primary text-sm font-medium">En Progreso</span>
-            <span className="material-symbols-outlined text-primary text-[20px]">pending</span>
+            <span className="text-primary text-sm font-medium">Mantención</span>
+            <span className="material-symbols-outlined text-primary text-[20px]">build</span>
           </div>
           <p className="text-slate-900 dark:text-white text-3xl font-bold">2</p>
           <div className="w-full bg-slate-100 dark:bg-slate-700 h-1 rounded-full overflow-hidden">
@@ -204,10 +204,10 @@ function DashboardPage() {
           </div>
         </div>
 
-        {/* Listas */}
+        {/* Finalizados */}
         <div className="flex min-w-[140px] flex-1 flex-col gap-3 rounded-xl p-4 bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">Listas</span>
+            <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">Finalizados</span>
             <span className="material-symbols-outlined text-green-500 text-[20px]">check_circle</span>
           </div>
           <p className="text-slate-900 dark:text-white text-3xl font-bold">12</p>
