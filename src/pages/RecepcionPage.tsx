@@ -188,7 +188,7 @@ function RecepcionPage() {
         <section>
           <div className="flex items-center gap-2 py-4">
             <span className="material-symbols-outlined text-primary text-[20px]">fluid</span>
-            <h3 className="text-base font-bold leading-tight tracking-tight text-slate-800 dark:text-white">Especificaciones del Cilindro</h3>
+            <h3 className="text-base font-bold leading-tight tracking-tight text-slate-800 dark:text-white">Tipo de Actuador</h3>
           </div>
           <div className="flex flex-col gap-4">
             {/* Tipo y Prioridad Grid */}
