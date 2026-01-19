@@ -10,6 +10,8 @@ import HistorialPage from './pages/HistorialPage'
 import DetallesInspeccionPage from './pages/DetallesInspeccionPage'
 import InspeccionesPendientesPage from './pages/InspeccionesPendientesPage'
 import BusquedaAvanzadaPage from './pages/BusquedaAvanzadaPage'
+import InventarioPage from './pages/InventarioPage'
+import MantenimientoPage from './pages/MantenimientoPage'
 import SyncStatusIndicator from './components/SyncStatusIndicator'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -90,6 +92,22 @@ function App() {
           element={
             <PrivateRoute>
               <BusquedaAvanzadaPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/inventario"
+          element={
+            <PrivateRoute>
+              <InventarioPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/mantenimiento/:id"
+          element={
+            <PrivateRoute>
+              <MantenimientoPage />
             </PrivateRoute>
           }
         />

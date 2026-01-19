@@ -58,11 +58,15 @@ function InspeccionesPendientesPage() {
     }
   ])
 
-  const [filtroActivo, setFiltroActivo] = useState<'todos' | 'peritaje' | 'hidraulica' | 'urgentes'>('todos')
+  const [filtroActivo, setFiltroActivo] = useState<'todos' | 'inspeccion' | 'mantencion' | 'finalizados'>('todos')
   const [busqueda, setBusqueda] = useState('')
 
   const handleContinuar = (inspeccionId: string) => {
     navigate(`/inspeccion/${inspeccionId}/recepcion`)
+  }
+
+  const handleMantencion = (inspeccionId: string) => {
+    navigate(`/mantenimiento/${inspeccionId}`)
   }
 
   const handleIniciarPeritaje = (inspeccionId: string) => {
@@ -101,9 +105,9 @@ function InspeccionesPendientesPage() {
   // Filtrar inspecciones
   const inspeccionesFiltradas = inspecciones.filter(inspeccion => {
     const cumpleFiltro = filtroActivo === 'todos' ||
-      (filtroActivo === 'peritaje' && inspeccion.etapa === 'peritaje') ||
-      (filtroActivo === 'hidraulica' && inspeccion.etapa === 'taller') ||
-      (filtroActivo === 'urgentes' && inspeccion.prioridad === 'urgente')
+      (filtroActivo === 'inspeccion' && (inspeccion.etapa === 'recepcion' || inspeccion.etapa === 'peritaje')) ||
+      (filtroActivo === 'mantencion' && inspeccion.etapa === 'taller') ||
+      (filtroActivo === 'finalizados' && inspeccion.progreso === 100)
 
     const cumpleBusqueda = !busqueda ||
       inspeccion.codigo.toLowerCase().includes(busqueda.toLowerCase()) ||
@@ -116,12 +120,12 @@ function InspeccionesPendientesPage() {
     switch (filtro) {
       case 'todos':
         return inspecciones.length
-      case 'peritaje':
-        return inspecciones.filter(i => i.etapa === 'peritaje').length
-      case 'hidraulica':
+      case 'inspeccion':
+        return inspecciones.filter(i => i.etapa === 'recepcion' || i.etapa === 'peritaje').length
+      case 'mantencion':
         return inspecciones.filter(i => i.etapa === 'taller').length
-      case 'urgentes':
-        return inspecciones.filter(i => i.prioridad === 'urgente').length
+      case 'finalizados':
+        return inspecciones.filter(i => i.progreso === 100).length
     }
   }
 
@@ -184,39 +188,39 @@ function InspeccionesPendientesPage() {
           </button>
 
           <button
-            onClick={() => setFiltroActivo('peritaje')}
+            onClick={() => setFiltroActivo('inspeccion')}
             className={`flex h-9 shrink-0 items-center justify-center gap-2 rounded-full px-5 transition-transform active:scale-95 ${
-              filtroActivo === 'peritaje'
+              filtroActivo === 'inspeccion'
                 ? 'bg-primary text-white'
                 : 'bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-white'
             }`}
           >
-            <span className="text-sm font-medium">Peritaje</span>
-            <span className="bg-primary/20 text-primary text-[10px] px-1.5 rounded-full">{getContadorFiltro('peritaje')}</span>
+            <span className="text-sm font-medium">Inspección</span>
+            <span className="bg-primary/20 text-primary text-[10px] px-1.5 rounded-full">{getContadorFiltro('inspeccion')}</span>
           </button>
 
           <button
-            onClick={() => setFiltroActivo('hidraulica')}
+            onClick={() => setFiltroActivo('mantencion')}
             className={`flex h-9 shrink-0 items-center justify-center gap-2 rounded-full px-5 transition-transform active:scale-95 ${
-              filtroActivo === 'hidraulica'
+              filtroActivo === 'mantencion'
                 ? 'bg-primary text-white'
                 : 'bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-white'
             }`}
           >
-            <span className="text-sm font-medium">Hidráulica</span>
-            <span className="bg-primary/20 text-primary text-[10px] px-1.5 rounded-full">{getContadorFiltro('hidraulica')}</span>
+            <span className="text-sm font-medium">Mantención</span>
+            <span className="bg-primary/20 text-primary text-[10px] px-1.5 rounded-full">{getContadorFiltro('mantencion')}</span>
           </button>
 
           <button
-            onClick={() => setFiltroActivo('urgentes')}
+            onClick={() => setFiltroActivo('finalizados')}
             className={`flex h-9 shrink-0 items-center justify-center gap-2 rounded-full px-5 transition-transform active:scale-95 ${
-              filtroActivo === 'urgentes'
+              filtroActivo === 'finalizados'
                 ? 'bg-primary text-white'
                 : 'bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-white'
             }`}
           >
-            <span className="text-sm font-medium text-red-500">Urgentes</span>
-            <span className="bg-red-500/20 text-red-500 text-[10px] px-1.5 rounded-full">{getContadorFiltro('urgentes')}</span>
+            <span className="text-sm font-medium">Finalizados</span>
+            <span className="bg-primary/20 text-primary text-[10px] px-1.5 rounded-full">{getContadorFiltro('finalizados')}</span>
           </button>
         </div>
 
@@ -314,11 +318,11 @@ function InspeccionesPendientesPage() {
                     ) : (
                       <>
                         <button
-                          onClick={() => handleContinuar(inspeccion.id)}
+                          onClick={() => inspeccion.etapa === 'taller' ? handleMantencion(inspeccion.id) : handleContinuar(inspeccion.id)}
                           className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-primary text-white font-bold py-3 text-sm transition-transform active:scale-95"
                         >
-                          {inspeccion.etapa === 'taller' ? '' : <span className="material-symbols-outlined text-sm">play_arrow</span>}
-                          CONTINUAR
+                          {inspeccion.etapa === 'taller' ? <span className="material-symbols-outlined text-sm">build</span> : <span className="material-symbols-outlined text-sm">play_arrow</span>}
+                          {inspeccion.etapa === 'taller' ? 'MANTENCIÓN' : 'CONTINUAR'}
                         </button>
                         <button className="w-12 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-400">
                           <span className="material-symbols-outlined">more_vert</span>

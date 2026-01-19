@@ -106,6 +106,10 @@ function DashboardPage() {
     navigate('/buscar')
   }
 
+  const handleInventario = () => {
+    navigate('/inventario')
+  }
+
   return (
     <div className="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto bg-background-light dark:bg-background-dark pb-24">
 
@@ -240,7 +244,10 @@ function DashboardPage() {
             <span className="font-medium text-sm text-slate-700 dark:text-slate-200">Historial</span>
           </button>
 
-          <button className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-dark transition-colors">
+          <button
+            onClick={handleInventario}
+            className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-dark transition-colors"
+          >
             <div className="flex items-center justify-center size-10 rounded-full bg-purple-500/10 text-purple-500">
               <span className="material-symbols-outlined">inventory_2</span>
             </div>
