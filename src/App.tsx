@@ -14,6 +14,7 @@ import InventarioPage from './pages/InventarioPage'
 import MantenimientoPage from './pages/MantenimientoPage'
 import TrabajosListosPage from './pages/TrabajosListosPage'
 import MantencionPage from './pages/MantencionPage'
+import AjustesPage from './pages/AjustesPage'
 import SyncStatusIndicator from './components/SyncStatusIndicator'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -134,6 +135,14 @@ function App() {
           element={
             <PrivateRoute>
               <MantenimientoPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/ajustes"
+          element={
+            <PrivateRoute>
+              <AjustesPage />
             </PrivateRoute>
           }
         />
