@@ -99,6 +99,17 @@ function RecepcionPage() {
 
       console.log('Usuario final antes de guardar inspección:', user)
 
+      // Verificar que el usuario existe en la base de datos antes de continuar
+      try {
+        await supabaseService.createOrUpdateUsuario(user)
+        console.log('Usuario verificado/creado en BD correctamente')
+      } catch (error: any) {
+        console.error('Error al verificar usuario en BD:', error)
+        alert('Error de autenticación. Por favor cierra sesión y vuelve a iniciar sesión.')
+        setLoading(false)
+        return
+      }
+
       // Subir fotos a Supabase Storage (con manejo de errores)
       let fotoArmadoUrl = ''
       let fotoDespieceUrl = ''
