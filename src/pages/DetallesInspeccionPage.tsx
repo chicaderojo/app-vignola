@@ -17,6 +17,7 @@ interface DetallesInspeccion {
   estado: 'completado' | 'en_proceso' | 'rechazado'
   fechaFinalizacion: string
   cliente: string
+  contacto: string
   ubicacion: string
   tipoCilindro: string
   diametro: string
@@ -82,7 +83,8 @@ function DetallesInspeccionPage() {
           year: 'numeric'
         }),
         cliente: cilindro?.cliente?.nombre || 'Cliente',
-        ubicacion: 'Taller Central',
+        contacto: (insp as any).contacto_cliente || 'No especificado',
+        ubicacion: (insp as any).planta || 'Taller Central',
         tipoCilindro: cilindro?.tipo || 'No especificado',
         diametro: cilindro?.diametro_camisa ? `${cilindro.diametro_camisa} mm` : 'N/A',
         vastago: cilindro?.diametro_vastago ? `${cilindro.diametro_vastago} mm` : 'N/A',
@@ -249,6 +251,10 @@ function DetallesInspeccionPage() {
           <div className="flex flex-col gap-1 border-b border-dashed border-slate-200 dark:border-border-dark py-3">
             <p className="text-slate-500 dark:text-text-muted-dark text-xs font-medium uppercase tracking-wider">Cliente</p>
             <p className="text-slate-900 dark:text-white text-sm font-medium">{inspeccion.cliente}</p>
+          </div>
+          <div className="flex flex-col gap-1 border-b border-dashed border-slate-200 dark:border-border-dark py-3">
+            <p className="text-slate-500 dark:text-text-muted-dark text-xs font-medium uppercase tracking-wider">Contacto</p>
+            <p className="text-slate-900 dark:text-white text-sm font-medium">{inspeccion.contacto}</p>
           </div>
           <div className="flex flex-col gap-1 border-b border-dashed border-slate-200 dark:border-border-dark py-3">
             <p className="text-slate-500 dark:text-text-muted-dark text-xs font-medium uppercase tracking-wider">Ubicación</p>

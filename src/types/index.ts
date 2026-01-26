@@ -58,6 +58,8 @@ export interface Inspeccion {
   usuario_id: string
   usuario?: Usuario
   sap_cliente: string
+  contacto_cliente?: string // Contacto del cliente
+  planta?: string // Planta ubicación
   foto_armado_url: string
   foto_despiece_url: string
   presion_prueba: number // ej: 180 (bar)
