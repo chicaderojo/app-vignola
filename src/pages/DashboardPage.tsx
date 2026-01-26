@@ -130,6 +130,18 @@ function DashboardPage() {
     window.location.href = '/login'
   }
 
+  const handleVerTareas = () => {
+    navigate('/tareas')
+  }
+
+  const handleBuscar = () => {
+    navigate('/buscar')
+  }
+
+  const handleInventario = () => {
+    navigate('/inventario')
+  }
+
   return (
     <div className="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto bg-background-light dark:bg-background-dark pb-24">
 
@@ -245,7 +257,7 @@ function DashboardPage() {
           </div>
           <p className="text-slate-900 dark:text-white text-3xl font-bold">{contarInspecciones()}</p>
           <div className="w-full bg-slate-100 dark:bg-slate-700 h-1 rounded-full overflow-hidden">
-            <div className="bg-orange-500 h-full w-[45%]"></div>
+            <div className="bg-blue-500 h-full w-[45%]"></div>
           </div>
         </button>
 
@@ -307,7 +319,10 @@ function DashboardPage() {
             <span className="font-medium text-sm text-slate-700 dark:text-slate-200">Historial</span>
           </button>
 
-          <button className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-dark transition-colors">
+          <button
+            onClick={handleInventario}
+            className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-dark transition-colors"
+          >
             <div className="flex items-center justify-center size-10 rounded-full bg-purple-500/10 text-purple-500">
               <span className="material-symbols-outlined">inventory_2</span>
             </div>
@@ -435,7 +450,7 @@ function DashboardPage() {
       <nav className="fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-surface-card/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-700 pb-safe z-50 max-w-md mx-auto">
         <div className="flex justify-around items-center h-16 px-2">
           <button
-            onClick={() => setActiveNav('inicio')}
+            onClick={handleVerTareas}
             className={`flex flex-1 flex-col items-center justify-center gap-1 ${
               activeNav === 'inicio' ? 'text-primary' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
             } transition-colors`}
@@ -445,7 +460,7 @@ function DashboardPage() {
           </button>
 
           <button
-            onClick={() => setActiveNav('buscar')}
+            onClick={handleBuscar}
             className={`flex flex-1 flex-col items-center justify-center gap-1 ${
               activeNav === 'buscar' ? 'text-primary' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
             } transition-colors`}

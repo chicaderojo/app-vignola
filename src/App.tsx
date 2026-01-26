@@ -9,6 +9,9 @@ import PruebasPage from './pages/PruebasPage'
 import HistorialPage from './pages/HistorialPage'
 import DetallesInspeccionPage from './pages/DetallesInspeccionPage'
 import InspeccionesPendientesPage from './pages/InspeccionesPendientesPage'
+import BusquedaAvanzadaPage from './pages/BusquedaAvanzadaPage'
+import InventarioPage from './pages/InventarioPage'
+import MantenimientoPage from './pages/MantenimientoPage'
 import TrabajosListosPage from './pages/TrabajosListosPage'
 import MantencionPage from './pages/MantencionPage'
 import SyncStatusIndicator from './components/SyncStatusIndicator'
@@ -99,6 +102,38 @@ function App() {
           element={
             <PrivateRoute>
               <DetallesInspeccionPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/tareas"
+          element={
+            <PrivateRoute>
+              <InspeccionesPendientesPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/buscar"
+          element={
+            <PrivateRoute>
+              <BusquedaAvanzadaPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/inventario"
+          element={
+            <PrivateRoute>
+              <InventarioPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/mantenimiento/:id"
+          element={
+            <PrivateRoute>
+              <MantenimientoPage />
             </PrivateRoute>
           }
         />
