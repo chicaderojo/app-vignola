@@ -235,17 +235,19 @@ function PeritajePage() {
         {componentes.map((componente, index) => (
           <div
             key={componente.id}
-            className={`bg-white dark:bg-surface-dark rounded-xl shadow-sm border overflow-hidden relative group ${
+            className={`bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border overflow-hidden relative group ${
               componente.estado === 'pending'
                 ? 'border-slate-200 dark:border-slate-700/50 opacity-60'
                 : componente.estado !== 'bueno' && componente.expandido
-                ? `border-${getEstadoColor(componente.estado)}/50`
+                ? `border-status-${getEstadoColor(componente.estado)}/50`
+                : componente.estado === 'bueno'
+                ? 'border-transparent opacity-75 hover:opacity-100 transition-opacity'
                 : 'border-transparent'
             }`}
           >
             {/* Barra lateral de color */}
-            {componente.estado !== 'pending' && componente.expandido && componente.estado !== 'bueno' && (
-              <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-${getEstadoColor(componente.estado)}`}></div>
+            {componente.estado === 'mantencion' && componente.expandido && (
+              <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-status-maintain"></div>
             )}
 
             <div className="p-4">
@@ -254,59 +256,77 @@ function PeritajePage() {
                   <h4 className="text-base font-bold text-slate-900 dark:text-white">
                     {index + 1}. {componente.nombre}
                   </h4>
-                  {componente.estado !== 'pending' && (
-                    <p className={`text-xs text-${getEstadoColor(componente.estado)} font-medium mt-0.5`}>
-                      {componente.estado === 'bueno' ? 'En buen estado' :
-                       componente.estado === 'mantencion' ? 'Requiere Atención' :
-                       'Requiere Cambio'}
+                  {componente.estado === 'mantencion' && componente.expandido && (
+                    <p className="text-xs text-status-maintain font-medium mt-0.5">
+                      Requiere Atención
                     </p>
                   )}
                 </div>
+                {/* Icono de advertencia solo para mantención expandido */}
                 {componente.estado === 'mantencion' && componente.expandido && (
                   <span className="material-symbols-outlined text-status-maintain">warning</span>
+                )}
+                {/* Badge de estado para completados colapsados */}
+                {componente.expandido === false && componente.estado !== 'pending' && (
+                  <div className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs font-bold ${
+                    componente.estado === 'bueno'
+                      ? 'text-status-good bg-status-good/10'
+                      : componente.estado === 'mantencion'
+                      ? 'text-status-maintain bg-status-maintain/10'
+                      : 'text-status-replace bg-status-replace/10'
+                  }`}>
+                    <span className="material-symbols-outlined text-[14px]">
+                      {componente.estado === 'bueno' ? 'check_circle' :
+                       componente.estado === 'mantencion' ? 'build' : 'cancel'}
+                    </span>
+                    <span>{componente.estado === 'bueno' ? 'BUENO' :
+                           componente.estado === 'mantencion' ? 'MANTENCIÓN' : 'CAMBIO'}</span>
+                  </div>
                 )}
               </div>
 
               {/* Status Selectors */}
-              <div className={`grid grid-cols-3 gap-2 mb-${componente.expandido && componente.estado !== 'bueno' ? '4' : '0'} pl-2`}>
-                <button
-                  onClick={() => actualizarEstado(index, 'bueno')}
-                  className={`h-12 flex flex-col items-center justify-center rounded transition-all ${
-                    componente.estado === 'bueno'
-                      ? 'bg-status-good text-white shadow-lg ring-2 ring-status-good/30'
-                      : 'border border-slate-200 dark:border-slate-700 bg-transparent text-slate-400 hover:border-status-good hover:text-status-good'
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-[20px] mb-0.5">check_circle</span>
-                  <span className="text-[10px] font-bold uppercase">Bueno</span>
-                </button>
+              {componente.estado === 'pending' || componente.expandido ? (
+                <div className={`grid grid-cols-3 gap-2 mb-${componente.expandido && componente.estado !== 'bueno' ? '4' : '0'} pl-2`}>
+                  <button
+                    onClick={() => actualizarEstado(index, 'bueno')}
+                    className={`h-12 flex flex-col items-center justify-center rounded transition-all ${
+                      componente.estado === 'bueno'
+                        ? 'bg-status-good text-white shadow-lg ring-2 ring-status-good/30 ring-offset-1 ring-offset-surface-dark'
+                        : 'border border-slate-200 dark:border-slate-700 bg-transparent text-slate-400 hover:border-status-good hover:text-status-good hover:bg-slate-800'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-[20px] mb-0.5">check_circle</span>
+                    <span className="text-[10px] font-bold uppercase">Bueno</span>
+                  </button>
 
-                <button
-                  onClick={() => actualizarEstado(index, 'mantencion')}
-                  className={`h-12 flex flex-col items-center justify-center rounded transition-all ${
-                    componente.estado === 'mantencion'
-                      ? 'bg-status-maintain text-white shadow-lg ring-2 ring-status-maintain/30'
-                      : 'border border-slate-200 dark:border-slate-700 bg-transparent text-slate-400 hover:border-status-maintain hover:text-status-maintain'
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-[20px] mb-0.5">build</span>
-                  <span className="text-[10px] font-bold uppercase">Mantención</span>
-                </button>
+                  <button
+                    onClick={() => actualizarEstado(index, 'mantencion')}
+                    className={`h-12 flex flex-col items-center justify-center rounded transition-all ${
+                      componente.estado === 'mantencion'
+                        ? 'bg-status-maintain text-surface-dark shadow-lg ring-2 ring-status-maintain/30 ring-offset-1 ring-offset-surface-dark'
+                        : 'border border-slate-200 dark:border-slate-700 bg-transparent text-slate-400 hover:border-status-maintain hover:text-status-maintain hover:bg-slate-800'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-[20px] mb-0.5">build</span>
+                    <span className="text-[10px] font-bold uppercase">Mantención</span>
+                  </button>
 
-                <button
-                  onClick={() => actualizarEstado(index, 'cambio')}
-                  className={`h-12 flex flex-col items-center justify-center rounded transition-all ${
-                    componente.estado === 'cambio'
-                      ? 'bg-status-replace text-white shadow-lg ring-2 ring-status-replace/30'
-                      : 'border border-slate-200 dark:border-slate-700 bg-transparent text-slate-400 hover:border-status-replace hover:text-status-replace'
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-[20px] mb-0.5">cancel</span>
-                  <span className="text-[10px] font-bold uppercase">Cambio</span>
-                </button>
-              </div>
+                  <button
+                    onClick={() => actualizarEstado(index, 'cambio')}
+                    className={`h-12 flex flex-col items-center justify-center rounded transition-all ${
+                      componente.estado === 'cambio'
+                        ? 'bg-status-replace text-surface-dark shadow-lg ring-2 ring-status-replace/30 ring-offset-1 ring-offset-surface-dark'
+                        : 'border border-slate-200 dark:border-slate-700 bg-transparent text-slate-400 hover:border-status-replace hover:text-status-replace hover:bg-slate-800'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-[20px] mb-0.5">cancel</span>
+                    <span className="text-[10px] font-bold uppercase">Cambio</span>
+                  </button>
+                </div>
+              ) : null}
 
-              {/* Expanded Section */}
+              {/* Expanded Section (solo para mantención y cambio) */}
               {componente.expandido && componente.estado !== 'pending' && componente.estado !== 'bueno' && (
                 <div className="pl-2 space-y-3">
                   <div>
