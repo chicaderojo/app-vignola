@@ -11,6 +11,7 @@ function RecepcionPage() {
   const [nombreCliente, setNombreCliente] = useState('')
   const [ordenTrabajo, setOrdenTrabajo] = useState('')
   const [contacto, setContacto] = useState('')
+  const [planta, setPlanta] = useState('')
   const [tipoComponente, setTipoComponente] = useState('Cilindro Hidráulico')
   const [prioridad, setPrioridad] = useState<'Normal' | 'Urgente'>('Normal')
   const [diametroCamisa, setDiametroCamisa] = useState('')
@@ -154,7 +155,7 @@ function RecepcionPage() {
               </div>
             </label>
 
-            <div className="flex flex-row gap-4">
+            <div className="flex flex-row gap-4 flex-wrap">
               {/* Orden de Trabajo */}
               <label className="flex flex-col flex-1 min-w-[140px]">
                 <p className="text-sm font-medium leading-normal pb-2 text-slate-600 dark:text-text-muted-dark">Orden de Trabajo</p>
@@ -176,6 +177,18 @@ function RecepcionPage() {
                   onChange={(e) => setContacto(e.target.value)}
                   className="w-full rounded-xl border border-gray-300 dark:border-border-dark bg-white dark:bg-surface-dark h-12 px-4 text-base font-normal placeholder:text-gray-400 dark:placeholder:text-text-muted-dark/50 focus:ring-2 focus:ring-primary focus:border-primary transition-all shadow-sm text-slate-900 dark:text-white"
                   placeholder="Nombre"
+                />
+              </label>
+
+              {/* Planta (Opcional) */}
+              <label className="flex flex-col flex-1 min-w-[140px]">
+                <p className="text-sm font-medium leading-normal pb-2 text-slate-600 dark:text-text-muted-dark">Planta <span className="text-xs font-normal text-gray-400">(Opcional)</span></p>
+                <input
+                  type="text"
+                  value={planta}
+                  onChange={(e) => setPlanta(e.target.value)}
+                  className="w-full rounded-xl border border-gray-300 dark:border-border-dark bg-white dark:bg-surface-dark h-12 px-4 text-base font-normal placeholder:text-gray-400 dark:placeholder:text-text-muted-dark/50 focus:ring-2 focus:ring-primary focus:border-primary transition-all shadow-sm text-slate-900 dark:text-white"
+                  placeholder="Nombre planta"
                 />
               </label>
             </div>
