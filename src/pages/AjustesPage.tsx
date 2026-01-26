@@ -11,6 +11,8 @@ function AjustesPage() {
   const [notificaciones, setNotificaciones] = useState(true)
   const [frecuenciaSync, setFrecuenciaSync] = useState<'15m' | '1h' | 'manual'>('15m')
   const [loading, setLoading] = useState(false)
+  const [profilePhoto, setProfilePhoto] = useState<File | null>(null)
+  const [profilePhotoPreview, setProfilePhotoPreview] = useState<string | null>(null)
 
   const handleVolver = () => {
     navigate(-1)
@@ -18,22 +20,37 @@ function AjustesPage() {
 
   const handleGuardarCambios = async () => {
     setLoading(true)
-    // Simular guardado
-    await new Promise(resolve => setTimeout(resolve, 1000))
 
-    // Actualizar usuario en localStorage si es necesario
-    const updatedUser = {
-      ...user,
-      preferences: {
-        notificaciones,
-        frecuenciaSync,
-        darkMode: isDark
+    try {
+      // Simular guardado
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+      // Actualizar usuario en localStorage
+      const updatedUser = {
+        ...user,
+        preferences: {
+          notificaciones,
+          frecuenciaSync,
+          darkMode: isDark
+        },
+        // Guardar la foto de perfil como base64 si se cambió
+        profilePhoto: profilePhotoPreview || user?.profilePhoto
       }
-    }
-    localStorage.setItem('user', JSON.stringify(updatedUser))
 
-    setLoading(false)
-    alert('Cambios guardados exitosamente')
+      localStorage.setItem('user', JSON.stringify(updatedUser))
+
+      setLoading(false)
+      alert('Cambios guardados exitosamente')
+
+      // Opcional: Recargar la página para actualizar la foto en el header
+      if (profilePhotoPreview) {
+        window.location.reload()
+      }
+    } catch (error) {
+      setLoading(false)
+      alert('Error al guardar los cambios')
+      console.error('Error:', error)
+    }
   }
 
   const handleCerrarSesion = () => {
@@ -61,6 +78,35 @@ function AjustesPage() {
   // Generar ID aleatorio para el usuario
   const userId = user?.id?.slice(0, 4).toUpperCase() || '4402'
 
+  const handleCambiarFoto = () => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'image/*'
+    input.capture = 'environment'
+
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0]
+      if (file) {
+        // Validar tamaño (máximo 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+          alert('La foto es muy grande. Máximo 5MB.')
+          return
+        }
+
+        // Crear preview
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          const preview = reader.result as string
+          setProfilePhoto(file)
+          setProfilePhotoPreview(preview)
+        }
+        reader.readAsDataURL(file)
+      }
+    }
+
+    input.click()
+  }
+
   return (
     <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto bg-background-light dark:bg-background-dark pb-24">
 
@@ -86,15 +132,17 @@ function AjustesPage() {
                 <div
                   className="bg-center bg-no-repeat aspect-square bg-cover rounded-full min-h-32 w-32 border-4 border-white dark:border-gray-800 shadow-lg"
                   style={{
-                    backgroundImage: "url('https://images.unsplash.com/photo-1565435391196-0c797872e1e1?w=200&h=200&fit=crop')",
+                    backgroundImage: profilePhotoPreview
+                      ? `url('${profilePhotoPreview}')`
+                      : "url('https://images.unsplash.com/photo-1565435391196-0c797872e1e1?w=200&h=200&fit=crop')",
                   }}
                   role="img"
                   aria-label="Foto de perfil"
                 >
                 </div>
                 <button
-                  className="absolute bottom-1 right-1 bg-primary text-white p-2 rounded-full shadow-md flex items-center justify-center border-2 border-white dark:border-gray-800 hover:bg-primary/90 transition-colors"
-                  onClick={() => alert('Función de cambiar foto próximamente')}
+                  className="absolute bottom-1 right-1 bg-primary text-white p-2 rounded-full shadow-md flex items-center justify-center border-2 border-white dark:border-gray-800 hover:bg-primary/90 transition-colors active:scale-95"
+                  onClick={handleCambiarFoto}
                 >
                   <span className="material-symbols-outlined !text-[20px]">edit</span>
                 </button>

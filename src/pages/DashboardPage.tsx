@@ -166,7 +166,9 @@ function DashboardPage() {
             <div className="relative">
               <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 ring-2 ring-primary/20"
                 style={{
-                  backgroundImage: "url('https://images.unsplash.com/photo-1565435391196-0c797872e1e1?w=100&h=100&fit=crop')",
+                  backgroundImage: user?.profilePhoto
+                    ? `url('${user.profilePhoto}')`
+                    : "url('https://images.unsplash.com/photo-1565435391196-0c797872e1e1?w=100&h=100&fit=crop')",
                 }}>
               </div>
               <div className={`absolute bottom-0 right-0 size-3 rounded-full border-2 border-background-dark ${
