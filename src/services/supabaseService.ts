@@ -432,10 +432,10 @@ export const supabaseService = {
     console.log('Obteniendo estadísticas de Supabase...')
 
     const [totalResult, pendientesResult, completasResult, cilindrosResult] = await Promise.all([
-      supabase.from('inspecciones').select('id', { count: 'exact', head: true }),
-      supabase.from('inspecciones').select('id', { count: 'exact', head: true }).eq('estado_inspeccion', 'borrador'),
-      supabase.from('inspecciones').select('id', { count: 'exact', head: true }).in('estado_inspeccion', ['completa', 'sincronizada']),
-      supabase.from('cilindros').select('id_codigo', { count: 'exact', head: true })
+      supabase.from('inspecciones').select('*', { count: 'exact', head: true }),
+      supabase.from('inspecciones').select('*', { count: 'exact', head: true }).eq('estado_inspeccion', 'borrador'),
+      supabase.from('inspecciones').select('*', { count: 'exact', head: true }).in('estado_inspeccion', ['completa', 'sincronizada']),
+      supabase.from('cilindros').select('*', { count: 'exact', head: true })
     ])
 
     // Log de errores si existen
