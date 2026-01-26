@@ -13,8 +13,9 @@ function RecepcionPage() {
   const [contacto, setContacto] = useState('')
   const [tipoComponente, setTipoComponente] = useState('Cilindro Hidráulico')
   const [prioridad, setPrioridad] = useState<'Normal' | 'Urgente'>('Normal')
-  const [diametro, setDiametro] = useState('')
-  const [largo, setLargo] = useState('')
+  const [diametroCamisa, setDiametroCamisa] = useState('')
+  const [diametroVastago, setDiametroVastago] = useState('')
+  const [largoCarrera, setLargoCarrera] = useState('')
   const [fotoArmado, setFotoArmado] = useState<File | null>(null)
   const [fotoDespiece, setFotoDespiece] = useState<File | null>(null)
   const [previewArmado, setPreviewArmado] = useState<string | null>(null)
@@ -243,23 +244,33 @@ function RecepcionPage() {
             </div>
 
             {/* Dimensiones */}
-            <div className="flex gap-4">
-              <label className="flex flex-col flex-1">
-                <p className="text-sm font-medium leading-normal pb-2 text-slate-600 dark:text-text-muted-dark">Diámetro (mm)</p>
+            <div className="flex gap-4 flex-wrap">
+              <label className="flex flex-col flex-1 min-w-[150px]">
+                <p className="text-sm font-medium leading-normal pb-2 text-slate-600 dark:text-text-muted-dark">Diámetro camisa (mm)</p>
                 <input
                   type="number"
-                  value={diametro}
-                  onChange={(e) => setDiametro(e.target.value)}
+                  value={diametroCamisa}
+                  onChange={(e) => setDiametroCamisa(e.target.value)}
                   className="w-full rounded-xl border border-gray-300 dark:border-border-dark bg-white dark:bg-surface-dark h-12 px-4 text-base font-normal placeholder:text-gray-400 dark:placeholder:text-text-muted-dark/50 focus:ring-2 focus:ring-primary focus:border-primary transition-all shadow-sm text-slate-900 dark:text-white"
                   placeholder="0"
                 />
               </label>
-              <label className="flex flex-col flex-1">
-                <p className="text-sm font-medium leading-normal pb-2 text-slate-600 dark:text-text-muted-dark">Largo (mm)</p>
+              <label className="flex flex-col flex-1 min-w-[150px]">
+                <p className="text-sm font-medium leading-normal pb-2 text-slate-600 dark:text-text-muted-dark">Diámetro vástago (mm)</p>
                 <input
                   type="number"
-                  value={largo}
-                  onChange={(e) => setLargo(e.target.value)}
+                  value={diametroVastago}
+                  onChange={(e) => setDiametroVastago(e.target.value)}
+                  className="w-full rounded-xl border border-gray-300 dark:border-border-dark bg-white dark:bg-surface-dark h-12 px-4 text-base font-normal placeholder:text-gray-400 dark:placeholder:text-text-muted-dark/50 focus:ring-2 focus:ring-primary focus:border-primary transition-all shadow-sm text-slate-900 dark:text-white"
+                  placeholder="0"
+                />
+              </label>
+              <label className="flex flex-col flex-1 min-w-[150px]">
+                <p className="text-sm font-medium leading-normal pb-2 text-slate-600 dark:text-text-muted-dark">Largo carrera (mm)</p>
+                <input
+                  type="number"
+                  value={largoCarrera}
+                  onChange={(e) => setLargoCarrera(e.target.value)}
                   className="w-full rounded-xl border border-gray-300 dark:border-border-dark bg-white dark:bg-surface-dark h-12 px-4 text-base font-normal placeholder:text-gray-400 dark:placeholder:text-text-muted-dark/50 focus:ring-2 focus:ring-primary focus:border-primary transition-all shadow-sm text-slate-900 dark:text-white"
                   placeholder="0"
                 />
