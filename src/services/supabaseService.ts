@@ -438,13 +438,21 @@ export const supabaseService = {
       supabase.from('cilindros').select('*', { count: 'exact', head: true })
     ])
 
+    // Log detallado de resultados
+    console.log('Resultados crudos:', JSON.stringify({
+      total: totalResult,
+      pendientes: pendientesResult,
+      completas: completasResult,
+      cilindros: cilindrosResult
+    }, null, 2))
+
     // Log de errores si existen
     if (totalResult.error) console.error('Error totalInspecciones:', totalResult.error)
     if (pendientesResult.error) console.error('Error inspeccionesPendientes:', pendientesResult.error)
     if (completasResult.error) console.error('Error inspeccionesCompletas:', completasResult.error)
     if (cilindrosResult.error) console.error('Error cilindrosActivos:', cilindrosResult.error)
 
-    console.log('Resultados:', {
+    console.log('Conteos:', {
       total: totalResult.count,
       pendientes: pendientesResult.count,
       completas: completasResult.count,
