@@ -164,6 +164,9 @@ function RecepcionPage() {
       // Guardar datos adicionales del cilindro en localStorage para uso futuro
       localStorage.setItem(`cilindro_${id}`, JSON.stringify(cilindroData))
 
+      // Mostrar mensaje de éxito
+      alert('✅ Recepción guardada exitosamente')
+
       // Navegar a la siguiente página
       navigate(`/inspeccion/${id}/peritaje`)
     } catch (error: any) {
