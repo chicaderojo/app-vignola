@@ -35,15 +35,17 @@ function LoginPage() {
           rol: 'mecanico' as const
         }
 
-        // Guardar en base de datos (OBLIGATORIO para que funcione la app)
+        // Intentar guardar en base de datos (opcional - no bloquea el inicio de sesión)
         try {
-          await supabaseService.createOrUpdateUsuario(demoUser)
-          console.log('Usuario guardado en base de datos:', demoUser)
+          if (navigator.onLine) {
+            await supabaseService.createOrUpdateUsuario(demoUser)
+            console.log('Usuario guardado en base de datos:', demoUser)
+          } else {
+            console.log('Modo offline - usuario no guardado en BD')
+          }
         } catch (dbError: any) {
-          console.error('Error al guardar usuario en BD:', dbError)
-          setError('Error al conectar con la base de datos. Verifica tu conexión a internet.')
-          setLoading(false)
-          return
+          console.warn('No se pudo guardar en BD (continuando en modo offline):', dbError.message)
+          // NO bloqueamos el inicio de sesión - continuamos en modo offline
         }
 
         // Guardar token falso y usuario en localStorage
@@ -157,9 +159,12 @@ function LoginPage() {
           )}
 
           {/* Demo Notice */}
-          <div className="p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl">
-            <p className="text-xs text-blue-800 dark:text-blue-300 font-medium text-center">
-              🔵 Modo Demo: Usa cualquier credencial
+          <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl">
+            <p className="text-xs text-green-800 dark:text-green-300 font-medium text-center">
+              ✅ Modo Offline: Funciona sin conexión a internet
+            </p>
+            <p className="text-[10px] text-green-700 dark:text-green-400 text-center mt-1">
+              Usa cualquier usuario y contraseña para ingresar
             </p>
           </div>
 
@@ -178,9 +183,9 @@ function LoginPage() {
 
         {/* Footer / Status */}
         <div className="mt-auto flex flex-col items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-200/50 dark:bg-surface-dark border border-slate-300 dark:border-border-dark">
-            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Sistema Online</span>
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-100/50 dark:bg-green-900/30 border border-green-300 dark:border-green-700">
+            <span className="w-2 h-2 rounded-full bg-green-500"></span>
+            <span className="text-xs font-medium text-green-700 dark:text-green-400">Sistema Disponible (Online/Offline)</span>
           </div>
           <p className="text-xs text-slate-400 dark:text-slate-600">Vignola PWA Industrial v1.0.4</p>
         </div>
