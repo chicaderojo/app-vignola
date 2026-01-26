@@ -97,7 +97,7 @@ Claude debe implementar un servicio que maneje:
 * La aplicación bloquea el acceso al peritaje técnico hasta que se carguen las **2 fotos obligatorias** (Estado Armado y Estado Despiece) .
 
 
-* Se capturan los datos iniciales del cilindro: Fabricante (Parker, Rexroth, Hydoring), Diámetros (Camisa/Vástago) y Carrera .
+* Se capturan los datos iniciales del cilindro: Fabricante (Parker, Rexroth, Hydoring), Diámetro camisa, Diámetro vástago y Largo carrera.
 
 
 
