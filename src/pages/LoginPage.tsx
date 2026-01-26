@@ -96,9 +96,13 @@ function LoginPage() {
               <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
                 Contraseña
               </label>
-              <a className="text-xs font-medium text-primary hover:text-primary/80 transition-colors" href="#">
+              <button
+                type="button"
+                onClick={() => alert('Función de recuperación de contraseña\n\nPara restablecer tu contraseña, contacta al administrador del sistema.')}
+                className="text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+              >
                 ¿Olvidó su contraseña?
-              </a>
+              </button>
             </div>
             <div className="relative flex items-center">
               <div className="absolute left-4 text-slate-400 group-focus-within:text-primary transition-colors">
