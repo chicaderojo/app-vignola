@@ -142,6 +142,21 @@ function DashboardPage() {
     navigate('/inventario')
   }
 
+  // Función para obtener el título del usuario según su nombre
+  const getTituloUsuario = (nombre: string | undefined): string => {
+    if (!nombre) return 'Mecánico Senior'
+
+    const nombreLower = nombre.toLowerCase()
+
+    if (nombreLower.includes('respinoza')) {
+      return 'Jefe Taller'
+    } else if (nombreLower.includes('mruiz')) {
+      return 'Jefe Sucursal'
+    } else {
+      return 'Mecánico Senior'
+    }
+  }
+
   return (
     <div className="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto bg-background-light dark:bg-background-dark pb-24">
 
@@ -164,7 +179,7 @@ function DashboardPage() {
                 {user?.nombre || 'Juan Pérez'}
               </h2>
               <span className="text-xs text-slate-500 dark:text-slate-400">
-                {user?.rol === 'mecanico' ? 'Mecánico Senior' : 'Supervisor'}
+                {getTituloUsuario(user?.nombre)}
               </span>
             </div>
           </div>
