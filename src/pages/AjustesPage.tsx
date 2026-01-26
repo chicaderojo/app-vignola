@@ -40,12 +40,10 @@ function AjustesPage() {
       localStorage.setItem('user', JSON.stringify(updatedUser))
 
       setLoading(false)
-      alert('Cambios guardados exitosamente')
 
-      // Opcional: Recargar la página para actualizar la foto en el header
-      if (profilePhotoPreview) {
-        window.location.reload()
-      }
+      // Mostrar mensaje de éxito y navegar al dashboard
+      alert('Cambios guardados exitosamente')
+      navigate('/')
     } catch (error) {
       setLoading(false)
       alert('Error al guardar los cambios')

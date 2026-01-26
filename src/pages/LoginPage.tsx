@@ -35,13 +35,15 @@ function LoginPage() {
           rol: 'mecanico' as const
         }
 
-        // Guardar en base de datos
+        // Guardar en base de datos (OBLIGATORIO para que funcione la app)
         try {
           await supabaseService.createOrUpdateUsuario(demoUser)
           console.log('Usuario guardado en base de datos:', demoUser)
         } catch (dbError: any) {
-          console.warn('No se pudo guardar el usuario en la base de datos:', dbError.message)
-          // Continuar aunque falle el guardado en BD (modo offline)
+          console.error('Error al guardar usuario en BD:', dbError)
+          setError('Error al conectar con la base de datos. Verifica tu conexión a internet.')
+          setLoading(false)
+          return
         }
 
         // Guardar token falso y usuario en localStorage
