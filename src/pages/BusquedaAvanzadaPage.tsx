@@ -62,7 +62,7 @@ function BusquedaAvanzadaPage() {
       producto: 'Pistón de Grúa M-200',
       estado: 'revision'
     }
-  ])
+  ]
 
   const handleClearSearch = () => {
     setBusqueda('')

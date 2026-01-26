@@ -54,7 +54,7 @@ function InventarioPage() {
       estado: 'listo',
       ubicacion: 'Zona A - Rack 04'
     }
-  ])
+  ]
 
   const handleBack = () => {
     navigate('/')
