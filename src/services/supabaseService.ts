@@ -349,6 +349,78 @@ export const supabaseService = {
   },
 
   /**
+   * Crear o actualizar usuario
+   */
+  async createOrUpdateUsuario(usuario: {
+    id: string
+    nombre: string
+    email: string
+    rol: string
+  }): Promise<void> {
+    // Primero intentamos actualizar si existe
+    const { data: existingUser } = await supabase
+      .from('usuarios')
+      .select('id')
+      .eq('id', usuario.id)
+      .single()
+
+    if (existingUser) {
+      // Actualizar usuario existente
+      const { error } = await supabase
+        .from('usuarios')
+        .update({
+          nombre: usuario.nombre,
+          email: usuario.email,
+          rol: usuario.rol
+        })
+        .eq('id', usuario.id)
+
+      if (error) {
+        console.error('Error actualizando usuario:', error)
+        throw error
+      }
+    } else {
+      // Crear nuevo usuario
+      const { error } = await supabase
+        .from('usuarios')
+        .insert({
+          id: usuario.id,
+          nombre: usuario.nombre,
+          email: usuario.email,
+          rol: usuario.rol,
+          password_hash: 'demo-hash-' + Date.now() // Hash temporal para modo demo
+        })
+
+      if (error) {
+        console.error('Error creando usuario:', error)
+        throw error
+      }
+    }
+  },
+
+  /**
+   * Obtener usuario por email
+   */
+  async getUsuarioByEmail(email: string): Promise<any | null> {
+    const { data, error } = await supabase
+      .from('usuarios')
+      .select('*')
+      .eq('email', email)
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No se encontró el usuario
+        return null
+      }
+      console.error('Error obteniendo usuario por email:', error)
+      throw error
+    }
+
+    return data
+  },
+
+  /**
    * Obtener estadísticas del dashboard
    */
   async getDashboardStats(): Promise<{

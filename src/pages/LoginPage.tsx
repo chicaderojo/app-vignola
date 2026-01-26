@@ -1,5 +1,6 @@
 import { useState, FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { supabaseService } from '../services/supabaseService'
 
 function LoginPage() {
   const navigate = useNavigate()
@@ -17,15 +18,33 @@ function LoginPage() {
     try {
       // MODO DEMO: Autenticación local sin backend
       if (email && password) {
+        // Generar ID único basado en el email
+        const userId = 'user-' + email.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()
+
+        // Extraer nombre del email (parte antes del @)
+        const nombre = email.split('@')[0]
+          .split('.')
+          .map(parte => parte.charAt(0).toUpperCase() + parte.slice(1))
+          .join(' ')
+
         // Crear usuario de prueba
         const demoUser = {
-          id: 'demo-user-1',
-          nombre: 'Juan Méndez',
+          id: userId,
+          nombre: nombre || 'Usuario',
           email: email,
           rol: 'mecanico' as const
         }
 
-        // Guardar token falso
+        // Guardar en base de datos
+        try {
+          await supabaseService.createOrUpdateUsuario(demoUser)
+          console.log('Usuario guardado en base de datos:', demoUser)
+        } catch (dbError: any) {
+          console.warn('No se pudo guardar el usuario en la base de datos:', dbError.message)
+          // Continuar aunque falle el guardado en BD (modo offline)
+        }
+
+        // Guardar token falso y usuario en localStorage
         localStorage.setItem('auth_token', 'demo-token-' + Date.now())
         localStorage.setItem('user', JSON.stringify(demoUser))
 
