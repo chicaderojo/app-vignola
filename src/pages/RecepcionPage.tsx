@@ -75,16 +75,26 @@ function RecepcionPage() {
         return
       }
 
-      // Subir fotos a Supabase Storage
+      // Subir fotos a Supabase Storage (con manejo de errores)
       let fotoArmadoUrl = ''
       let fotoDespieceUrl = ''
 
-      if (fotoArmado) {
-        fotoArmadoUrl = await supabaseService.uploadFoto(fotoArmado, id, 'armado')
+      try {
+        if (fotoArmado) {
+          fotoArmadoUrl = await supabaseService.uploadFoto(fotoArmado, id, 'armado')
+        }
+      } catch (error: any) {
+        console.warn('No se pudo subir foto de armado, continuando...', error.message)
+        fotoArmadoUrl = '' // Se podrá agregar después
       }
 
-      if (fotoDespiece) {
-        fotoDespieceUrl = await supabaseService.uploadFoto(fotoDespiece, id, 'despiece')
+      try {
+        if (fotoDespiece) {
+          fotoDespieceUrl = await supabaseService.uploadFoto(fotoDespiece, id, 'despiece')
+        }
+      } catch (error: any) {
+        console.warn('No se pudo subir foto de despiece, continuando...', error.message)
+        fotoDespieceUrl = '' // Se podrá agregar después
       }
 
       // Crear objeto de cilindro con los datos del formulario

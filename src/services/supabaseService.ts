@@ -36,7 +36,7 @@ export const supabaseService = {
       .from('inspecciones')
       .select(`
         *,
-        cilindro:cilindros!inner(id_codigo, tipo, fabricante, diametro_camisa, diametro_vastago, carrera, cliente_id),
+        cilindro:cilindros(id_codigo, tipo, fabricante, diametro_camisa, diametro_vastago, carrera, cliente_id),
         usuario:usuarios(id, nombre, email)
       `)
       .order('created_at', { ascending: false })
@@ -56,7 +56,7 @@ export const supabaseService = {
       .from('inspecciones')
       .select(`
         *,
-        cilindro:cilindros!inner(id_codigo, tipo, fabricante, diametro_camisa, diametro_vastago, carrera),
+        cilindro:cilindros(id_codigo, tipo, fabricante, diametro_camisa, diametro_vastago, carrera),
         usuario:usuarios(id, nombre, email)
       `)
       .eq('estado_inspeccion', estado)
