@@ -371,30 +371,35 @@ export const supabaseService = {
     email: string
     rol: string
   }): Promise<void> {
-    // Primero intentamos actualizar si existe
-    const { data: existingUser } = await supabase
+    // Primero verificamos si existe un usuario con el mismo email
+    const { data: existingUser, error: queryError } = await supabase
       .from('usuarios')
       .select('id')
-      .eq('id', usuario.id)
-      .single()
+      .eq('email', usuario.email)
+      .maybeSingle()
+
+    if (queryError && queryError.code !== 'PGRST116') {
+      console.error('Error buscando usuario:', queryError)
+      throw queryError
+    }
 
     if (existingUser) {
-      // Actualizar usuario existente
+      // Usuario existe con este email, actualizar sus datos
       const { error } = await supabase
         .from('usuarios')
         .update({
           nombre: usuario.nombre,
-          email: usuario.email,
           rol: usuario.rol
         })
-        .eq('id', usuario.id)
+        .eq('email', usuario.email)
 
       if (error) {
-        console.error('Error actualizando usuario:', error)
+        console.error('Error actualizando usuario existente:', error)
         throw error
       }
+      console.log('Usuario actualizado exitosamente:', usuario.email)
     } else {
-      // Crear nuevo usuario
+      // No existe usuario con este email, crear nuevo
       const { error } = await supabase
         .from('usuarios')
         .insert({
@@ -406,9 +411,10 @@ export const supabaseService = {
         })
 
       if (error) {
-        console.error('Error creando usuario:', error)
+        console.error('Error creando nuevo usuario:', error)
         throw error
       }
+      console.log('Nuevo usuario creado exitosamente:', usuario.email)
     }
   },
 
