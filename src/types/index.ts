@@ -47,7 +47,7 @@ export interface Cilindro {
   created_at?: string
 }
 
-export type TipoCilindro = 'Buzo' | 'Cuña Flap' | 'Oleohidráulico'
+export type TipoCilindro = 'Buzo' | 'Cuña Flap' | 'Oleohidráulico' | 'Cilindro Hidráulico' | 'Cilindro Neumático' | 'Vástago' | 'Camisa' | 'Bomba'
 
 // ==================== INSPECCIONES ====================
 

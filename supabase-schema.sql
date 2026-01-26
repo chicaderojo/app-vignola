@@ -50,7 +50,7 @@ CREATE INDEX idx_clientes_activo ON clientes(activo);
 -- =============================================
 CREATE TABLE cilindros (
   id_codigo TEXT PRIMARY KEY, -- ej: CE05CIL0513
-  tipo TEXT NOT NULL CHECK (tipo IN ('Buzo', 'Cuña Flap', 'Oleohidráulico')),
+  tipo TEXT NOT NULL CHECK (tipo IN ('Buzo', 'Cuña Flap', 'Oleohidráulico', 'Cilindro Hidráulico', 'Cilindro Neumático', 'Vástago', 'Camisa', 'Bomba')),
   fabricante TEXT, -- Rexroth, Parker, Hydoring
   diametro_camisa TEXT, -- ej: Ø63
   diametro_vastago TEXT, -- ej: Ø36
@@ -178,30 +178,113 @@ INSERT INTO cilindros (id_codigo, tipo, fabricante, diametro_camisa, diametro_va
  (SELECT id FROM clientes WHERE nombre = 'GLV' LIMIT 1), 'SAP67890');
 
 -- =============================================
--- 8. ROW LEVEL SECURITY (RLS) - OPCIONAL
+-- 8. ROW LEVEL SECURITY (RLS)
 -- =============================================
+-- NOTA: RLS está DESHABILITADO por defecto para desarrollo
+-- Para producción, ejecuta: migrations/enable_rls_production.sql
 
--- Habilitar RLS
-ALTER TABLE usuarios ENABLE ROW LEVEL SECURITY;
-ALTER TABLE clientes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE cilindros ENABLE ROW LEVEL SECURITY;
-ALTER TABLE inspecciones ENABLE ROW LEVEL SECURITY;
-ALTER TABLE inspeccion_detalles ENABLE ROW LEVEL SECURITY;
+-- Habilitar RLS (COMENTADO para desarrollo)
+-- ALTER TABLE usuarios ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE clientes ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE cilindros ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE inspecciones ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE inspeccion_detalles ENABLE ROW LEVEL SECURITY;
 
--- Políticas (ajustar según necesidad)
-CREATE POLICY "Usuarios pueden ver su propio perfil"
+-- =============================================
+-- POLÍTICAS RLS DEFINIDAS (se aplican cuando RLS está habilitado)
+-- =============================================
+-- Estas políticas se crean pero NO están activas hasta que se habilite RLS
+-- Ver: migrations/enable_rls_production.sql
+
+-- POLÍTICAS RLS PARA USUARIOS
+CREATE POLICY IF NOT EXISTS "Usuarios pueden ver perfiles"
   ON usuarios FOR SELECT
-  USING (auth.uid()::text = id::text);
+  TO authenticated
+  USING (true);
 
-CREATE POLICY "Mecánicos pueden ver todas las inspecciones"
+CREATE POLICY IF NOT EXISTS "Usuarios pueden crear su perfil"
+  ON usuarios FOR INSERT
+  TO authenticated
+  WITH CHECK (true);
+
+CREATE POLICY IF NOT EXISTS "Usuarios pueden actualizar su perfil"
+  ON usuarios FOR UPDATE
+  TO authenticated
+  USING (auth.uid()::text = id::text)
+  WITH CHECK (auth.uid()::text = id::text);
+
+-- POLÍTICAS RLS PARA CLIENTES
+CREATE POLICY IF NOT EXISTS "Mecánicos pueden ver clientes"
+  ON clientes FOR SELECT
+  TO authenticated
+  USING (true);
+
+CREATE POLICY IF NOT EXISTS "Mecánicos pueden crear clientes"
+  ON clientes FOR INSERT
+  TO authenticated
+  WITH CHECK (true);
+
+CREATE POLICY IF NOT EXISTS "Mecánicos pueden actualizar clientes"
+  ON clientes FOR UPDATE
+  TO authenticated
+  USING (true)
+  WITH CHECK (true);
+
+-- POLÍTICAS RLS PARA CILINDROS
+CREATE POLICY IF NOT EXISTS "Mecánicos pueden ver cilindros"
+  ON cilindros FOR SELECT
+  TO authenticated
+  USING (true);
+
+CREATE POLICY IF NOT EXISTS "Mecánicos pueden crear cilindros"
+  ON cilindros FOR INSERT
+  TO authenticated
+  WITH CHECK (true);
+
+CREATE POLICY IF NOT EXISTS "Mecánicos pueden actualizar cilindros"
+  ON cilindros FOR UPDATE
+  TO authenticated
+  USING (true)
+  WITH CHECK (true);
+
+-- POLÍTICAS RLS PARA INSPECCIONES
+CREATE POLICY IF NOT EXISTS "Mecánicos pueden ver inspecciones"
   ON inspecciones FOR SELECT
   TO authenticated
   USING (true);
 
-CREATE POLICY "Mecánicos pueden crear inspecciones"
+CREATE POLICY IF NOT EXISTS "Mecánicos pueden crear inspecciones"
   ON inspecciones FOR INSERT
   TO authenticated
   WITH CHECK (true);
+
+CREATE POLICY IF NOT EXISTS "Mecánicos pueden actualizar inspecciones"
+  ON inspecciones FOR UPDATE
+  TO authenticated
+  USING (true)
+  WITH CHECK (true);
+
+-- POLÍTICAS RLS PARA DETALLES DE INSPECCIÓN
+CREATE POLICY IF NOT EXISTS "Mecánicos pueden ver detalles de inspección"
+  ON inspeccion_detalles FOR SELECT
+  TO authenticated
+  USING (true);
+
+CREATE POLICY IF NOT EXISTS "Mecánicos pueden crear detalles de inspección"
+  ON inspeccion_detalles FOR INSERT
+  TO authenticated
+  WITH CHECK (true);
+
+CREATE POLICY IF NOT EXISTS "Mecánicos pueden actualizar detalles de inspección"
+  ON inspeccion_detalles FOR UPDATE
+  TO authenticated
+  USING (true)
+  WITH CHECK (true);
+
+CREATE POLICY IF NOT EXISTS "Mecánicos pueden eliminar detalles de inspección"
+  ON inspeccion_detalles FOR DELETE
+  TO authenticated
+  USING (true);
 
 -- =============================================
 -- 9. VISTAS ÚTILES

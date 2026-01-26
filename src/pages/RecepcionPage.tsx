@@ -69,11 +69,35 @@ function RecepcionPage() {
     try {
       setLoading(true)
 
-      const user = authService.getCurrentUser()
+      let user = authService.getCurrentUser()
       if (!user) {
         alert('Debes estar autenticado para guardar')
         return
       }
+
+      // Validar que el user.id sea un UUID válido (corrección para usuarios con ID antiguo)
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+      console.log('Usuario actual:', user)
+      console.log('¿Es UUID válido?', uuidRegex.test(user.id))
+
+      if (!uuidRegex.test(user.id)) {
+        console.log('ID no válido, generando nuevo UUID...')
+        // Generar nuevo UUID válido y actualizar el usuario
+        const newUserId = crypto.randomUUID()
+        console.log('Nuevo UUID:', newUserId)
+        user = { ...user, id: newUserId }
+        localStorage.setItem('user', JSON.stringify(user))
+
+        // Actualizar en la base de datos
+        try {
+          await supabaseService.createOrUpdateUsuario(user)
+          console.log('Usuario actualizado en BD correctamente')
+        } catch (error) {
+          console.warn('No se pudo actualizar el usuario en BD:', error)
+        }
+      }
+
+      console.log('Usuario final antes de guardar inspección:', user)
 
       // Subir fotos a Supabase Storage (con manejo de errores)
       let fotoArmadoUrl = ''
@@ -97,25 +121,24 @@ function RecepcionPage() {
         fotoDespieceUrl = '' // Se podrá agregar después
       }
 
-      // Crear objeto de cilindro con los datos del formulario
+      // Crear objeto de cilindro con los datos del formulario (solo campos que existen en la tabla)
       const cilindroData = {
-        id_codigo: `CIL-${Date.now()}`, // Generar ID temporal
-        tipo: tipoComponente,
+        id_codigo: `CIL-${Date.now()}`, // Generar ID único
+        tipo: tipoComponente as 'Buzo' | 'Cuña Flap' | 'Oleohidráulico' | 'Cilindro Hidráulico' | 'Cilindro Neumático' | 'Vástago' | 'Camisa' | 'Bomba',
         fabricante: 'Parker', // Valor por defecto, se puede cambiar en el futuro
         diametro_camisa: diametroCamisa || '0',
         diametro_vastago: diametroVastago || '0',
-        carrera: largoCarrera || '0',
-        nombre_cliente: nombreCliente,
-        contacto: contacto,
-        planta: planta || '',
-        orden_trabajo: ordenTrabajo,
-        prioridad: prioridad
+        carrera: largoCarrera || '0'
       }
+
+      // Primero crear el cilindro en la base de datos
+      const cilindroCreado = await supabaseService.createCilindro(cilindroData)
+      console.log('Cilindro creado:', cilindroCreado)
 
       // Crear o actualizar inspección con todos los datos
       await supabaseService.createInspeccion({
         id,
-        cilindro_id: cilindroData.id_codigo,
+        cilindro_id: cilindroCreado.id_codigo, // Usar el ID del cilindro creado
         usuario_id: user.id,
         sap_cliente: ordenTrabajo,
         foto_armado_url: fotoArmadoUrl,

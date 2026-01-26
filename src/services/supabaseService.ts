@@ -207,6 +207,20 @@ export const supabaseService = {
   },
 
   /**
+   * Crear un nuevo cilindro
+   */
+  async createCilindro(cilindro: Partial<Cilindro>): Promise<Cilindro> {
+    const { data, error } = await supabase
+      .from('cilindros')
+      .insert([cilindro])
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  },
+
+  /**
    * Crear una nueva inspección
    */
   async createInspeccion(inspeccion: Partial<Inspeccion>): Promise<Inspeccion> {

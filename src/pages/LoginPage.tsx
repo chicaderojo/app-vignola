@@ -18,8 +18,8 @@ function LoginPage() {
     try {
       // MODO DEMO: Autenticación local sin backend
       if (email && password) {
-        // Generar ID único basado en el email
-        const userId = 'user-' + email.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()
+        // Generar UUID válido para la base de datos
+        const userId = crypto.randomUUID()
 
         // Extraer nombre del email (parte antes del @)
         const nombre = email.split('@')[0]
