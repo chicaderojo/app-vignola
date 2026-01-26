@@ -162,6 +162,7 @@ function RecepcionPage() {
         cilindro_id: cilindroCreado.id_codigo, // Usar el ID del cilindro creado
         usuario_id: usuarioActualizado.id, // Usar el ID del usuario de la BD
         sap_cliente: ordenTrabajo,
+        nombre_cliente: nombreCliente || undefined,
         contacto_cliente: contacto || undefined,
         planta: planta || undefined,
         foto_armado_url: fotoArmadoUrl,

@@ -14,6 +14,7 @@ interface Componente {
 interface DetallesInspeccion {
   id: string
   codigo: string
+  ordenTrabajo: string
   estado: 'completado' | 'en_proceso' | 'rechazado'
   fechaFinalizacion: string
   cliente: string
@@ -74,6 +75,7 @@ function DetallesInspeccionPage() {
       const detallesTransformados: DetallesInspeccion = {
         id: insp.id,
         codigo: cilindro?.id_codigo || insp.cilindro_id,
+        ordenTrabajo: insp.sap_cliente || 'N/A',
         estado: insp.estado_inspeccion === 'completa' || insp.estado_inspeccion === 'sincronizada'
           ? 'completado'
           : insp.estado_inspeccion === 'borrador' ? 'en_proceso' : 'rechazado',
@@ -82,7 +84,7 @@ function DetallesInspeccionPage() {
           month: 'short',
           year: 'numeric'
         }),
-        cliente: cilindro?.cliente?.nombre || 'Cliente',
+        cliente: (insp as any).nombre_cliente || cilindro?.cliente?.nombre || 'Cliente',
         contacto: (insp as any).contacto_cliente || 'No especificado',
         ubicacion: (insp as any).planta || 'Taller Central',
         tipoCilindro: cilindro?.tipo || 'No especificado',
@@ -229,7 +231,10 @@ function DetallesInspeccionPage() {
       <div className="px-4 py-4">
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold dark:text-white text-slate-900">{inspeccion.codigo}</h1>
+            <div>
+              <h1 className="text-2xl font-bold dark:text-white text-slate-900">{inspeccion.codigo}</h1>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">OT: {inspeccion.ordenTrabajo}</p>
+            </div>
             <div className="flex h-7 items-center justify-center gap-x-2 rounded-full bg-green-500/20 dark:bg-green-500/20 border border-green-500/30 pl-3 pr-3">
               <span className="size-2 rounded-full bg-green-600 dark:bg-green-500"></span>
               <p className="text-green-700 dark:text-green-400 text-xs font-medium uppercase tracking-wide">Completado</p>
