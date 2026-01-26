@@ -11,7 +11,6 @@ function AjustesPage() {
   const [notificaciones, setNotificaciones] = useState(true)
   const [frecuenciaSync, setFrecuenciaSync] = useState<'15m' | '1h' | 'manual'>('15m')
   const [loading, setLoading] = useState(false)
-  const [profilePhoto, setProfilePhoto] = useState<File | null>(null)
   const [profilePhotoPreview, setProfilePhotoPreview] = useState<string | null>(null)
 
   const handleVolver = () => {
@@ -95,7 +94,6 @@ function AjustesPage() {
         const reader = new FileReader()
         reader.onloadend = () => {
           const preview = reader.result as string
-          setProfilePhoto(file)
           setProfilePhotoPreview(preview)
         }
         reader.readAsDataURL(file)
