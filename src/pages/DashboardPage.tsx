@@ -193,7 +193,10 @@ function DashboardPage() {
         </div>
 
         {/* Mantención */}
-        <div className="flex min-w-[140px] flex-1 flex-col gap-3 rounded-xl p-4 bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 shadow-sm ring-1 ring-primary/20">
+        <button
+          onClick={() => navigate('/mantenimiento/demo')}
+          className="flex min-w-[140px] flex-1 flex-col gap-3 rounded-xl p-4 bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 shadow-sm ring-1 ring-primary/20 cursor-pointer hover:ring-primary/40 transition-all active:scale-95"
+        >
           <div className="flex items-center justify-between">
             <span className="text-primary text-sm font-medium">Mantención</span>
             <span className="material-symbols-outlined text-primary text-[20px]">build</span>
@@ -202,7 +205,7 @@ function DashboardPage() {
           <div className="w-full bg-slate-100 dark:bg-slate-700 h-1 rounded-full overflow-hidden">
             <div className="bg-primary h-full w-[60%]"></div>
           </div>
-        </div>
+        </button>
 
         {/* Finalizados */}
         <div className="flex min-w-[140px] flex-1 flex-col gap-3 rounded-xl p-4 bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 shadow-sm">
@@ -281,9 +284,10 @@ function DashboardPage() {
           {MOCK_TAREAS.map((tarea) => (
             <div
               key={tarea.id}
+              onClick={() => tarea.estado === 'Mantención' && navigate(`/mantenimiento/${tarea.id}`)}
               className={`bg-white dark:bg-surface-card rounded-xl p-4 border border-slate-200 dark:border-slate-700 shadow-sm relative overflow-hidden group ${
                 tarea.progreso === 100 ? 'opacity-60' : tarea.progreso < 50 ? 'opacity-80' : ''
-              }`}
+              } ${tarea.estado === 'Mantención' ? 'cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all active:scale-[0.98]' : ''}`}
             >
               <div className={`absolute left-0 top-0 bottom-0 w-1 ${
                 tarea.estadoColor === 'primary' ? 'bg-primary' :
