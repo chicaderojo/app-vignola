@@ -23,7 +23,7 @@ function InventarioPage() {
   const [filtroActivo, setFiltroActivo] = useState<FiltroTab>('todos')
 
   // Mock data para órdenes de fabricación
-  const [ordenes, setOrdenes] = useState<OrdenFabricacion[]>([
+  const ordenes: OrdenFabricacion[] = [
     {
       id: '1',
       codigo: 'ID-9942-ESCONDIDA',

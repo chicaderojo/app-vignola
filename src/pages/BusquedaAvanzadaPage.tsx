@@ -40,7 +40,7 @@ function BusquedaAvanzadaPage() {
   ])
 
   // Mock data para resultados
-  const [resultados, setResultados] = useState<ResultadoBusqueda[]>([
+  const resultados: ResultadoBusqueda[] = [
     {
       id: '1',
       codigo: 'ORD-5521',
@@ -99,17 +99,6 @@ function BusquedaAvanzadaPage() {
           bg: 'bg-blue-500/10',
           strip: 'bg-blue-500'
         }
-    }
-  }
-
-  const getTipoIcon = (tipo: FiltroBusqueda) => {
-    switch (tipo) {
-      case 'orden':
-        return 'receipt_long'
-      case 'empresa':
-        return 'domain'
-      case 'producto':
-        return 'extension'
     }
   }
 

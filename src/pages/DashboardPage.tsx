@@ -3,50 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { authService } from '../services/api'
 import { v4 as uuidv4 } from 'uuid'
 import { useTheme } from '../hooks/useTheme'
-
-// Mock data para tareas
-const MOCK_TAREAS = [
-  {
-    id: 'HYD-1102',
-    titulo: 'Cilindro Telescópico',
-    cliente: 'AgroTech S.A.',
-    estado: 'Inspección',
-    estadoColor: 'primary',
-    fecha: 'Hoy, 14:00',
-    ubicacion: 'Taller B',
-    progreso: 45
-  },
-  {
-    id: 'HYD-4592',
-    titulo: 'Cilindro Doble Efecto',
-    cliente: 'Mining Corp',
-    estado: 'Mantención',
-    estadoColor: 'orange',
-    fecha: 'Ayer, 09:30',
-    ubicacion: 'Almacén',
-    progreso: 30
-  },
-  {
-    id: 'HYD-8821',
-    titulo: 'Vástago Cromado',
-    cliente: 'TransVial',
-    estado: 'Listo',
-    estadoColor: 'green',
-    fecha: 'Ayer, 16:45',
-    ubicacion: 'Taller A',
-    progreso: 100
-  },
-  {
-    id: 'HYD-9943',
-    titulo: 'Sistema Hidráulico',
-    cliente: 'Minera Escondida',
-    estado: 'Parámetros',
-    estadoColor: 'purple',
-    fecha: 'Hoy, 10:15',
-    ubicacion: 'Laboratorio',
-    progreso: 75
-  }
-]
 import { supabaseService } from '../services/supabaseService'
 import { Inspeccion } from '../types'
 
@@ -176,10 +132,6 @@ function DashboardPage() {
 
   const handleVerTareas = () => {
     navigate('/tareas')
-  }
-
-  const handleInicio = () => {
-    setActiveNav('inicio')
   }
 
   const handleBuscar = () => {

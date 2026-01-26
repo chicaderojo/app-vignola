@@ -22,7 +22,7 @@ interface ComponenteCritico {
 
 function MantenimientoPage() {
   const navigate = useNavigate()
-  const { id } = useParams()
+  // const { id } = useParams() // Unused for now
 
   const [componentes, setComponentes] = useState<ComponenteCritico[]>([
     {
@@ -33,10 +33,10 @@ function MantenimientoPage() {
       imagen: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDgLYzit4J5mzIBZFQoPN_ujHSVagKGH1_L9ziiwKaCj-zFY8Q5kdERDFYTFtVJC1yxCDMq-z-uoKaEMj_ts6e4kUcPQSjMd6uQvaPx_BWTMq8im9g3Wq7QPizEyirF3Euaq3Crrq9Lhm0BIMKiBs3aAFGJS3KTRdmvZj3UH5M4vCWUiiYr9-cpJpUl4kyXW_elJ8MN3dTQ5mgAI2Ue_3qLeQApsclEe16HaD7fLUPSMLbaxWSXKC724cPt0Ci7DR04FITHOVVqXBo',
       estado: 'en_proceso',
       tareas: [
-        { id: '1', descripcion: 'Limpieza Química', estado: 'completada' },
-        { id: '2', descripcion: 'Inspección de Superficie', estado: 'completada' },
-        { id: '3', descripcion: 'Pulido de Camisa', estado: 'pendiente' },
-        { id: '4', descripcion: 'Cambio Kit de Sellos', estado: 'pendiente' }
+        { id: '1', descripcion: 'Limpieza Química', estado: 'completada' as TaskStatus },
+        { id: '2', descripcion: 'Inspección de Superficie', estado: 'completada' as TaskStatus },
+        { id: '3', descripcion: 'Pulido de Camisa', estado: 'pendiente' as TaskStatus },
+        { id: '4', descripcion: 'Cambio Kit de Sellos', estado: 'pendiente' as TaskStatus }
       ]
     },
     {
@@ -47,8 +47,8 @@ function MantenimientoPage() {
       imagen: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBq6HrNQhcpJdagfhhBHaXwhVOhQRaVsRHSsl7yksqD94MSc2ikNDt2T7U3K2WwZijr3t9masQ5xRYIS_doWDRuYZAQPi2i72qL9Je_pbysmwszyqcRZYbM8q2bzEMkuvDZaCpfFdQIq59ml7ArQtweCj2ufzFZeMqoReXeGA5uIqfQDoQr3pGWjiZsxRyS8oW-DU2djdZjKwNwjE6cM6YXWwlzoZb7dwEZBGKmDtWnPLTIN95B7YG8iOPUEcAtCDj1FahRyeT6iI',
       estado: 'pendiente',
       tareas: [
-        { id: '1', descripcion: 'Desengrasado', estado: 'pendiente' },
-        { id: '2', descripcion: 'Rectificado Rosca', estado: 'pendiente' }
+        { id: '1', descripcion: 'Desengrasado', estado: 'pendiente' as TaskStatus },
+        { id: '2', descripcion: 'Rectificado Rosca', estado: 'pendiente' as TaskStatus }
       ]
     }
   ])
