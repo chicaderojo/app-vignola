@@ -18,14 +18,30 @@ function LoginPage() {
     try {
       // MODO DEMO: Autenticación local sin backend
       if (email && password) {
-        // Generar UUID válido para la base de datos
-        const userId = crypto.randomUUID()
-
         // Extraer nombre del email (parte antes del @)
         const nombre = email.split('@')[0]
           .split('.')
           .map(parte => parte.charAt(0).toUpperCase() + parte.slice(1))
           .join(' ')
+
+        // Primero verificar si el usuario ya existe en la base de datos
+        let userId: string
+        try {
+          const existingUser = await supabaseService.getUsuarioByEmail(email)
+          if (existingUser) {
+            // Usuario existe, usar su ID de la base de datos
+            userId = existingUser.id
+            console.log('Usuario existente encontrado, usando ID:', userId)
+          } else {
+            // Usuario no existe, generar nuevo UUID
+            userId = crypto.randomUUID()
+            console.log('Nuevo usuario, generando ID:', userId)
+          }
+        } catch (error) {
+          console.error('Error verificando usuario existente:', error)
+          // Si hay error, generar nuevo UUID
+          userId = crypto.randomUUID()
+        }
 
         // Crear usuario de prueba
         const demoUser = {
