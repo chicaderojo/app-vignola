@@ -63,6 +63,7 @@ export interface Inspeccion {
   presion_prueba: number // ej: 180 (bar)
   fuga_interna: boolean
   fuga_externa: boolean
+  notas_recepcion?: string
   estado_inspeccion: EstadoInspeccion
   created_at: string
   detalles?: InspeccionDetalle[]

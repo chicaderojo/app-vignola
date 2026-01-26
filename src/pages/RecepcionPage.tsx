@@ -146,6 +146,14 @@ function RecepcionPage() {
       const cilindroCreado = await supabaseService.createCilindro(cilindroData)
       console.log('Cilindro creado:', cilindroCreado)
 
+      // Crear objeto con información adicional del cliente
+      const infoRecepcion = {
+        cliente: nombreCliente,
+        planta: planta,
+        contacto: contacto,
+        prioridad: prioridad
+      }
+
       // Crear o actualizar inspección con todos los datos
       await supabaseService.createInspeccion({
         id,
@@ -154,6 +162,7 @@ function RecepcionPage() {
         sap_cliente: ordenTrabajo,
         foto_armado_url: fotoArmadoUrl,
         foto_despiece_url: fotoDespieceUrl || '',
+        notas_recepcion: JSON.stringify(infoRecepcion), // Guardar info del cliente como JSON
         presion_prueba: 0,
         fuga_interna: false,
         fuga_externa: false,

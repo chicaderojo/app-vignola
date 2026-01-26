@@ -18,6 +18,8 @@ interface DetallesInspeccion {
   fechaFinalizacion: string
   cliente: string
   ubicacion: string
+  contacto: string
+  ordenTrabajo: string
   tipoCilindro: string
   diametro: string
   vastago: string
@@ -69,6 +71,16 @@ function DetallesInspeccionPage() {
       const { inspeccion: insp, detalles } = resultado
       const cilindro = insp.cilindro as any
 
+      // Parsear información de recepción si existe
+      let infoRecepcion: any = null
+      if (insp.notas_recepcion) {
+        try {
+          infoRecepcion = JSON.parse(insp.notas_recepcion)
+        } catch (e) {
+          console.warn('No se pudo parsear notas_recepcion:', e)
+        }
+      }
+
       // Transformar al formato de DetallesInspeccion
       const detallesTransformados: DetallesInspeccion = {
         id: insp.id,
@@ -81,8 +93,10 @@ function DetallesInspeccionPage() {
           month: 'short',
           year: 'numeric'
         }),
-        cliente: cilindro?.cliente?.nombre || 'Cliente',
-        ubicacion: 'Taller Central',
+        cliente: infoRecepcion?.cliente || cilindro?.cliente?.nombre || 'Cliente',
+        ubicacion: infoRecepcion?.planta || 'Taller Central',
+        contacto: infoRecepcion?.contacto || 'N/A',
+        ordenTrabajo: insp.sap_cliente || 'N/A',
         tipoCilindro: cilindro?.tipo || 'No especificado',
         diametro: cilindro?.diametro_camisa ? `${cilindro.diametro_camisa} mm` : 'N/A',
         vastago: cilindro?.diametro_vastago ? `${cilindro.diametro_vastago} mm` : 'N/A',
@@ -247,12 +261,20 @@ function DetallesInspeccionPage() {
         </div>
         <div className="p-4 grid grid-cols-2 gap-x-4">
           <div className="flex flex-col gap-1 border-b border-dashed border-slate-200 dark:border-border-dark py-3">
+            <p className="text-slate-500 dark:text-text-muted-dark text-xs font-medium uppercase tracking-wider">Orden de Trabajo</p>
+            <p className="text-slate-900 dark:text-white text-sm font-medium">{inspeccion.ordenTrabajo}</p>
+          </div>
+          <div className="flex flex-col gap-1 border-b border-dashed border-slate-200 dark:border-border-dark py-3">
             <p className="text-slate-500 dark:text-text-muted-dark text-xs font-medium uppercase tracking-wider">Cliente</p>
             <p className="text-slate-900 dark:text-white text-sm font-medium">{inspeccion.cliente}</p>
           </div>
           <div className="flex flex-col gap-1 border-b border-dashed border-slate-200 dark:border-border-dark py-3">
-            <p className="text-slate-500 dark:text-text-muted-dark text-xs font-medium uppercase tracking-wider">Ubicación</p>
+            <p className="text-slate-500 dark:text-text-muted-dark text-xs font-medium uppercase tracking-wider">Planta</p>
             <p className="text-slate-900 dark:text-white text-sm font-medium">{inspeccion.ubicacion}</p>
+          </div>
+          <div className="flex flex-col gap-1 border-b border-dashed border-slate-200 dark:border-border-dark py-3">
+            <p className="text-slate-500 dark:text-text-muted-dark text-xs font-medium uppercase tracking-wider">Contacto</p>
+            <p className="text-slate-900 dark:text-white text-sm font-medium">{inspeccion.contacto}</p>
           </div>
           <div className="flex flex-col gap-1 border-b border-dashed border-slate-200 dark:border-border-dark py-3">
             <p className="text-slate-500 dark:text-text-muted-dark text-xs font-medium uppercase tracking-wider">Tipo Cilindro</p>
