@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 
 type ComponentStatus = 'en_proceso' | 'pendiente'
 type TaskStatus = 'completada' | 'pendiente'
@@ -66,7 +66,7 @@ function MantenimientoPage() {
             if (tarea.id === taskId) {
               return {
                 ...tarea,
-                estado: tarea.estado === 'completada' ? 'pendiente' : 'completada'
+                estado: (tarea.estado === 'completada' ? 'pendiente' : 'completada') as TaskStatus
               }
             }
             return tarea
