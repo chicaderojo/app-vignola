@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { supabaseService } from '../services/supabaseService'
 
 type ComponenteStatus = 'pending' | 'bueno' | 'mantencion' | 'cambio'
 
@@ -15,6 +16,7 @@ interface Componente {
 function PeritajePage() {
   const navigate = useNavigate()
   const { id } = useParams()
+  const [loading, setLoading] = useState(false)
 
   // Mock data para componentes
   const [componentes, setComponentes] = useState<Componente[]>([
@@ -64,18 +66,45 @@ function PeritajePage() {
     navigate(`/inspeccion/${id}/recepcion`)
   }
 
-  const handleGuardar = () => {
-    console.log('Guardando peritaje:', componentes)
-    // Aquí iría la lógica para guardar
+  const handleGuardar = async () => {
+    if (!id) {
+      alert('Error: ID de inspección no válido')
+      return
+    }
+
+    try {
+      setLoading(true)
+      await supabaseService.savePeritaje(id, componentes)
+      alert('Peritaje guardado exitosamente')
+    } catch (error: any) {
+      console.error('Error guardando peritaje:', error)
+      alert(`Error al guardar: ${error.message}`)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handleFinalizar = () => {
+  const handleFinalizar = async () => {
     const componentesPendientes = componentes.filter(c => c.estado === 'pending')
     if (componentesPendientes.length > 0) {
       alert(`Falta evaluar ${componentesPendientes.length} componente(s)`)
       return
     }
-    navigate(`/inspeccion/${id}/pruebas`)
+
+    if (!id) {
+      alert('Error: ID de inspección no válido')
+      return
+    }
+
+    try {
+      setLoading(true)
+      await supabaseService.savePeritaje(id, componentes)
+      navigate(`/inspeccion/${id}/pruebas`)
+    } catch (error: any) {
+      console.error('Error finalizando peritaje:', error)
+      alert(`Error al guardar: ${error.message}`)
+      setLoading(false)
+    }
   }
 
   const actualizarEstado = (index: number, nuevoEstado: ComponenteStatus) => {
@@ -155,9 +184,10 @@ function PeritajePage() {
           </div>
           <button
             onClick={handleGuardar}
-            className="bg-primary/10 hover:bg-primary/20 text-primary px-4 py-2 rounded-full text-sm font-bold transition-colors"
+            disabled={loading}
+            className="bg-primary/10 hover:bg-primary/20 text-primary px-4 py-2 rounded-full text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Guardar
+            {loading ? 'Guardando...' : 'Guardar'}
           </button>
         </div>
       </header>
@@ -355,10 +385,20 @@ function PeritajePage() {
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background-dark via-background-dark to-transparent pt-8 max-w-md mx-auto">
         <button
           onClick={handleFinalizar}
-          className="w-full bg-primary hover:bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-900/50 flex items-center justify-center gap-2 transition-transform active:scale-[0.98]"
+          disabled={loading}
+          className="w-full bg-primary hover:bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-900/50 flex items-center justify-center gap-2 transition-transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <span className="material-symbols-outlined">assignment_turned_in</span>
-          Finalizar Peritaje
+          {loading ? (
+            <>
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+              Procesando...
+            </>
+          ) : (
+            <>
+              <span className="material-symbols-outlined">assignment_turned_in</span>
+              Finalizar Peritaje
+            </>
+          )}
         </button>
       </div>
     </div>

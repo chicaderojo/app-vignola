@@ -1,76 +1,155 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useLiveQuery } from 'dexie-react-hooks'
+import { db } from '../db/dexie'
+import { supabaseService } from '../services/supabaseService'
+import { Inspeccion } from '../types'
 import { v4 as uuidv4 } from 'uuid'
 
-type Prioridad = 'normal' | 'urgente'
-type Etapa = 'recepcion' | 'peritaje' | 'taller'
-type Estado = 'pendiente_inicio' | 'pendiente_peritaje' | 'esperando_banco' | 'en_progreso'
+type Priority = 'normal' | 'urgent'
+type Status = 'borrador' | 'recepcion' | 'peritaje' | 'taller' | 'pruebas' | 'completado'
 
 interface InspeccionPendiente {
   id: string
   codigo: string
   cliente: string
   equipo: string
-  prioridad: Prioridad
-  etapa: Etapa
-  estado: Estado
-  fechaRecibido: string
+  prioridad: Priority
+  estado: Status
+  fecha: string
   progreso: number
+  etapas_completadas: string[]
+  estado_inspeccion?: string // Para identificar inspecciones de Supabase
 }
 
 function InspeccionesPendientesPage() {
   const navigate = useNavigate()
 
-  // Mock data para inspecciones pendientes
-  const [inspecciones, setInspecciones] = useState<InspeccionPendiente[]>([
-    {
-      id: '1',
-      codigo: 'CH-9942-B',
-      cliente: 'Minera Escondida',
-      equipo: 'CAT 797F',
-      prioridad: 'urgente',
-      etapa: 'peritaje',
-      estado: 'pendiente_peritaje',
-      fechaRecibido: '12 Oct 2023',
-      progreso: 58
-    },
-    {
-      id: '2',
-      codigo: 'CH-8821-X',
-      cliente: 'BHP Billiton',
-      equipo: 'Komatsu 930E',
-      prioridad: 'normal',
-      etapa: 'taller',
-      estado: 'esperando_banco',
-      fechaRecibido: '15 Oct 2023',
-      progreso: 66
-    },
-    {
-      id: '3',
-      codigo: 'CH-7750-A',
-      cliente: 'Anglo American',
-      equipo: 'Los Bronces',
-      prioridad: 'normal',
-      etapa: 'recepcion',
-      estado: 'pendiente_inicio',
-      fechaRecibido: 'Hoy, 08:30 AM',
-      progreso: 20
-    }
-  ])
-
-  const [filtroActivo, setFiltroActivo] = useState<'todos' | 'inspeccion' | 'mantencion' | 'finalizados'>('todos')
+  const [filtroActivo, setFiltroActivo] = useState<'todos' | 'peritaje' | 'pruebas' | 'urgentes'>('todos')
   const [busqueda, setBusqueda] = useState('')
+  const [online, setOnline] = useState(navigator.onLine)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleContinuar = (inspeccionId: string) => {
-    navigate(`/inspeccion/${inspeccionId}/recepcion`)
+  // Obtener inspecciones locales con Dexie React Hooks
+  const inspeccionesLocales = useLiveQuery(
+    () => db.inspeccionesLocales.toArray(),
+    []
+  )
+
+  // Estado para inspecciones combinadas (locales + Supabase)
+  const [inspecciones, setInspecciones] = useState<InspeccionPendiente[]>([])
+  const [inspeccionesSupabase, setInspeccionesSupabase] = useState<Inspeccion[]>([])
+
+  // Verificar estado de conexión
+  useEffect(() => {
+    const handleOnline = () => {
+      setOnline(true)
+      cargarDatosDesdeSupabase()
+    }
+    const handleOffline = () => setOnline(false)
+
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [])
+
+  // Cargar inspecciones desde Supabase al montar
+  useEffect(() => {
+    if (online) {
+      cargarDatosDesdeSupabase()
+    } else {
+      setLoading(false)
+    }
+  }, [])
+
+  // Combinar inspecciones locales y de Supabase
+  useEffect(() => {
+    const listaCombinada: InspeccionPendiente[] = []
+
+    // 1. Agregar inspecciones de Supabase (solo borradores y completas)
+    inspeccionesSupabase.forEach((insp: any) => {
+      const cilindro = insp.cilindro as any
+      const etapas = (insp as any).etapas_completadas || []
+      const progreso = etapas.length > 0 ? Math.round((etapas.length / 4) * 100) : 25
+
+      listaCombinada.push({
+        id: insp.id,
+        codigo: cilindro?.id_codigo || insp.cilindro_id,
+        cliente: cilindro?.cliente?.nombre || 'Cliente',
+        equipo: `${cilindro?.tipo || 'Cilindro'} - ${cilindro?.fabricante || 'Fabricante'}`,
+        prioridad: 'normal',
+        estado: insp.estado_inspeccion === 'borrador' ? 'borrador' : 'completado',
+        fecha: new Date(insp.created_at).toLocaleDateString('es-CL'),
+        progreso,
+        etapas_completadas: etapas,
+        estado_inspeccion: insp.estado_inspeccion
+      })
+    })
+
+    // 2. Agregar inspecciones locales (IndexedDB)
+    if (inspeccionesLocales) {
+      inspeccionesLocales.forEach((insp: any) => {
+        // Evitar duplicados si ya existe en Supabase
+        if (!listaCombinada.find(item => item.id === insp.id)) {
+          const etapas = insp.etapas_completadas || []
+          const progreso = calcularProgreso(etapas)
+
+          listaCombinada.push({
+            id: insp.id,
+            codigo: insp.codigo || `CH-${insp.id.slice(-4)}`,
+            cliente: insp.cliente || 'Cliente local',
+            equipo: insp.equipo || 'Equipo no especificado',
+            prioridad: insp.prioridad || 'normal',
+            estado: determinarEstado(etapas),
+            fecha: new Date(insp.fecha_creacion).toLocaleDateString('es-CL'),
+            progreso,
+            etapas_completadas: etapas
+          })
+        }
+      })
+    }
+
+    setInspecciones(listaCombinada)
+  }, [inspeccionesSupabase, inspeccionesLocales])
+
+  const cargarDatosDesdeSupabase = async () => {
+    if (!online) return
+
+    try {
+      setLoading(true)
+      setError(null)
+      console.log('Cargando inspecciones pendientes desde Supabase...')
+
+      // Cargar inspecciones en estado borrador
+      const datos = await supabaseService.getInspeccionesByEstado('borrador')
+
+      console.log('Inspecciones pendientes de Supabase:', datos)
+      setInspeccionesSupabase(datos)
+    } catch (err: any) {
+      console.error('Error cargando inspecciones desde Supabase:', err)
+      setError(err.message || 'Error al cargar inspecciones')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handleMantencion = (inspeccionId: string) => {
-    navigate(`/mantenimiento/${inspeccionId}`)
+  const calcularProgreso = (etapas: string[]): number => {
+    const totalEtapas = 4 // recepcion, peritaje, pruebas, finalizado
+    const completadas = etapas.length
+    return Math.round((completadas / totalEtapas) * 100)
   }
 
-  const handleIniciarPeritaje = (inspeccionId: string) => {
-    navigate(`/inspeccion/${inspeccionId}/peritaje`)
+  const determinarEstado = (etapas: string[]): Status => {
+    if (etapas.includes('finalizado')) return 'completado'
+    if (etapas.includes('pruebas')) return 'pruebas'
+    if (etapas.includes('peritaje')) return 'taller'
+    if (etapas.includes('recepcion')) return 'peritaje'
+    return 'recepcion'
   }
 
   const handleNuevaInspeccion = () => {
@@ -78,36 +157,66 @@ function InspeccionesPendientesPage() {
     navigate(`/inspeccion/${inspeccionId}/recepcion`)
   }
 
-  const getEtapaInfo = (etapa: Etapa) => {
-    switch (etapa) {
-      case 'recepcion':
-        return 'Recepción'
-      case 'peritaje':
-        return 'Peritaje'
-      case 'taller':
-        return 'Hidráulica'
+  const handleContinuarInspeccion = async (inspeccionId: string) => {
+    try {
+      // Obtener datos de la inspección desde Dexie
+      const inspeccion = await db.inspeccionesLocales.get(inspeccionId) as any
+
+      if (!inspeccion) {
+        console.error('Inspección no encontrada')
+        return
+      }
+
+      const etapas = inspeccion.etapas_completadas || []
+      let ruta = `/inspeccion/${inspeccionId}/recepcion`
+
+      // Determinar a qué etapa navegar
+      if (!etapas.includes('recepcion')) {
+        ruta = `/inspeccion/${inspeccionId}/recepcion`
+      } else if (!etapas.includes('peritaje')) {
+        ruta = `/inspeccion/${inspeccionId}/peritaje`
+      } else if (!etapas.includes('pruebas')) {
+        ruta = `/inspeccion/${inspeccionId}/pruebas`
+      } else {
+        // Si todas las etapas están completas, ver detalles
+        ruta = `/inspeccion/${inspeccionId}/detalles`
+      }
+
+      navigate(ruta)
+    } catch (error) {
+      console.error('Error al continuar inspección:', error)
     }
   }
 
-  const getEstadoLabel = (estado: Estado) => {
+  const getEstadoLabel = (estado: Status) => {
     switch (estado) {
-      case 'pendiente_inicio':
-        return 'Pendiente Inicio'
-      case 'pendiente_peritaje':
-        return 'Pendiente Peritaje'
-      case 'esperando_banco':
-        return 'Esperando Banco de Pruebas'
-      case 'en_proceso':
-        return 'En Proceso'
+      case 'recepcion': return 'Pendiente Inicio'
+      case 'peritaje': return 'Pendiente Peritaje'
+      case 'taller': return 'En Taller'
+      case 'pruebas': return 'Esperando Banco de Pruebas'
+      case 'completado': return 'Completado'
+      default: return 'Borrador'
+    }
+  }
+
+  const getProgresoColor = (estado: Status) => {
+    switch (estado) {
+      case 'recepcion': return 'bg-primary/50'
+      case 'peritaje': return 'bg-primary'
+      case 'taller': return 'bg-yellow-500'
+      case 'pruebas': return 'bg-primary'
+      case 'completado': return 'bg-green-500'
+      default: return 'bg-slate-400'
     }
   }
 
   // Filtrar inspecciones
   const inspeccionesFiltradas = inspecciones.filter(inspeccion => {
-    const cumpleFiltro = filtroActivo === 'todos' ||
-      (filtroActivo === 'inspeccion' && (inspeccion.etapa === 'recepcion' || inspeccion.etapa === 'peritaje')) ||
-      (filtroActivo === 'mantencion' && inspeccion.etapa === 'taller') ||
-      (filtroActivo === 'finalizados' && inspeccion.progreso === 100)
+    const cumpleFiltro =
+      filtroActivo === 'todos' ||
+      (filtroActivo === 'peritaje' && (inspeccion.estado === 'peritaje' || inspeccion.estado === 'recepcion')) ||
+      (filtroActivo === 'pruebas' && inspeccion.estado === 'pruebas') ||
+      (filtroActivo === 'urgentes' && inspeccion.prioridad === 'urgent')
 
     const cumpleBusqueda = !busqueda ||
       inspeccion.codigo.toLowerCase().includes(busqueda.toLowerCase()) ||
@@ -116,18 +225,11 @@ function InspeccionesPendientesPage() {
     return cumpleFiltro && cumpleBusqueda
   })
 
-  const getContadorFiltro = (filtro: typeof filtroActivo) => {
-    switch (filtro) {
-      case 'todos':
-        return inspecciones.length
-      case 'inspeccion':
-        return inspecciones.filter(i => i.etapa === 'recepcion' || i.etapa === 'peritaje').length
-      case 'mantencion':
-        return inspecciones.filter(i => i.etapa === 'taller').length
-      case 'finalizados':
-        return inspecciones.filter(i => i.progreso === 100).length
-    }
-  }
+  const countPeritaje = inspecciones.filter(i =>
+    i.estado === 'peritaje' || i.estado === 'recepcion'
+  ).length
+  const countPruebas = inspecciones.filter(i => i.estado === 'pruebas').length
+  const countUrgentes = inspecciones.filter(i => i.prioridad === 'urgent').length
 
   return (
     <div className="min-h-screen bg-background-light dark:bg-background-dark pb-24">
@@ -141,18 +243,22 @@ function InspeccionesPendientesPage() {
             >
               <span className="material-symbols-outlined text-2xl">arrow_back_ios</span>
             </button>
-            <h2 className="text-lg font-bold leading-tight tracking-tight text-slate-900 dark:text-white">Inspecciones Pendientes</h2>
+            <h2 className="text-lg font-bold leading-tight tracking-tight">Inspecciones Pendientes</h2>
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 bg-green-500/10 text-green-500 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
-              <span className="size-2 bg-green-500 rounded-full animate-pulse"></span>
-              Online
+            <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+              online
+                ? 'bg-green-500/10 text-green-500'
+                : 'bg-yellow-500/10 text-yellow-500'
+            }`}>
+              <span className={`size-2 rounded-full ${online ? 'bg-green-500 animate-pulse' : 'bg-yellow-500'}`}></span>
+              {online ? 'Online' : 'Offline'}
             </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto">
+      <main className="max-w-5xl mx-auto pb-24">
         {/* Search Bar Section */}
         <div className="px-4 py-4">
           <label className="flex flex-col w-full">
@@ -175,184 +281,293 @@ function InspeccionesPendientesPage() {
         </div>
 
         {/* Filter Chips */}
-        <div className="flex gap-2 px-4 pb-4 overflow-x-auto no-scrollbar">
+        <div className="flex gap-2 px-4 pb-4 overflow-x-auto hide-scrollbar">
           <button
             onClick={() => setFiltroActivo('todos')}
-            className={`flex h-9 shrink-0 items-center justify-center gap-2 rounded-full px-5 transition-transform active:scale-95 ${
+            className={`flex h-9 shrink-0 items-center justify-center gap-2 rounded-full transition-transform active:scale-95 ${
               filtroActivo === 'todos'
-                ? 'bg-primary text-white'
-                : 'bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-white'
+                ? 'bg-primary text-white px-5'
+                : 'bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 px-5 text-slate-700 dark:text-white'
             }`}
           >
-            <span className="text-sm font-semibold">Todos ({getContadorFiltro('todos')})</span>
+            <span className="text-sm font-semibold">Todos ({inspecciones.length})</span>
           </button>
 
           <button
-            onClick={() => setFiltroActivo('inspeccion')}
-            className={`flex h-9 shrink-0 items-center justify-center gap-2 rounded-full px-5 transition-transform active:scale-95 ${
-              filtroActivo === 'inspeccion'
-                ? 'bg-primary text-white'
-                : 'bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-white'
+            onClick={() => setFiltroActivo('peritaje')}
+            className={`flex h-9 shrink-0 items-center justify-center gap-2 rounded-full transition-transform active:scale-95 ${
+              filtroActivo === 'peritaje'
+                ? 'bg-primary text-white px-5'
+                : 'bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 px-5 text-slate-700 dark:text-white'
             }`}
           >
-            <span className="text-sm font-medium">Inspección</span>
-            <span className="bg-primary/20 text-primary text-[10px] px-1.5 rounded-full">{getContadorFiltro('inspeccion')}</span>
+            <span className="text-sm font-medium">Peritaje</span>
+            <span className={`${
+              filtroActivo === 'peritaje' ? 'bg-white/20' : 'bg-primary/20'
+            } text-primary text-[10px] px-1.5 rounded-full`}>{countPeritaje}</span>
           </button>
 
           <button
-            onClick={() => setFiltroActivo('mantencion')}
-            className={`flex h-9 shrink-0 items-center justify-center gap-2 rounded-full px-5 transition-transform active:scale-95 ${
-              filtroActivo === 'mantencion'
-                ? 'bg-primary text-white'
-                : 'bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-white'
+            onClick={() => setFiltroActivo('pruebas')}
+            className={`flex h-9 shrink-0 items-center justify-center gap-2 rounded-full transition-transform active:scale-95 ${
+              filtroActivo === 'pruebas'
+                ? 'bg-primary text-white px-5'
+                : 'bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 px-5 text-slate-700 dark:text-white'
             }`}
           >
-            <span className="text-sm font-medium">Mantención</span>
-            <span className="bg-primary/20 text-primary text-[10px] px-1.5 rounded-full">{getContadorFiltro('mantencion')}</span>
+            <span className="text-sm font-medium">Hidráulica</span>
+            <span className={`${
+              filtroActivo === 'pruebas' ? 'bg-white/20' : 'bg-primary/20'
+            } text-primary text-[10px] px-1.5 rounded-full`}>{countPruebas}</span>
           </button>
 
           <button
-            onClick={() => setFiltroActivo('finalizados')}
-            className={`flex h-9 shrink-0 items-center justify-center gap-2 rounded-full px-5 transition-transform active:scale-95 ${
-              filtroActivo === 'finalizados'
-                ? 'bg-primary text-white'
-                : 'bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-white'
+            onClick={() => setFiltroActivo('urgentes')}
+            className={`flex h-9 shrink-0 items-center justify-center gap-2 rounded-full transition-transform active:scale-95 ${
+              filtroActivo === 'urgentes'
+                ? 'bg-primary text-white px-5'
+                : 'bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 px-5 text-slate-700 dark:text-white'
             }`}
           >
-            <span className="text-sm font-medium">Finalizados</span>
-            <span className="bg-primary/20 text-primary text-[10px] px-1.5 rounded-full">{getContadorFiltro('finalizados')}</span>
+            <span className="text-sm font-medium text-red-500">Urgentes</span>
+            <span className={`${
+              filtroActivo === 'urgentes' ? 'bg-white/20' : 'bg-red-500/20'
+            } text-red-500 text-[10px] px-1.5 rounded-full`}>{countUrgentes}</span>
           </button>
         </div>
+
+        {/* Error message */}
+        {error && (
+          <div className="mx-4 mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-red-500 text-[20px]">error</span>
+              <div className="flex-1">
+                <p className="text-red-600 dark:text-red-400 text-sm font-medium">Error de conexión</p>
+                <p className="text-red-500/70 dark:text-red-400/70 text-xs">{error}</p>
+              </div>
+              <button
+                onClick={cargarDatosDesdeSupabase}
+                className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded transition-colors"
+              >
+                Reintentar
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Loading state */}
+        {loading && (
+          <div className="flex flex-col items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+            <p className="text-slate-500 dark:text-slate-400">Cargando inspecciones...</p>
+          </div>
+        )}
 
         {/* Section Header */}
-        <div className="flex items-center justify-between px-4 pt-2 pb-2">
-          <h3 className="text-slate-900 dark:text-white text-base font-bold uppercase tracking-widest">Lista de Trabajo</h3>
-          <span className="text-slate-500 text-xs font-medium uppercase">Última act: 10:45 AM</span>
-        </div>
+        {!loading && (
+          <div className="flex items-center justify-between px-4 pt-2 pb-2">
+            <h3 className="text-slate-900 dark:text-white text-base font-bold uppercase tracking-widest">Lista de Trabajo</h3>
+            <span className="text-slate-500 text-xs font-medium uppercase">
+              {!online ? 'Modo Offline' : `Última act: ${new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}`}
+            </span>
+          </div>
+        )}
 
         {/* Inspection Cards List */}
-        <div className="flex flex-col gap-4 p-4">
-          {inspeccionesFiltradas.map((inspeccion) => (
-            <div
-              key={inspeccion.id}
-              className={`relative overflow-hidden group ${
-                inspeccion.prioridad === 'urgente' ? '' : ''
-              }`}
-            >
+        {!loading && (
+          <div className="flex flex-col gap-4 p-4">
+            {inspeccionesFiltradas.length === 0 ? (
+            <div className="text-center py-12">
+              <span className="material-symbols-outlined text-6xl text-gray-300 dark:text-gray-600">search_off</span>
+              <p className="text-gray-500 dark:text-gray-400 mt-4">
+                {!online ? 'Sin conexión. Mostrando solo datos locales.' : 'No se encontraron inspecciones pendientes'}
+              </p>
+              {busqueda && (
+                <button
+                  onClick={() => setBusqueda('')}
+                  className="mt-4 text-primary font-medium"
+                >
+                  Limpiar búsqueda
+                </button>
+              )}
+            </div>
+          ) : (
+            inspeccionesFiltradas.map((inspeccion) => (
               <div
-                className={`flex flex-col rounded-xl border bg-white dark:bg-surface-dark shadow-sm overflow-hidden ${
-                  inspeccion.prioridad === 'urgente'
-                    ? 'border-red-500/30 shadow-lg'
-                    : 'border-slate-200 dark:border-slate-800'
+                key={inspeccion.id}
+                className={`relative overflow-hidden group ${
+                  inspeccion.prioridad === 'urgent'
+                    ? 'flex flex-col rounded-xl border border-red-500/30 bg-white dark:bg-surface-dark shadow-lg dark:shadow-none overflow-hidden'
+                    : 'flex flex-col rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark shadow-sm overflow-hidden'
                 }`}
               >
-                {inspeccion.prioridad === 'urgente' && (
+                {/* Priority indicator */}
+                {inspeccion.prioridad === 'urgent' && (
                   <div className="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
                 )}
 
                 <div className="p-4 flex flex-col gap-3">
                   <div className="flex justify-between items-start">
                     <div>
-                      {inspeccion.prioridad === 'urgente' && (
+                      {inspeccion.prioridad === 'urgent' && (
                         <p className="text-red-500 text-[10px] font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
                           <span className="material-symbols-outlined text-xs">priority_high</span>
                           Prioridad Alta
                         </p>
                       )}
-                      {inspeccion.etapa === 'taller' && (
+                      {inspeccion.estado === 'pruebas' && (
                         <p className="text-primary text-[10px] font-bold uppercase tracking-wider mb-1">
                           Prueba Hidráulica
                         </p>
                       )}
-                      {inspeccion.etapa === 'recepcion' && (
+                      {inspeccion.estado === 'recepcion' && (
                         <p className="text-slate-400 dark:text-text-muted-dark text-[10px] font-bold uppercase tracking-wider mb-1">
                           Recién Ingresado
                         </p>
                       )}
-                      <h4 className="text-slate-900 dark:text-white text-xl font-black tracking-tight">
-                        {inspeccion.codigo}
-                      </h4>
+                      {inspeccion.estado === 'peritaje' && (
+                        <p className="text-primary text-[10px] font-bold uppercase tracking-wider mb-1">
+                          En Evaluación
+                        </p>
+                      )}
+                      <h4 className="text-slate-900 dark:text-white text-xl font-black tracking-tight">{inspeccion.codigo}</h4>
                       <p className="text-slate-500 dark:text-text-muted-dark text-sm font-medium">
                         {inspeccion.cliente} • {inspeccion.equipo}
                       </p>
                     </div>
-                    {inspeccion.prioridad !== 'urgente' && inspeccion.etapa === 'recepcion' && (
+                    {inspeccion.prioridad !== 'urgent' && inspeccion.estado !== 'recepcion' && (
                       <div className="bg-slate-100 dark:bg-slate-800 p-2 rounded-lg">
                         <span className="material-symbols-outlined text-slate-400">precision_manufacturing</span>
                       </div>
                     )}
                   </div>
 
+                  {/* Progress Bar */}
                   <div className="flex flex-col gap-2 py-2">
-                    {inspeccion.etapa !== 'recepcion' && (
-                      <div className="flex items-center justify-between text-xs text-slate-500 dark:text-text-muted-dark">
-                        <span>Recepción</span>
-                        <span>{getEtapaInfo(inspeccion.etapa)}</span>
-                        {inspeccion.etapa === 'recepcion' && <span className="opacity-40">Taller</span>}
-                      </div>
+                    {inspeccion.estado === 'peritaje' && (
+                      <>
+                        <div className="flex items-center justify-between text-xs text-slate-500 dark:text-text-muted-dark">
+                          <span>Recepción</span>
+                          <span>Peritaje</span>
+                          <span className="opacity-40">Taller</span>
+                        </div>
+                        <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full flex">
+                          <div className="bg-green-500 h-full w-1/3 rounded-l-full border-r border-slate-900/10"></div>
+                          <div className="bg-primary h-full w-1/4 animate-pulse"></div>
+                        </div>
+                      </>
                     )}
 
-                    <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full flex">
-                      <div className="bg-green-500 h-full rounded-l-full" style={{ width: `${inspeccion.progreso}%` }}></div>
-                      {inspeccion.etapa === 'peritaje' && (
-                        <div className="bg-primary h-full w-1/4 animate-pulse"></div>
-                      )}
-                    </div>
+                    {inspeccion.estado === 'pruebas' && (
+                      <>
+                        <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full flex">
+                          <div className="bg-green-500 h-full w-2/3 rounded-l-full"></div>
+                        </div>
+                      </>
+                    )}
+
+                    {inspeccion.estado === 'recepcion' && (
+                      <>
+                        <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full">
+                          <div className={`${getProgresoColor(inspeccion.estado)} h-full w-1/5 rounded-full`}></div>
+                        </div>
+                      </>
+                    )}
+
+                    {inspeccion.estado !== 'recepcion' && inspeccion.estado !== 'peritaje' && inspeccion.estado !== 'pruebas' && (
+                      <>
+                        <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full">
+                          <div className={`${getProgresoColor(inspeccion.estado)} h-full rounded-full`} style={{ width: `${inspeccion.progreso}%` }}></div>
+                        </div>
+                      </>
+                    )}
 
                     <p className="text-slate-400 dark:text-text-muted-dark text-xs">
-                      Recibido: {inspeccion.fechaRecibido} •{' '}
-                      <span className={inspeccion.etapa === 'peritaje' ? 'text-primary font-semibold' : 'text-slate-300 dark:text-slate-400'}>
+                      Recibido: {inspeccion.fecha} •{' '}
+                      <span className={inspeccion.estado === 'peritaje' ? 'text-primary font-semibold' : 'text-slate-300 dark:text-slate-400'}>
                         {getEstadoLabel(inspeccion.estado)}
                       </span>
                     </p>
                   </div>
 
-                  <div className="flex gap-2 mt-2">
-                    {inspeccion.etapa === 'recepcion' ? (
-                      <button
-                        onClick={() => handleIniciarPeritaje(inspeccion.id)}
-                        className="w-full flex items-center justify-center gap-2 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white font-bold py-3 text-sm active:scale-95"
-                      >
-                        INICIAR PERITAJE
+                  {/* Action Buttons */}
+                  <div className={`gap-2 mt-2 flex`}>
+                    <button
+                      onClick={() => handleContinuarInspeccion(inspeccion.id)}
+                      className={`flex items-center justify-center gap-2 rounded-lg font-bold py-3 text-sm transition-transform active:scale-95 ${
+                        inspeccion.estado === 'recepcion'
+                          ? 'w-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white'
+                          : 'flex-1 bg-primary text-white'
+                      }`}
+                    >
+                      {inspeccion.estado === 'recepcion' ? (
+                        <>INICIAR PERITAJE</>
+                      ) : (
+                        <>
+                          <span className="material-symbols-outlined text-sm">play_arrow</span>
+                          CONTINUAR
+                        </>
+                      )}
+                    </button>
+
+                    {inspeccion.estado !== 'recepcion' && (
+                      <button className="w-12 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-400">
+                        <span className="material-symbols-outlined">more_vert</span>
                       </button>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => inspeccion.etapa === 'taller' ? handleMantencion(inspeccion.id) : handleContinuar(inspeccion.id)}
-                          className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-primary text-white font-bold py-3 text-sm transition-transform active:scale-95"
-                        >
-                          {inspeccion.etapa === 'taller' ? <span className="material-symbols-outlined text-sm">build</span> : <span className="material-symbols-outlined text-sm">play_arrow</span>}
-                          {inspeccion.etapa === 'taller' ? 'MANTENCIÓN' : 'CONTINUAR'}
-                        </button>
-                        <button className="w-12 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-400">
-                          <span className="material-symbols-outlined">more_vert</span>
-                        </button>
-                      </>
+                    )}
+
+                    {inspeccion.estado === 'pruebas' && (
+                      <button className="w-12 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-400">
+                        <span className="material-symbols-outlined text-sm">history</span>
+                      </button>
                     )}
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
-
-          {inspeccionesFiltradas.length === 0 && (
-            <div className="text-center py-12">
-              <span className="material-symbols-outlined text-6xl text-gray-300 dark:text-gray-600">inbox</span>
-              <p className="text-gray-500 dark:text-gray-400 mt-4">No hay inspecciones pendientes</p>
-            </div>
+            ))
           )}
+        </div>
+        )}
+
+        {/* Float Action Button (Quick New Inspection) */}
+        <div className="fixed bottom-6 right-6 z-40">
+          <button
+            onClick={handleNuevaInspeccion}
+            className="size-14 rounded-full bg-primary text-white shadow-2xl flex items-center justify-center active:scale-90 transition-transform"
+          >
+            <span className="material-symbols-outlined text-3xl">add</span>
+          </button>
         </div>
       </main>
 
-      {/* Float Action Button (Quick New Inspection) */}
-      <div className="fixed bottom-6 right-6">
+      {/* Bottom Navigation Bar */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-background-dark border-t border-slate-200 dark:border-slate-800 px-6 py-2 flex justify-between items-center z-50 max-w-5xl mx-auto">
+        <button
+          onClick={() => navigate('/')}
+          className="flex flex-col items-center gap-1 text-slate-400"
+        >
+          <span className="material-symbols-outlined">dashboard</span>
+          <span className="text-[10px] font-bold">DASHBOARD</span>
+        </button>
+
+        <button className="flex flex-col items-center gap-1 text-primary">
+          <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>list_alt</span>
+          <span className="text-[10px] font-bold">INSPECCIONES</span>
+        </button>
+
         <button
           onClick={handleNuevaInspeccion}
-          className="size-14 rounded-full bg-primary text-white shadow-2xl flex items-center justify-center active:scale-90 transition-transform"
+          className="flex flex-col items-center gap-1 text-slate-400"
         >
-          <span className="material-symbols-outlined text-3xl">add</span>
+          <span className="material-symbols-outlined">qr_code_scanner</span>
+          <span className="text-[10px] font-bold">SCANNER</span>
         </button>
-      </div>
+
+        <button className="flex flex-col items-center gap-1 text-slate-400">
+          <span className="material-symbols-outlined">settings</span>
+          <span className="text-[10px] font-bold">AJUSTES</span>
+        </button>
+      </nav>
     </div>
   )
 }

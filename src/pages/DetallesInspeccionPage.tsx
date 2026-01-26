@@ -1,4 +1,6 @@
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { supabaseService } from '../services/supabaseService'
 
 type ComponenteEstado = 'ok' | 'warning' | 'error'
 
@@ -33,46 +35,89 @@ function DetallesInspeccionPage() {
   const { id } = useParams()
   const navigate = useNavigate()
 
-  // Mock data para la inspección
-  const inspeccion: DetallesInspeccion = {
-    id: id || '1',
-    codigo: 'ORD-4592',
-    estado: 'completado',
-    fechaFinalizacion: '24 Oct 2023',
-    cliente: 'Minera Escondida',
-    ubicacion: 'Taller Central',
-    tipoCilindro: 'Doble Efecto',
-    diametro: '200 mm',
-    vastago: '110 mm',
-    carrera: '1500 mm',
-    fotos: [
-      'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?w=400&h=300&fit=crop'
-    ],
-    componentes: [
-      {
-        id: '1',
-        nombre: 'Camisa',
-        estado: 'ok',
-        descripcion: 'Desgaste normal'
-      },
-      {
-        id: '2',
-        nombre: 'Vástago',
-        estado: 'warning',
-        descripcion: 'Rayaduras superficiales'
-      },
-      {
-        id: '3',
-        nombre: 'Sellos',
-        estado: 'error',
-        descripcion: 'Resecos / Fisurados'
+  const [inspeccion, setInspeccion] = useState<DetallesInspeccion | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Cargar datos desde Supabase
+  useEffect(() => {
+    if (!id) {
+      setError('ID de inspección no proporcionado')
+      setLoading(false)
+      return
+    }
+
+    cargarInspeccion()
+  }, [id])
+
+  const cargarInspeccion = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      console.log('Cargando detalles de inspección:', id)
+
+      // Cargar inspección completa con detalles
+      const resultado = await supabaseService.getInspeccionCompleta(id!)
+
+      if (!resultado) {
+        setError('Inspección no encontrada')
+        setLoading(false)
+        return
       }
-    ],
-    pruebas: {
-      presionPrueba: '250 Bar',
-      fugaInterna: false,
-      fugaExterna: false
+
+      const { inspeccion: insp, detalles } = resultado
+      const cilindro = insp.cilindro as any
+
+      // Transformar al formato de DetallesInspeccion
+      const detallesTransformados: DetallesInspeccion = {
+        id: insp.id,
+        codigo: cilindro?.id_codigo || insp.cilindro_id,
+        estado: insp.estado_inspeccion === 'completa' || insp.estado_inspeccion === 'sincronizada'
+          ? 'completado'
+          : insp.estado_inspeccion === 'borrador' ? 'en_proceso' : 'rechazado',
+        fechaFinalizacion: new Date(insp.created_at).toLocaleDateString('es-CL', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric'
+        }),
+        cliente: cilindro?.cliente?.nombre || 'Cliente',
+        ubicacion: 'Taller Central',
+        tipoCilindro: cilindro?.tipo || 'No especificado',
+        diametro: cilindro?.diametro_camisa ? `${cilindro.diametro_camisa} mm` : 'N/A',
+        vastago: cilindro?.diametro_vastago ? `${cilindro.diametro_vastago} mm` : 'N/A',
+        carrera: cilindro?.carrera ? `${cilindro.carrera} mm` : 'N/A',
+        fotos: [
+          insp.foto_armado_url || '',
+          insp.foto_despiece_url || ''
+        ].filter(Boolean),
+        componentes: detalles.map(det => {
+          // Mapear estado de componente
+          let componenteEstado: ComponenteEstado = 'ok'
+          if (det.estado === 'Cambio') componenteEstado = 'error'
+          else if (det.estado === 'Mantención') componenteEstado = 'warning'
+
+          return {
+            id: det.id,
+            nombre: det.componente || 'Componente',
+            estado: componenteEstado,
+            descripcion: det.detalle_tecnico || det.accion_propuesta || 'Sin observaciones'
+          }
+        }),
+        pruebas: {
+          presionPrueba: insp.presion_prueba ? `${insp.presion_prueba} Bar` : 'N/A',
+          fugaInterna: insp.fuga_interna || false,
+          fugaExterna: insp.fuga_externa || false
+        }
+      }
+
+      console.log('Detalles cargados:', detallesTransformados)
+      setInspeccion(detallesTransformados)
+    } catch (err: any) {
+      console.error('Error cargando detalles:', err)
+      setError(err.message || 'Error al cargar detalles de la inspección')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -81,6 +126,7 @@ function DetallesInspeccionPage() {
   }
 
   const handleGenerarInforme = () => {
+    if (!inspeccion) return
     alert('Generando informe técnico de la inspección ' + inspeccion.codigo)
   }
 
@@ -108,6 +154,58 @@ function DetallesInspeccionPage() {
           label: 'Cambio'
         }
     }
+  }
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden pb-24 max-w-md mx-auto bg-background-light dark:bg-background-dark">
+        <header className="sticky top-0 z-50 flex items-center bg-background-light dark:bg-background-dark p-4 pb-2 justify-between border-b dark:border-border-dark/30 border-slate-200">
+          <button
+            onClick={handleBack}
+            className="text-slate-900 dark:text-white flex size-12 shrink-0 items-center justify-center rounded-full hover:bg-slate-200 dark:hover:bg-white/10 transition-colors"
+          >
+            <span className="material-symbols-outlined text-2xl">arrow_back</span>
+          </button>
+          <h2 className="text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center pr-12">
+            Detalles de Inspección
+          </h2>
+        </header>
+        <div className="flex flex-col items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+          <p className="text-slate-500 dark:text-slate-400">Cargando detalles...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Error state
+  if (error || !inspeccion) {
+    return (
+      <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden pb-24 max-w-md mx-auto bg-background-light dark:bg-background-dark">
+        <header className="sticky top-0 z-50 flex items-center bg-background-light dark:bg-background-dark p-4 pb-2 justify-between border-b dark:border-border-dark/30 border-slate-200">
+          <button
+            onClick={handleBack}
+            className="text-slate-900 dark:text-white flex size-12 shrink-0 items-center justify-center rounded-full hover:bg-slate-200 dark:hover:bg-white/10 transition-colors"
+          >
+            <span className="material-symbols-outlined text-2xl">arrow_back</span>
+          </button>
+          <h2 className="text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center pr-12">
+            Detalles de Inspección
+          </h2>
+        </header>
+        <div className="flex flex-col items-center justify-center py-12 px-4">
+          <span className="material-symbols-outlined text-6xl text-red-500 mb-4">error</span>
+          <p className="text-red-600 dark:text-red-400 text-center mb-4">{error || 'Inspección no encontrada'}</p>
+          <button
+            onClick={handleBack}
+            className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            Volver
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (

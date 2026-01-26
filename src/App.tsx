@@ -12,6 +12,8 @@ import InspeccionesPendientesPage from './pages/InspeccionesPendientesPage'
 import BusquedaAvanzadaPage from './pages/BusquedaAvanzadaPage'
 import InventarioPage from './pages/InventarioPage'
 import MantenimientoPage from './pages/MantenimientoPage'
+import TrabajosListosPage from './pages/TrabajosListosPage'
+import MantencionPage from './pages/MantencionPage'
 import SyncStatusIndicator from './components/SyncStatusIndicator'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -68,6 +70,30 @@ function App() {
           element={
             <PrivateRoute>
               <HistorialPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/inspecciones-pendientes"
+          element={
+            <PrivateRoute>
+              <InspeccionesPendientesPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/trabajos-listos"
+          element={
+            <PrivateRoute>
+              <TrabajosListosPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/mantencion"
+          element={
+            <PrivateRoute>
+              <MantencionPage />
             </PrivateRoute>
           }
         />

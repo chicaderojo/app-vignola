@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { supabaseService } from '../services/supabaseService'
+import { authService } from '../services/api'
 
 function RecepcionPage() {
   const navigate = useNavigate()
@@ -17,6 +19,7 @@ function RecepcionPage() {
   const [fotoDespiece, setFotoDespiece] = useState<File | null>(null)
   const [previewArmado, setPreviewArmado] = useState<string | null>(null)
   const [previewDespiece, setPreviewDespiece] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
 
   const handleCerrar = () => {
     navigate('/')
@@ -50,26 +53,61 @@ function RecepcionPage() {
     input.click()
   }
 
-  const handleGuardar = () => {
+  const handleGuardar = async () => {
     if (!fotoArmado) {
       alert('Debes capturar la foto obligatoria de Armado antes de guardar')
       return
     }
 
-    // Aquí iría la lógica para guardar los datos
-    console.log({
-      cliente: nombreCliente,
-      ordenTrabajo,
-      contacto,
-      tipoComponente,
-      prioridad,
-      diametro,
-      largo,
-      fotos: { armado: fotoArmado, despiece: fotoDespiece }
-    })
+    if (!id) {
+      alert('Error: ID de inspección no válido')
+      return
+    }
 
-    // Navegar a la siguiente página
-    navigate(`/inspeccion/${id}/peritaje`)
+    try {
+      setLoading(true)
+
+      const user = authService.getCurrentUser()
+      if (!user) {
+        alert('Debes estar autenticado para guardar')
+        return
+      }
+
+      // Subir fotos a Supabase Storage
+      let fotoArmadoUrl = ''
+      let fotoDespieceUrl = ''
+
+      if (fotoArmado) {
+        fotoArmadoUrl = await supabaseService.uploadFoto(fotoArmado, id, 'armado')
+      }
+
+      if (fotoDespiece) {
+        fotoDespieceUrl = await supabaseService.uploadFoto(fotoDespiece, id, 'despiece')
+      }
+
+      // Crear o actualizar inspección
+      await supabaseService.createInspeccion({
+        id,
+        cilindro_id: '', // Se asignará cuando se seleccione el cilindro
+        usuario_id: user.id,
+        sap_cliente: ordenTrabajo,
+        foto_armado_url: fotoArmadoUrl,
+        foto_despiece_url: fotoDespieceUrl,
+        presion_prueba: 0,
+        fuga_interna: false,
+        fuga_externa: false,
+        estado_inspeccion: 'borrador',
+        created_at: new Date().toISOString()
+      })
+
+      // Navegar a la siguiente página
+      navigate(`/inspeccion/${id}/peritaje`)
+    } catch (error: any) {
+      console.error('Error guardando recepción:', error)
+      alert(`Error al guardar: ${error.message}`)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -329,10 +367,20 @@ function RecepcionPage() {
         <div className="max-w-3xl mx-auto flex gap-3">
           <button
             onClick={handleGuardar}
-            className="flex-1 rounded-xl bg-primary h-14 text-white text-base font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 active:scale-[0.99] transition-all flex items-center justify-center gap-2"
+            disabled={loading}
+            className="flex-1 rounded-xl bg-primary h-14 text-white text-base font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <span className="material-symbols-outlined">save</span>
-            Guardar Recepción
+            {loading ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                Guardando...
+              </>
+            ) : (
+              <>
+                <span className="material-symbols-outlined">save</span>
+                Guardar Recepción
+              </>
+            )}
           </button>
         </div>
       </div>

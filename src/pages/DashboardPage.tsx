@@ -47,6 +47,8 @@ const MOCK_TAREAS = [
     progreso: 75
   }
 ]
+import { supabaseService } from '../services/supabaseService'
+import { Inspeccion } from '../types'
 
 function DashboardPage() {
   const navigate = useNavigate()
@@ -55,12 +57,25 @@ function DashboardPage() {
 
   const [syncStatus, setSyncStatus] = useState({ pendiente: false, numero_items: 0, online: true })
   const [activeNav, setActiveNav] = useState('inicio')
+  const [inspecciones, setInspecciones] = useState<Inspeccion[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [stats, setStats] = useState({
+    totalInspecciones: 0,
+    inspeccionesPendientes: 0,
+    inspeccionesCompletas: 0,
+    cilindrosActivos: 0
+  })
 
-  // Verificar estado online al montar
+  // Cargar datos de Supabase al montar
   useEffect(() => {
+    cargarDatos()
     verificarEstadoOnline()
 
-    const handleOnline = () => setSyncStatus(prev => ({ ...prev, online: true }))
+    const handleOnline = () => {
+      setSyncStatus(prev => ({ ...prev, online: true }))
+      cargarDatos()
+    }
     const handleOffline = () => setSyncStatus(prev => ({ ...prev, online: false }))
 
     window.addEventListener('online', handleOnline)
@@ -71,6 +86,39 @@ function DashboardPage() {
       window.removeEventListener('offline', handleOffline)
     }
   }, [])
+
+  const cargarDatos = async () => {
+    if (!navigator.onLine) {
+      console.log('Modo offline - no se cargan datos de Supabase')
+      setError('Sin conexión a internet')
+      return
+    }
+
+    try {
+      setLoading(true)
+      setError(null)
+      console.log('Cargando datos de Supabase...')
+
+      const [inspeccionesData, statsData] = await Promise.all([
+        supabaseService.getInspecciones(),
+        supabaseService.getDashboardStats()
+      ])
+
+      console.log('Datos recibidos:', { inspeccionesData, statsData })
+      setInspecciones(inspeccionesData)
+      setStats(statsData)
+    } catch (error: any) {
+      console.error('Error al cargar datos de Supabase:', error)
+      setError(error?.message || 'Error al cargar datos')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Calcular contadores dinámicos desde Supabase
+  const contarInspecciones = () => stats.inspeccionesPendientes
+  const contarMantencion = () => Math.floor(stats.totalInspecciones * 0.3) // Estimado
+  const contarListas = () => stats.inspeccionesCompletas
 
   const verificarEstadoOnline = () => {
     setSyncStatus({
@@ -87,6 +135,38 @@ function DashboardPage() {
 
   const handleVerHistorial = () => {
     navigate('/historial')
+  }
+
+  const handleVerInspeccionesPendientes = () => {
+    navigate('/inspecciones-pendientes')
+  }
+
+  const handleVerTrabajosListos = () => {
+    navigate('/trabajos-listos')
+  }
+
+  const handleVerReingresos = () => {
+    navigate('/trabajos-listos')
+  }
+
+  const handleVerMantencion = () => {
+    navigate('/mantencion')
+  }
+
+  const handleVerPruebas = () => {
+    // Navegar a una inspección pendiente o crear una nueva para pruebas
+    const inspeccionPendiente = inspecciones.find(
+      insp => insp.estado_inspeccion === 'borrador' &&
+               (insp as any).etapas_completadas?.includes('peritaje')
+    )
+
+    if (inspeccionPendiente) {
+      navigate(`/inspeccion/${inspeccionPendiente.id}/pruebas`)
+    } else {
+      // Si no hay inspección en etapa de pruebas, crear una nueva
+      const inspeccionId = uuidv4()
+      navigate(`/inspeccion/${inspeccionId}/pruebas`)
+    }
   }
 
   const handleCerrarSesion = () => {
@@ -176,48 +256,88 @@ function DashboardPage() {
         <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
           Aquí tienes un resumen de tu actividad.
         </p>
+
+        {/* Error message */}
+        {error && (
+          <div className="mt-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-red-500 text-[20px]">error</span>
+              <div className="flex-1">
+                <p className="text-red-600 dark:text-red-400 text-sm font-medium">Error de conexión</p>
+                <p className="text-red-500/70 dark:text-red-400/70 text-xs">{error}</p>
+              </div>
+              <button
+                onClick={cargarDatos}
+                className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded transition-colors"
+              >
+                Reintentar
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Debug info */}
+        {!loading && !error && stats.totalInspecciones === 0 && (
+          <div className="mt-3 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-yellow-500 text-[20px]">warning</span>
+              <div className="flex-1">
+                <p className="text-yellow-600 dark:text-yellow-400 text-sm font-medium">No se encontraron datos</p>
+                <p className="text-yellow-500/70 dark:text-yellow-400/70 text-xs">
+                  Verifica que las variables de entorno de Supabase estén configuradas correctamente
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* KPI Stats */}
       <div className="flex overflow-x-auto gap-3 px-4 py-4 w-full hide-scrollbar">
         {/* Inspección */}
-        <div className="flex min-w-[140px] flex-1 flex-col gap-3 rounded-xl p-4 bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 shadow-sm">
+        <button
+          onClick={handleVerInspeccionesPendientes}
+          className="flex min-w-[140px] flex-1 flex-col gap-3 rounded-xl p-4 bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 shadow-sm hover:bg-slate-50 dark:hover:bg-surface-dark active:scale-[0.98] transition-all cursor-pointer text-left"
+        >
           <div className="flex items-center justify-between">
             <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">Inspección</span>
-            <span className="material-symbols-outlined text-blue-500 text-[20px]">search</span>
+            <span className="material-symbols-outlined text-orange-500 text-[20px]">schedule</span>
           </div>
-          <p className="text-slate-900 dark:text-white text-3xl font-bold">5</p>
+          <p className="text-slate-900 dark:text-white text-3xl font-bold">{contarInspecciones()}</p>
           <div className="w-full bg-slate-100 dark:bg-slate-700 h-1 rounded-full overflow-hidden">
             <div className="bg-blue-500 h-full w-[45%]"></div>
           </div>
-        </div>
+        </button>
 
         {/* Mantención */}
         <button
-          onClick={() => navigate('/mantenimiento/demo')}
-          className="flex min-w-[140px] flex-1 flex-col gap-3 rounded-xl p-4 bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 shadow-sm ring-1 ring-primary/20 cursor-pointer hover:ring-primary/40 transition-all active:scale-95"
+          onClick={handleVerMantencion}
+          className="flex min-w-[140px] flex-1 flex-col gap-3 rounded-xl p-4 bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 shadow-sm hover:bg-slate-50 dark:hover:bg-surface-dark active:scale-[0.98] transition-all cursor-pointer text-left ring-1 ring-primary/20"
         >
           <div className="flex items-center justify-between">
             <span className="text-primary text-sm font-medium">Mantención</span>
             <span className="material-symbols-outlined text-primary text-[20px]">build</span>
           </div>
-          <p className="text-slate-900 dark:text-white text-3xl font-bold">2</p>
+          <p className="text-slate-900 dark:text-white text-3xl font-bold">{contarMantencion()}</p>
           <div className="w-full bg-slate-100 dark:bg-slate-700 h-1 rounded-full overflow-hidden">
             <div className="bg-primary h-full w-[60%]"></div>
           </div>
         </button>
 
-        {/* Finalizados */}
-        <div className="flex min-w-[140px] flex-1 flex-col gap-3 rounded-xl p-4 bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 shadow-sm">
+        {/* Listas */}
+        <button
+          onClick={handleVerTrabajosListos}
+          className="flex min-w-[140px] flex-1 flex-col gap-3 rounded-xl p-4 bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 shadow-sm hover:bg-slate-50 dark:hover:bg-surface-dark active:scale-[0.98] transition-all cursor-pointer text-left"
+        >
           <div className="flex items-center justify-between">
             <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">Finalizados</span>
             <span className="material-symbols-outlined text-green-500 text-[20px]">check_circle</span>
           </div>
-          <p className="text-slate-900 dark:text-white text-3xl font-bold">12</p>
+          <p className="text-slate-900 dark:text-white text-3xl font-bold">{contarListas()}</p>
           <div className="w-full bg-slate-100 dark:bg-slate-700 h-1 rounded-full overflow-hidden">
             <div className="bg-green-500 h-full w-[90%]"></div>
           </div>
-        </div>
+        </button>
       </div>
 
       {/* Primary Action */}
@@ -257,18 +377,24 @@ function DashboardPage() {
             <span className="font-medium text-sm text-slate-700 dark:text-slate-200">Inventario</span>
           </button>
 
-          <button className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-dark transition-colors">
+          <button
+            onClick={handleVerReingresos}
+            className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-dark transition-colors"
+          >
             <div className="flex items-center justify-center size-10 rounded-full bg-orange-500/10 text-orange-500">
-              <span className="material-symbols-outlined">warning</span>
+              <span className="material-symbols-outlined">refresh</span>
             </div>
-            <span className="font-medium text-sm text-slate-700 dark:text-slate-200">Reportar</span>
+            <span className="font-medium text-sm text-slate-700 dark:text-slate-200">Reingresos</span>
           </button>
 
-          <button className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-dark transition-colors">
+          <button
+            onClick={handleVerPruebas}
+            className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-surface-card border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-dark transition-colors"
+          >
             <div className="flex items-center justify-center size-10 rounded-full bg-teal-500/10 text-teal-500">
-              <span className="material-symbols-outlined">tune</span>
+              <span className="material-symbols-outlined">speed</span>
             </div>
-            <span className="font-medium text-sm text-slate-700 dark:text-slate-200">Calibrar</span>
+            <span className="font-medium text-sm text-slate-700 dark:text-slate-200">Pruebas</span>
           </button>
         </div>
       </div>
@@ -276,68 +402,96 @@ function DashboardPage() {
       {/* Recent Inspections List */}
       <div className="px-4 pt-6 pb-4">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-slate-900 dark:text-white text-lg font-bold">Mis Tareas</h3>
-          <button className="text-primary text-sm font-semibold">Ver todo</button>
+          <h3 className="text-slate-900 dark:text-white text-lg font-bold">Inspecciones Recientes</h3>
+          <button onClick={handleVerHistorial} className="text-primary text-sm font-semibold">Ver todo</button>
         </div>
 
-        <div className="flex flex-col gap-3">
-          {MOCK_TAREAS.map((tarea) => (
-            <div
-              key={tarea.id}
-              onClick={() => tarea.estado === 'Mantención' && navigate(`/mantenimiento/${tarea.id}`)}
-              className={`bg-white dark:bg-surface-card rounded-xl p-4 border border-slate-200 dark:border-slate-700 shadow-sm relative overflow-hidden group ${
-                tarea.progreso === 100 ? 'opacity-60' : tarea.progreso < 50 ? 'opacity-80' : ''
-              } ${tarea.estado === 'Mantención' ? 'cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all active:scale-[0.98]' : ''}`}
-            >
-              <div className={`absolute left-0 top-0 bottom-0 w-1 ${
-                tarea.estadoColor === 'primary' ? 'bg-primary' :
-                tarea.estadoColor === 'orange' ? 'bg-orange-500' :
-                tarea.estadoColor === 'purple' ? 'bg-purple-500' :
-                'bg-green-500'
-              }`}></div>
+        {loading ? (
+          <div className="flex justify-center items-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {inspecciones.slice(0, 5).map((inspeccion) => {
+              const estadoColor = inspeccion.estado_inspeccion === 'borrador' ? 'primary' :
+                                  inspeccion.estado_inspeccion === 'completa' ? 'orange' : 'green'
+              const estadoLabel = inspeccion.estado_inspeccion === 'borrador' ? 'En Progreso' :
+                                 inspeccion.estado_inspeccion === 'completa' ? 'Completa' : 'Sincronizada'
+              const fecha = new Date(inspeccion.created_at).toLocaleDateString('es-CL', {
+                day: 'numeric',
+                month: 'short'
+              })
 
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <span className="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-mono px-2 py-1 rounded">
-                    #{tarea.id}
-                  </span>
-                  <h4 className="text-slate-900 dark:text-white font-bold mt-2">{tarea.titulo}</h4>
-                  <p className="text-slate-500 dark:text-slate-400 text-sm">Cliente: {tarea.cliente}</p>
-                </div>
-                <span className={`flex items-center gap-1 ${
-                  tarea.estadoColor === 'primary' ? 'bg-primary/10 text-primary' :
-                  tarea.estadoColor === 'orange' ? 'bg-orange-500/10 text-orange-500' :
-                  tarea.estadoColor === 'purple' ? 'bg-purple-500/10 text-purple-500' :
-                  'bg-green-500/10 text-green-500'
-                } px-2 py-1 rounded text-xs font-bold`}>
-                  {tarea.progreso < 100 && (
-                    <span className={`size-1.5 rounded-full ${
-                      tarea.estadoColor === 'primary' ? 'bg-primary' :
-                      tarea.estadoColor === 'orange' ? 'bg-orange-500' :
-                      tarea.estadoColor === 'purple' ? 'bg-purple-500' :
-                      'bg-green-500'
-                    } ${tarea.estado === 'Inspección' ? 'animate-pulse' : ''}`}></span>
-                  )}
-                  {tarea.progreso === 100 && (
-                    <span className="material-symbols-outlined text-[14px]">check</span>
-                  )}
-                  {tarea.estado}
-                </span>
-              </div>
+              return (
+                <div
+                  key={inspeccion.id}
+                  onClick={() => navigate(`/inspeccion/${inspeccion.id}/detalles`)}
+                  className={`bg-white dark:bg-surface-card rounded-xl p-4 border border-slate-200 dark:border-slate-700 shadow-sm relative overflow-hidden group cursor-pointer hover:border-primary/50 transition-colors ${
+                    inspeccion.estado_inspeccion === 'sincronizada' ? 'opacity-60' : ''
+                  }`}
+                >
+                  <div className={`absolute left-0 top-0 bottom-0 w-1 ${
+                    estadoColor === 'primary' ? 'bg-primary' :
+                    estadoColor === 'orange' ? 'bg-orange-500' : 'bg-green-500'
+                  }`}></div>
 
-              <div className="flex items-center gap-4 mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
-                <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400 text-xs">
-                  <span className="material-symbols-outlined text-[16px]">calendar_today</span>
-                  <span>{tarea.fecha}</span>
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex-1">
+                      <span className="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-mono px-2 py-1 rounded">
+                        #{(inspeccion.cilindro as any)?.id_codigo || inspeccion.cilindro_id}
+                      </span>
+                      <h4 className="text-slate-900 dark:text-white font-bold mt-2">
+                        Cilindro {(inspeccion.cilindro as any)?.tipo || 'Oleohidráulico'}
+                      </h4>
+                      <p className="text-slate-500 dark:text-slate-400 text-sm">
+                        {(inspeccion.cilindro as any)?.fabricante || 'Rexroth'} • {(inspeccion.cilindro as any)?.diametro_camisa || 'Ø80'}
+                      </p>
+                    </div>
+                    <span className={`flex items-center gap-1 ${
+                      estadoColor === 'primary' ? 'bg-primary/10 text-primary' :
+                      estadoColor === 'orange' ? 'bg-orange-500/10 text-orange-500' :
+                      'bg-green-500/10 text-green-500'
+                    } px-2 py-1 rounded text-xs font-bold whitespace-nowrap`}>
+                      {inspeccion.estado_inspeccion !== 'sincronizada' && (
+                        <span className={`size-1.5 rounded-full ${
+                          estadoColor === 'primary' ? 'bg-primary' :
+                          estadoColor === 'orange' ? 'bg-orange-500' : 'bg-green-500'
+                        } ${inspeccion.estado_inspeccion === 'borrador' ? 'animate-pulse' : ''}`}></span>
+                      )}
+                      {estadoLabel}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-4 mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
+                    <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400 text-xs">
+                      <span className="material-symbols-outlined text-[16px]">calendar_today</span>
+                      <span>{fecha}</span>
+                    </div>
+                    {inspeccion.presion_prueba > 0 && (
+                      <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400 text-xs">
+                        <span className="material-symbols-outlined text-[16px]">compress</span>
+                        <span>{inspeccion.presion_prueba} bar</span>
+                      </div>
+                    )}
+                    {(inspeccion.fuga_interna || inspeccion.fuga_externa) && (
+                      <div className="flex items-center gap-1 text-red-500 text-xs">
+                        <span className="material-symbols-outlined text-[16px]">warning</span>
+                        <span>Fuga</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400 text-xs">
-                  <span className="material-symbols-outlined text-[16px]">location_on</span>
-                  <span>{tarea.ubicacion}</span>
-                </div>
+              )
+            })}
+
+            {inspecciones.length === 0 && (
+              <div className="text-center py-8">
+                <span className="material-symbols-outlined text-4xl text-slate-300 dark:text-slate-600">inbox</span>
+                <p className="text-slate-500 dark:text-slate-400 mt-2">No hay inspecciones registradas</p>
               </div>
-            </div>
-          ))}
-        </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Bottom Navigation */}
@@ -364,7 +518,10 @@ function DashboardPage() {
           </button>
 
           <button
-            onClick={handleVerTareas}
+            onClick={() => {
+              setActiveNav('tareas')
+              handleVerInspeccionesPendientes()
+            }}
             className={`flex flex-1 flex-col items-center justify-center gap-1 ${
               activeNav === 'tareas' ? 'text-primary' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
             } transition-colors`}

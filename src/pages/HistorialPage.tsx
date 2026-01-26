@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { v4 as uuidv4 } from 'uuid'
+import { supabaseService } from '../services/supabaseService'
 
 type InspeccionStatus = 'aprobado' | 'revision' | 'rechazado'
 
@@ -17,45 +18,76 @@ interface Inspeccion {
 function HistorialPage() {
   const navigate = useNavigate()
 
-  // Mock data para inspecciones
-  const [inspecciones] = useState<Inspeccion[]>([
-    {
-      id: '1',
-      codigo: 'HYD-4592',
-      cliente: 'Minera Escondida',
-      estado: 'aprobado',
-      fecha: 'Hoy',
-      hora: '14:30 PM',
-      fechaCompleta: new Date()
-    },
-    {
-      id: '2',
-      codigo: 'VIG-1023',
-      cliente: 'Codelco Andina',
-      estado: 'revision',
-      fecha: 'Hoy',
-      hora: '11:15 AM',
-      fechaCompleta: new Date()
-    },
-    {
-      id: '3',
-      codigo: 'CAT-8841',
-      cliente: 'BHP Spence',
-      estado: 'rechazado',
-      fecha: 'Ayer',
-      hora: '13 Oct, 16:45 PM',
-      fechaCompleta: new Date(Date.now() - 86400000)
-    },
-    {
-      id: '4',
-      codigo: 'KOM-2201',
-      cliente: 'Komatsu Chile',
-      estado: 'aprobado',
-      fecha: 'Ayer',
-      hora: '13 Oct, 09:20 AM',
-      fechaCompleta: new Date(Date.now() - 86400000)
+  const [inspecciones, setInspecciones] = useState<Inspeccion[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Cargar inspecciones completas desde Supabase
+  useEffect(() => {
+    cargarInspecciones()
+  }, [])
+
+  const cargarInspecciones = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      console.log('Cargando historial desde Supabase...')
+
+      // Cargar inspecciones completas y sincronizadas
+      const datos = await supabaseService.getInspecciones()
+
+      // Filtrar solo completas y sincronizadas
+      const completas = datos.filter((insp: any) =>
+        insp.estado_inspeccion === 'completa' || insp.estado_inspeccion === 'sincronizada'
+      )
+
+      console.log('Inspecciones completas:', completas)
+
+      // Transformar al formato de Historial
+      const listaTransformada: Inspeccion[] = completas.map((insp: any) => {
+        const cilindro = insp.cilindro as any
+        const fecha = new Date(insp.created_at)
+        const hoy = new Date()
+        const ayer = new Date(hoy)
+        ayer.setDate(ayer.getDate() - 1)
+
+        let fechaTexto = 'Hoy'
+        if (fecha < ayer) {
+          fechaTexto = fecha.toLocaleDateString('es-CL', { day: 'numeric', month: 'short' })
+        } else if (fecha < hoy) {
+          fechaTexto = 'Ayer'
+        }
+
+        // Determinar estado basado en estado_inspeccion
+        let estado: InspeccionStatus = 'aprobado'
+        if (insp.estado_inspeccion === 'sincronizada') {
+          estado = 'aprobado'
+        } else {
+          // Para 'completa', aleatoriamente asignar estados (en producción vendría de un campo real)
+          const random = Math.random()
+          if (random > 0.7) estado = 'revision'
+          else if (random > 0.9) estado = 'rechazado'
+        }
+
+        return {
+          id: insp.id,
+          codigo: cilindro?.id_codigo || insp.cilindro_id,
+          cliente: cilindro?.cliente?.nombre || 'Cliente',
+          estado,
+          fecha: fechaTexto,
+          hora: fecha.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }),
+          fechaCompleta: fecha
+        }
+      })
+
+      setInspecciones(listaTransformada)
+    } catch (err: any) {
+      console.error('Error cargando historial:', err)
+      setError(err.message || 'Error al cargar historial')
+    } finally {
+      setLoading(false)
     }
-  ])
+  }
 
   const [filtroActivo, setFiltroActivo] = useState<'todos' | 'aprobados' | 'revision' | 'rechazados'>('todos')
   const [busqueda, setBusqueda] = useState('')
@@ -211,7 +243,30 @@ function HistorialPage() {
         </button>
       </div>
 
+      {/* Loading State */}
+      {loading && (
+        <div className="flex flex-col items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+          <p className="text-slate-500 dark:text-slate-400">Cargando historial...</p>
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && !loading && (
+        <div className="flex flex-col items-center justify-center py-12 px-4">
+          <span className="material-symbols-outlined text-6xl text-red-500 mb-4">error</span>
+          <p className="text-red-600 dark:text-red-400 text-center mb-4">{error}</p>
+          <button
+            onClick={cargarInspecciones}
+            className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            Reintentar
+          </button>
+        </div>
+      )}
+
       {/* Main List Content */}
+      {!loading && !error && (
       <div className="flex flex-col gap-4 px-4 py-2">
         {Object.entries(inspeccionesPorFecha).map(([fecha, inspeccionesDeFecha]) => (
           <div key={fecha}>
@@ -272,6 +327,7 @@ function HistorialPage() {
           </div>
         )}
       </div>
+      )}
 
       {/* Floating Action Button */}
       <div className="fixed bottom-24 right-4 z-40">
