@@ -87,20 +87,38 @@ function RecepcionPage() {
         fotoDespieceUrl = await supabaseService.uploadFoto(fotoDespiece, id, 'despiece')
       }
 
-      // Crear o actualizar inspección
+      // Crear objeto de cilindro con los datos del formulario
+      const cilindroData = {
+        id_codigo: `CIL-${Date.now()}`, // Generar ID temporal
+        tipo: tipoComponente,
+        fabricante: 'Parker', // Valor por defecto, se puede cambiar en el futuro
+        diametro_camisa: diametroCamisa || '0',
+        diametro_vastago: diametroVastago || '0',
+        carrera: largoCarrera || '0',
+        nombre_cliente: nombreCliente,
+        contacto: contacto,
+        planta: planta || '',
+        orden_trabajo: ordenTrabajo,
+        prioridad: prioridad
+      }
+
+      // Crear o actualizar inspección con todos los datos
       await supabaseService.createInspeccion({
         id,
-        cilindro_id: '', // Se asignará cuando se seleccione el cilindro
+        cilindro_id: cilindroData.id_codigo,
         usuario_id: user.id,
         sap_cliente: ordenTrabajo,
         foto_armado_url: fotoArmadoUrl,
-        foto_despiece_url: fotoDespieceUrl,
+        foto_despiece_url: fotoDespieceUrl || '',
         presion_prueba: 0,
         fuga_interna: false,
         fuga_externa: false,
         estado_inspeccion: 'borrador',
         created_at: new Date().toISOString()
       })
+
+      // Guardar datos adicionales del cilindro en localStorage para uso futuro
+      localStorage.setItem(`cilindro_${id}`, JSON.stringify(cilindroData))
 
       // Navegar a la siguiente página
       navigate(`/inspeccion/${id}/peritaje`)
