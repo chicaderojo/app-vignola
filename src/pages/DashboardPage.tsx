@@ -125,11 +125,6 @@ function DashboardPage() {
     }
   }
 
-  const handleCerrarSesion = () => {
-    authService.logout()
-    window.location.href = '/login'
-  }
-
   const handleVerAjustes = () => {
     navigate('/ajustes')
   }

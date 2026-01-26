@@ -88,7 +88,8 @@ function AjustesPage() {
                   style={{
                     backgroundImage: "url('https://images.unsplash.com/photo-1565435391196-0c797872e1e1?w=200&h=200&fit=crop')",
                   }}
-                  alt="Foto de perfil"
+                  role="img"
+                  aria-label="Foto de perfil"
                 >
                 </div>
                 <button
