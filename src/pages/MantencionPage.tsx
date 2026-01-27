@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabaseService } from '../services/supabaseService'
+import { BottomNavigation } from '../components/layout/BottomNavigation'
 
 type FiltroType = 'todos' | 'en-proceso' | 'listos'
 
@@ -286,6 +287,9 @@ function MantencionPage() {
           </div>
         )}
       </main>
+
+      {/* Bottom Navigation */}
+      <BottomNavigation />
 
       <style>{`
         .no-scrollbar::-webkit-scrollbar {

@@ -1,6 +1,7 @@
 import { pdf } from '@react-pdf/renderer'
 import { saveAs } from 'file-saver'
 import PeritajePDFDocument from '../components/pdf/PeritajePDFDocument'
+import InformeTecnicoPDFDocument from '../components/pdf/InformeTecnicoPDFDocument'
 import { Inspeccion, InspeccionDetalle } from '../types'
 
 interface ComponentePeritaje {
@@ -69,4 +70,43 @@ export const generateReporteCompletoPDF = async (
 ): Promise<void> => {
   // Implementación futura
   throw new Error('No implementado aún')
+}
+
+/**
+ * Genera un Informe Técnico PDF completo con imágenes
+ * Incluye fotos de armado/despiece, peritaje de componentes y pruebas hidráulicas
+ */
+export const generateInformeTecnicoPDF = async (
+  inspeccionData: InspeccionCompleta,
+  incluirImagenes: boolean = true
+): Promise<void> => {
+  try {
+    // Preparar datos para el PDF
+    const pdfData = {
+      inspeccion: inspeccionData.inspeccion,
+      detalles: inspeccionData.detalles,
+      fechaEmision: new Date().toLocaleDateString('es-CL', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric'
+      }),
+      incluirImagenes
+    }
+
+    // Crear documento PDF
+    const doc = <InformeTecnicoPDFDocument data={pdfData} />
+
+    // Generar blob
+    const blob = await pdf(doc).toBlob()
+
+    // Guardar archivo
+    const cilindro = inspeccionData.inspeccion.cilindro as any
+    const codigoCilindro = cilindro?.id_codigo || inspeccionData.inspeccion.cilindro_id
+    const filename = `INFORME_TECNICO_${codigoCilindro}_${Date.now()}.pdf`
+    saveAs(blob, filename)
+
+  } catch (error) {
+    console.error('Error en generateInformeTecnicoPDF:', error)
+    throw error
+  }
 }

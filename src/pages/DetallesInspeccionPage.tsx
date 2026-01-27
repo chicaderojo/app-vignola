@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabaseService } from '../services/supabaseService'
-import { reportGenerator } from '../services/reportGenerator'
+import { generateInformeTecnicoPDF } from '../services/pdfService'
 
 type ComponenteEstado = 'ok' | 'warning' | 'error'
 
@@ -142,44 +142,19 @@ function DetallesInspeccionPage() {
     navigate('/historial')
   }
 
-  const handleGenerarInforme = () => {
+  const handleGenerarInforme = async () => {
     if (!inspeccionCompleta) {
       alert('No hay datos suficientes para generar el informe')
       return
     }
 
     try {
-      // Generar el informe markdown
-      const markdown = reportGenerator.generarInformeMarkdown({
-        inspeccion: inspeccionCompleta.inspeccion,
-        detalles: inspeccionCompleta.detalles
-      })
-
-      // Crear un Blob con el contenido markdown
-      const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' })
-      const url = URL.createObjectURL(blob)
-
-      // Crear un link temporal para descargar
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `INFORME_${inspeccion?.codigo || 'INSPECCION'}_${new Date().toISOString().split('T')[0]}.md`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-
-      // Liberar el URL
-      URL.revokeObjectURL(url)
-
-      // Mostrar resumen en un modal o alerta
-      const resumen = reportGenerator.generarResumen({
-        inspeccion: inspeccionCompleta.inspeccion,
-        detalles: inspeccionCompleta.detalles
-      })
-
-      alert(`✅ Informe generado exitosamente\n\n${resumen}`)
+      // Generar PDF con imágenes
+      await generateInformeTecnicoPDF(inspeccionCompleta, true)
+      alert('✅ Informe PDF generado exitosamente con imágenes')
     } catch (error) {
       console.error('Error generando informe:', error)
-      alert('Error al generar el informe. Por favor intenta nuevamente.')
+      alert('Error al generar el PDF. Por favor intenta nuevamente.')
     }
   }
 

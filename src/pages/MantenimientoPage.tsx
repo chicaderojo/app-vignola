@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { BottomNavigation } from '../components/layout/BottomNavigation'
 
 type ComponentStatus = 'en_proceso' | 'pendiente'
 type TaskStatus = 'completada' | 'pendiente'
@@ -245,43 +246,7 @@ function MantenimientoPage() {
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-surface-card/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-700 pb-safe z-50 max-w-md mx-auto">
-        <div className="flex justify-around items-center h-16 px-2">
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-          >
-            <span className="material-symbols-outlined text-[24px]">dashboard</span>
-            <span className="text-[10px] font-medium">Inicio</span>
-          </button>
-
-          <button
-            onClick={() => navigate('/buscar')}
-            className="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-          >
-            <span className="material-symbols-outlined text-[24px]">search</span>
-            <span className="text-[10px] font-medium">Buscar</span>
-          </button>
-
-          <button
-            onClick={() => navigate('/tareas')}
-            className="flex flex-1 flex-col items-center justify-center gap-1 text-primary transition-colors"
-          >
-            <div className="relative">
-              <span className="material-symbols-outlined text-[24px]">assignment</span>
-            </div>
-            <span className="text-[10px] font-medium">Tareas</span>
-          </button>
-
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-          >
-            <span className="material-symbols-outlined text-[24px]">settings</span>
-            <span className="text-[10px] font-medium">Ajustes</span>
-          </button>
-        </div>
-      </nav>
+      <BottomNavigation />
     </div>
   )
 }

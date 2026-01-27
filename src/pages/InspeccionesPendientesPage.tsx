@@ -5,6 +5,7 @@ import { db } from '../db/dexie'
 import { supabaseService } from '../services/supabaseService'
 import { Inspeccion } from '../types'
 import { v4 as uuidv4 } from 'uuid'
+import { BottomNavigation } from '../components/layout/BottomNavigation'
 
 type Priority = 'normal' | 'urgent'
 type Status = 'borrador' | 'recepcion' | 'peritaje' | 'taller' | 'pruebas' | 'completado'
@@ -540,34 +541,8 @@ function InspeccionesPendientesPage() {
         </div>
       </main>
 
-      {/* Bottom Navigation Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-background-dark border-t border-slate-200 dark:border-slate-800 px-6 py-2 flex justify-between items-center z-50 max-w-5xl mx-auto">
-        <button
-          onClick={() => navigate('/')}
-          className="flex flex-col items-center gap-1 text-slate-400"
-        >
-          <span className="material-symbols-outlined">dashboard</span>
-          <span className="text-[10px] font-bold">DASHBOARD</span>
-        </button>
-
-        <button className="flex flex-col items-center gap-1 text-primary">
-          <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>list_alt</span>
-          <span className="text-[10px] font-bold">INSPECCIONES</span>
-        </button>
-
-        <button
-          onClick={handleNuevaInspeccion}
-          className="flex flex-col items-center gap-1 text-slate-400"
-        >
-          <span className="material-symbols-outlined">qr_code_scanner</span>
-          <span className="text-[10px] font-bold">SCANNER</span>
-        </button>
-
-        <button className="flex flex-col items-center gap-1 text-slate-400">
-          <span className="material-symbols-outlined">settings</span>
-          <span className="text-[10px] font-bold">AJUSTES</span>
-        </button>
-      </nav>
+      {/* Bottom Navigation */}
+      <BottomNavigation notificationCount={inspecciones.length} />
     </div>
   )
 }

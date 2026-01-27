@@ -99,6 +99,7 @@ function PeritajePage() {
       setLoading(true)
       await supabaseService.savePeritaje(id, componentes)
       alert('✅ Peritaje guardado. Puedes continuar después.')
+      navigate('/')
     } catch (error: any) {
       console.error('Error guardando peritaje:', error)
       alert(`Error al guardar: ${error.message}`)

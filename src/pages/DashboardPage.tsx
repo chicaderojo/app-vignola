@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { useTheme } from '../hooks/useTheme'
 import { supabaseService } from '../services/supabaseService'
 import { Inspeccion } from '../types'
+import { BottomNavigation } from '../components/layout/BottomNavigation'
 
 function DashboardPage() {
   const navigate = useNavigate()
@@ -12,7 +13,6 @@ function DashboardPage() {
   const { isDark, toggleTheme } = useTheme()
 
   const [syncStatus, setSyncStatus] = useState({ pendiente: false, numero_items: 0, online: true })
-  const [activeNav, setActiveNav] = useState('inicio')
   const [inspecciones, setInspecciones] = useState<Inspeccion[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -123,18 +123,6 @@ function DashboardPage() {
       const inspeccionId = uuidv4()
       navigate(`/inspeccion/${inspeccionId}/pruebas`)
     }
-  }
-
-  const handleVerAjustes = () => {
-    navigate('/ajustes')
-  }
-
-  const handleVerTareas = () => {
-    navigate('/tareas')
-  }
-
-  const handleBuscar = () => {
-    navigate('/buscar')
   }
 
   const handleInventario = () => {
@@ -463,55 +451,7 @@ function DashboardPage() {
       </div>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-surface-card/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-700 pb-safe z-50 max-w-md mx-auto">
-        <div className="flex justify-around items-center h-16 px-2">
-          <button
-            onClick={handleVerTareas}
-            className={`flex flex-1 flex-col items-center justify-center gap-1 ${
-              activeNav === 'inicio' ? 'text-primary' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
-            } transition-colors`}
-          >
-            <span className="material-symbols-outlined text-[24px]">dashboard</span>
-            <span className="text-[10px] font-medium">Inicio</span>
-          </button>
-
-          <button
-            onClick={handleBuscar}
-            className={`flex flex-1 flex-col items-center justify-center gap-1 ${
-              activeNav === 'buscar' ? 'text-primary' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
-            } transition-colors`}
-          >
-            <span className="material-symbols-outlined text-[24px]">search</span>
-            <span className="text-[10px] font-medium">Buscar</span>
-          </button>
-
-          <button
-            onClick={() => {
-              setActiveNav('tareas')
-              handleVerInspeccionesPendientes()
-            }}
-            className={`flex flex-1 flex-col items-center justify-center gap-1 ${
-              activeNav === 'tareas' ? 'text-primary' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
-            } transition-colors`}
-          >
-            <div className="relative">
-              <span className="material-symbols-outlined text-[24px]">assignment</span>
-              <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-red-500 text-[8px] text-white"></span>
-            </div>
-            <span className="text-[10px] font-medium">Tareas</span>
-          </button>
-
-          <button
-            onClick={handleVerAjustes}
-            className={`flex flex-1 flex-col items-center justify-center gap-1 ${
-              activeNav === 'ajustes' ? 'text-primary' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
-            } transition-colors`}
-          >
-            <span className="material-symbols-outlined text-[24px]">settings</span>
-            <span className="text-[10px] font-medium">Ajustes</span>
-          </button>
-        </div>
-      </nav>
+      <BottomNavigation notificationCount={stats.inspeccionesPendientes} />
     </div>
   )
 }
