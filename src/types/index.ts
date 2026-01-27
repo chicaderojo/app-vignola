@@ -80,6 +80,8 @@ export interface InspeccionDetalle {
   estado: EstadoComponente
   detalle_tecnico?: string
   accion_propuesta?: string
+  observaciones?: string
+  orden?: number
   created_at?: string
 }
 

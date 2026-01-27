@@ -23,7 +23,7 @@ function LoginPage() {
       }
 
       // Paso 1: Intentar autenticar contra la base de datos
-      let usuarioDB = null
+      let usuarioDB: any = null
       let autenticado = false
 
       try {
@@ -59,14 +59,14 @@ function LoginPage() {
         // Modo demo para usuarios que no existen en BD
         console.log('Usuario no encontrado en BD, usando modo demo')
         const userId = crypto.randomUUID()
-        const nombre = email.split('@')[0]
+        const nombreExtraido = email.split('@')[0]
           .split('.')
           .map(parte => parte.charAt(0).toUpperCase() + parte.slice(1))
           .join(' ')
 
         usuarioDB = {
           id: userId,
-          nombre: nombre || 'Usuario',
+          nombre: nombreExtraido || 'Usuario',
           email: email,
           rol: 'mecanico'
         }
