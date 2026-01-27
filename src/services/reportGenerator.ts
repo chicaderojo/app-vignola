@@ -22,7 +22,7 @@ export const reportGenerator = {
    * Genera el contenido markdown completo del informe técnico
    */
   generarInformeMarkdown(data: ReporteData): string {
-    const { inspeccion, detalles, infoRecepcion } = data
+    const { inspeccion, detalles } = data
     const cilindro = inspeccion.cilindro
     const usuario = inspeccion.usuario
 
@@ -233,9 +233,9 @@ export const reportGenerator = {
     markdown += `### 8. CONCLUSIONES Y RECOMENDACIONES\n\n`
 
     const componentesMal = detalles.filter(d => d.estado === 'Cambio').length
-    const componentesMantencion = detalles.filter(d => d.estado === 'Mantención').length
+    const componentesMantencionCount = detalles.filter(d => d.estado === 'Mantención').length
 
-    if (componentesMal === 0 && componentesMantencion === 0) {
+    if (componentesMal === 0 && componentesMantencionCount === 0) {
       markdown += `#### 8.1 Estado del Equipo\n\n`
       markdown += `El cilindro inspeccionado se encuentra en **buen estado de conservación**, `
       markdown += `siendo apto para continuar en servicio previa limpieza general y cambio de kit de sellos.\n\n`
