@@ -16,31 +16,59 @@ function LoginPage() {
     setLoading(true)
 
     try {
-      // MODO DEMO: Autenticación local sin backend
-      if (email && password) {
-        // Extraer nombre del email (parte antes del @)
-        const nombre = email.split('@')[0]
+      if (!email || !password) {
+        setError('Por favor ingresa email y contraseña')
+        setLoading(false)
+        return
+      }
+
+      // Paso 1: Intentar autenticar contra la base de datos
+      let usuarioDB: any = null
+      let autenticado = false
+
+      try {
+        if (navigator.onLine) {
+          // Buscar usuario por email en la BD
+          usuarioDB = await supabaseService.getUsuarioByEmail(email)
+
+          if (usuarioDB) {
+            // Verificar password (comparación simple de hash por ahora)
+            // NOTA: En producción usar Supabase Auth con bcrypt
+            const passwordSimulado = `demo-${usuarioDB.nombre.toLowerCase().replace(/\s/g, '')}`
+
+            if (password === passwordSimulado || password === 'demo123') {
+              autenticado = true
+              console.log('Usuario autenticado correctamente:', usuarioDB.email)
+            } else {
+              console.warn('Password incorrecto para usuario:', email)
+            }
+          }
+        }
+      } catch (dbError: any) {
+        console.warn('Error consultando BD, intentando modo offline:', dbError.message)
+      }
+
+      // Paso 2: Si no se pudo autenticar contra BD, usar modo demo
+      if (!autenticado) {
+        if (usuarioDB) {
+          setError('Contraseña incorrecta. Intenta con "demo123" o tu nombre en minúsculas.')
+          setLoading(false)
+          return
+        }
+
+        // Modo demo para usuarios que no existen en BD
+        console.log('Usuario no encontrado en BD, usando modo demo')
+        const userId = crypto.randomUUID()
+        const nombreExtraido = email.split('@')[0]
           .split('.')
           .map(parte => parte.charAt(0).toUpperCase() + parte.slice(1))
           .join(' ')
 
-        // Primero verificar si el usuario ya existe en la base de datos
-        let userId: string
-        try {
-          const existingUser = await supabaseService.getUsuarioByEmail(email)
-          if (existingUser) {
-            // Usuario existe, usar su ID de la base de datos
-            userId = existingUser.id
-            console.log('Usuario existente encontrado, usando ID:', userId)
-          } else {
-            // Usuario no existe, generar nuevo UUID
-            userId = crypto.randomUUID()
-            console.log('Nuevo usuario, generando ID:', userId)
-          }
-        } catch (error) {
-          console.error('Error verificando usuario existente:', error)
-          // Si hay error, generar nuevo UUID
-          userId = crypto.randomUUID()
+        usuarioDB = {
+          id: userId,
+          nombre: nombreExtraido || 'Usuario',
+          email: email,
+          rol: 'mecanico'
         }
 
         
