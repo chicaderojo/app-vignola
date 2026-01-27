@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabaseService } from '../services/supabaseService'
 
@@ -18,6 +18,27 @@ function PruebasPage() {
   const [fotos, setFotos] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
 
+  // Cargar datos existentes de la inspección
+  useEffect(() => {
+    const cargarInspeccion = async () => {
+      if (!id) return
+
+      try {
+        const inspeccion = await supabaseService.getInspeccionById(id)
+        if (inspeccion) {
+          // Cargar datos de la inspección
+          if (inspeccion.fotos_pruebas_url && inspeccion.fotos_pruebas_url.length > 0) {
+            setFotos(inspeccion.fotos_pruebas_url)
+          }
+        }
+      } catch (error) {
+        console.error('Error cargando inspección:', error)
+      }
+    }
+
+    cargarInspeccion()
+  }, [id])
+
   const handleCancelar = () => {
     navigate(`/inspeccion/${id}/peritaje`)
   }
@@ -31,28 +52,7 @@ function PruebasPage() {
     try {
       setLoading(true)
 
-      // Subir fotos de pruebas
-      const fotosUrls: string[] = []
-      for (let i = 0; i < fotos.length; i++) {
-        const fotoUrl = fotos[i]
-
-        if (fotoUrl.startsWith('data:')) {
-          // Convertir Data URL a File y subir
-          const blob = await fetch(fotoUrl).then(r => r.blob())
-          const file = new File([blob], `prueba_${i}.jpg`, { type: 'image/jpeg' })
-
-          try {
-            const urlPublica = await supabaseService.uploadFotoPrueba(file, id, i)
-            fotosUrls.push(urlPublica)
-          } catch (error) {
-            console.error(`Error subiendo foto ${i} de pruebas:`, error)
-            fotosUrls.push(fotoUrl) // Fallback
-          }
-        } else {
-          fotosUrls.push(fotoUrl)
-        }
-      }
-
+      // El servicio savePruebas ahora maneja la subida de fotos internamente
       await supabaseService.savePruebas(id, {
         presion_objetivo: parseFloat(presionObjetivo),
         sostenimiento: parseFloat(sostenimiento),
@@ -62,7 +62,7 @@ function PruebasPage() {
         fuga_piston: fugaPiston,
         deformacion: deformacion,
         observaciones,
-        fotos_pruebas: fotosUrls
+        fotos_pruebas: fotos // Pasar Data URLs directamente
       })
       alert('Prueba guardada exitosamente')
     } catch (error: any) {
@@ -87,28 +87,7 @@ function PruebasPage() {
     try {
       setLoading(true)
 
-      // Subir fotos de pruebas
-      const fotosUrls: string[] = []
-      for (let i = 0; i < fotos.length; i++) {
-        const fotoUrl = fotos[i]
-
-        if (fotoUrl.startsWith('data:')) {
-          // Convertir Data URL a File y subir
-          const blob = await fetch(fotoUrl).then(r => r.blob())
-          const file = new File([blob], `prueba_${i}.jpg`, { type: 'image/jpeg' })
-
-          try {
-            const urlPublica = await supabaseService.uploadFotoPrueba(file, id, i)
-            fotosUrls.push(urlPublica)
-          } catch (error) {
-            console.error(`Error subiendo foto ${i} de pruebas:`, error)
-            fotosUrls.push(fotoUrl) // Fallback
-          }
-        } else {
-          fotosUrls.push(fotoUrl)
-        }
-      }
-
+      // El servicio savePruebas ahora maneja la subida de fotos internamente
       await supabaseService.savePruebas(id, {
         presion_objetivo: parseFloat(presionObjetivo),
         sostenimiento: parseFloat(sostenimiento),
@@ -118,7 +97,7 @@ function PruebasPage() {
         fuga_piston: fugaPiston,
         deformacion: deformacion,
         observaciones,
-        fotos_pruebas: fotosUrls
+        fotos_pruebas: fotos // Pasar Data URLs directamente
       })
       alert('Prueba finalizada exitosamente')
       navigate('/')

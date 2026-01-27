@@ -164,25 +164,39 @@ function RecepcionPage() {
         prioridad: prioridad
       }
 
-      // Crear o actualizar inspección con todos los datos
-      await supabaseService.createInspeccion({
-        id,
-        cilindro_id: cilindroCreado.id_codigo, // Usar el ID del cilindro creado
-        usuario_id: usuarioActualizado.id, // Usar el ID del usuario de la BD
-        sap_cliente: ordenTrabajo,
-        nombre_cliente: nombreCliente || undefined,
-        contacto_cliente: contacto || undefined,
-        planta: planta || undefined,
-        foto_armado_url: fotoArmadoUrl,
-        foto_despiece_url: fotoDespieceUrl || '',
-        notas_recepcion: JSON.stringify(infoRecepcion), // Guardar info del cliente como JSON
-        presion_prueba: 0,
-        fuga_interna: false,
-        fuga_externa: false,
-        estado_inspeccion: 'borrador',
-        etapas_completadas: ['recepcion'], // Inicializar etapas completadas
-        created_at: new Date().toISOString()
-      })
+      // Verificar si la inspección ya existe antes de crear
+      const inspeccionExistente = await supabaseService.getInspeccionById(id)
+
+      if (inspeccionExistente) {
+        // La inspección ya existe, actualizarla
+        console.log('Inspección ya existe, actualizando...')
+        await supabaseService.updateInspeccion(id, {
+          cilindro_id: cilindroCreado.id_codigo,
+          foto_armado_url: fotoArmadoUrl || inspeccionExistente.foto_armado_url,
+          foto_despiece_url: fotoDespieceUrl || inspeccionExistente.foto_despiece_url,
+          notas_recepcion: JSON.stringify(infoRecepcion)
+        })
+      } else {
+        // Crear nueva inspección con todos los datos
+        await supabaseService.createInspeccion({
+          id,
+          cilindro_id: cilindroCreado.id_codigo, // Usar el ID del cilindro creado
+          usuario_id: usuarioActualizado.id, // Usar el ID del usuario de la BD
+          sap_cliente: ordenTrabajo,
+          nombre_cliente: nombreCliente || undefined,
+          contacto_cliente: contacto || undefined,
+          planta: planta || undefined,
+          foto_armado_url: fotoArmadoUrl,
+          foto_despiece_url: fotoDespieceUrl || '',
+          notas_recepcion: JSON.stringify(infoRecepcion), // Guardar info del cliente como JSON
+          presion_prueba: 0,
+          fuga_interna: false,
+          fuga_externa: false,
+          estado_inspeccion: 'borrador',
+          etapas_completadas: ['recepcion'], // Inicializar etapas completadas
+          created_at: new Date().toISOString()
+        })
+      }
 
       // Guardar datos adicionales del cilindro en localStorage para uso futuro
       localStorage.setItem(`cilindro_${id}`, JSON.stringify(cilindroData))

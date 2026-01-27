@@ -257,6 +257,7 @@ export const supabaseService = {
 
   /**
    * Guardar resultados de pruebas hidrostáticas
+   * Ahora sube las fotos de pruebas si se proporcionan
    */
   async savePruebas(
     inspeccionId: string,
@@ -272,11 +273,37 @@ export const supabaseService = {
       fotos_pruebas?: string[]
     }
   ): Promise<void> {
+    // Subir fotos de pruebas si se proporcionan
+    let urlsFotosPruebas: string[] = []
+
+    if (datosPrueba.fotos_pruebas && datosPrueba.fotos_pruebas.length > 0) {
+      for (let i = 0; i < datosPrueba.fotos_pruebas.length; i++) {
+        const fotoUrl = datosPrueba.fotos_pruebas[i]
+
+        // Si es Data URL, convertirla y subirla
+        if (fotoUrl.startsWith('data:')) {
+          try {
+            const blob = await fetch(fotoUrl).then(r => r.blob())
+            const file = new File([blob], `prueba_${i}.jpg`, { type: 'image/jpeg' })
+            const urlPublica = await this.uploadFotoPrueba(file, inspeccionId, i)
+            urlsFotosPruebas.push(urlPublica)
+          } catch (error) {
+            console.error(`Error subiendo foto ${i} de pruebas:`, error)
+            // Mantener Data URL como fallback
+            urlsFotosPruebas.push(fotoUrl)
+          }
+        } else {
+          // Ya es una URL pública
+          urlsFotosPruebas.push(fotoUrl)
+        }
+      }
+    }
+
     await this.updateInspeccion(inspeccionId, {
       presion_prueba: datosPrueba.presion_objetivo,
       fuga_interna: datosPrueba.fuga_piston,
       fuga_externa: datosPrueba.fuga_vastago || datosPrueba.deformacion,
-      fotos_pruebas_url: datosPrueba.fotos_pruebas || [],
+      fotos_pruebas_url: urlsFotosPruebas,
       estado_inspeccion: 'completa',
       etapas_completadas: ['recepcion', 'peritaje', 'pruebas', 'finalizado']
     })
@@ -297,6 +324,7 @@ export const supabaseService = {
 
   /**
    * Guardar detalles de peritaje (elimina los anteriores y crea nuevos)
+   * Ahora sube las fotos de componentes si se proporcionan
    */
   async savePeritaje(
     inspeccionId: string,
@@ -311,8 +339,8 @@ export const supabaseService = {
     // Eliminar detalles anteriores
     await this.deleteInspeccionDetalles(inspeccionId)
 
-    // Crear nuevos detalles con fotos
-    const detalles = componentes
+    // Primero crear los detalles sin fotos para obtener los IDs
+    const detallesSinFotos = componentes
       .filter(c => c.estado !== 'pending')
       .map((c, index) => ({
         inspeccion_id: inspeccionId,
@@ -320,12 +348,66 @@ export const supabaseService = {
         estado: (c.estado === 'bueno' ? 'Bueno' : c.estado === 'mantencion' ? 'Mantención' : 'Cambio') as 'Bueno' | 'Mantención' | 'Cambio',
         detalle_tecnico: c.observaciones || undefined,
         accion_propuesta: undefined,
-        fotos_urls: c.fotos || [],
+        fotos_urls: [] as string[], // Temporalmente vacío
         orden: index
       }))
 
-    if (detalles.length > 0) {
-      await this.createInspeccionDetalles(detalles)
+    if (detallesSinFotos.length > 0) {
+      const detallesCreados = await this.createInspeccionDetalles(detallesSinFotos)
+
+      // Ahora subir las fotos para cada componente usando su ID
+      for (let i = 0; i < componentes.length; i++) {
+        const componente = componentes[i]
+        if (componente.estado === 'pending') continue
+
+        const detalleCreado = detallesCreados[i]
+        if (!detalleCreado) continue
+
+        // Si tiene fotos, subirlas
+        if (componente.fotos && componente.fotos.length > 0) {
+          const urlsSubidas: string[] = []
+
+          for (let j = 0; j < componente.fotos.length; j++) {
+            const fotoUrl = componente.fotos[j]
+
+            // Si es Data URL, convertirla y subirla
+            if (fotoUrl.startsWith('data:')) {
+              try {
+                const blob = await fetch(fotoUrl).then(r => r.blob())
+                const file = new File(
+                  [blob],
+                  `componente_${componente.nombre}_${j}.jpg`,
+                  { type: 'image/jpeg' }
+                )
+                const urlPublica = await this.uploadFotoComponente(
+                  file,
+                  inspeccionId,
+                  detalleCreado.id,
+                  j
+                )
+                urlsSubidas.push(urlPublica)
+              } catch (error) {
+                console.error(
+                  `Error subiendo foto ${j} de ${componente.nombre}:`,
+                  error
+                )
+                // Mantener Data URL como fallback
+                urlsSubidas.push(fotoUrl)
+              }
+            } else {
+              // Ya es una URL pública
+              urlsSubidas.push(fotoUrl)
+            }
+          }
+
+          // Actualizar el detalle con las URLs de las fotos
+          if (urlsSubidas.length > 0) {
+            await this.updateInspeccionDetalle(detalleCreado.id, {
+              fotos_urls: urlsSubidas
+            })
+          }
+        }
+      }
     }
 
     // Actualizar etapas_completadas
