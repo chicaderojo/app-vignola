@@ -487,6 +487,105 @@ export const supabaseService = {
       inspeccionesCompletas: completasResult.count || 0,
       cilindrosActivos: cilindrosResult.count || 0
     }
+  },
+
+  /**
+   * Obtener todas las órdenes de fabricación
+   */
+  async getOrdenesFabricacion(): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('ordenes_fabricacion')
+      .select(`
+        *,
+        cliente:clientes(id, nombre, planta)
+      `)
+      .eq('activo', true)
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+    return data || []
+  },
+
+  /**
+   * Crear una nueva orden de fabricación
+   */
+  async createOrdenFabricacion(orden: any): Promise<any> {
+    const { data, error } = await supabase
+      .from('ordenes_fabricacion')
+      .insert([orden])
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  },
+
+  /**
+   * Actualizar una orden de fabricación
+   */
+  async updateOrdenFabricacion(id: string, updates: any): Promise<any> {
+    const { data, error } = await supabase
+      .from('ordenes_fabricacion')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  },
+
+  /**
+   * Guardar preferencias de usuario
+   */
+  async saveUsuarioPreferences(
+    usuarioId: string,
+    preferences: {
+      notificaciones: boolean
+      frecuenciaSync: string
+      darkMode: boolean
+    }
+  ): Promise<void> {
+    // Nota: Requiere agregar columna 'preferences' JSONB a tabla usuarios
+    await supabase
+      .from('usuarios')
+      .update({ preferences })
+      .eq('id', usuarioId)
+  },
+
+  /**
+   * Obtener historial de búsquedas de un usuario
+   */
+  async getBusquedasRecientes(usuarioId?: string, limit: number = 5): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('historial_busquedas')
+      .select('*')
+      .eq('usuario_id', usuarioId || '00000000-0000-0000-0000-000000000000')
+      .order('fecha', { ascending: false })
+      .limit(limit)
+
+    if (error) {
+      // Si la tabla no existe, retornar array vacío
+      if (error.code === '42P01') return []
+      throw error
+    }
+    return data || []
+  },
+
+  /**
+   * Guardar búsqueda en historial
+   */
+  async saveBusqueda(termino: string, tipo: string, usuarioId?: string): Promise<void> {
+    // Nota: Requiere crear tabla 'historial_busquedas'
+    await supabase
+      .from('historial_busquedas')
+      .insert([{
+        usuario_id: usuarioId || '00000000-0000-0000-0000-000000000000',
+        termino,
+        tipo,
+        fecha: new Date().toISOString()
+      }])
+      .select()
   }
 }
 

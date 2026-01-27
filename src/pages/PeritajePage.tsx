@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabaseService } from '../services/supabaseService'
+import { COMPONENTES_BASE } from '../types'
 
 type ComponenteStatus = 'pending' | 'bueno' | 'mantencion' | 'cambio'
 
@@ -17,50 +18,70 @@ function PeritajePage() {
   const navigate = useNavigate()
   const { id } = useParams()
   const [loading, setLoading] = useState(false)
+  const [loadingInicial, setLoadingInicial] = useState(true)
 
-  // Mock data para componentes
-  const [componentes, setComponentes] = useState<Componente[]>([
-    {
-      id: '1',
-      nombre: 'Vástago (Rod)',
-      estado: 'mantencion',
-      observaciones: 'Desgaste severo en cromo duro, presenta ralladuras longitudinales profundas en zona de trabajo.',
-      fotos: ['https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&h=200&fit=crop'],
-      expandido: true
-    },
-    {
-      id: '2',
-      nombre: 'Camisa (Barrel)',
-      estado: 'bueno',
-      observaciones: '',
-      fotos: [],
-      expandido: false
-    },
-    {
-      id: '3',
-      nombre: 'Sellos (Seals)',
-      estado: 'cambio',
-      observaciones: 'Kit de sellos completo dañado por uso intensivo.',
-      fotos: [],
-      expandido: false
-    },
-    {
-      id: '4',
-      nombre: 'Pistón (Piston)',
-      estado: 'pending',
-      observaciones: '',
-      fotos: [],
-      expandido: false
-    },
-    {
-      id: '5',
-      nombre: 'Puerto de Aceite',
-      estado: 'pending',
-      observaciones: '',
-      fotos: [],
-      expandido: false
+  // Componentes cargados desde BD o inicializados con componentes base
+  const [componentes, setComponentes] = useState<Componente[]>([])
+
+  // Cargar detalles existentes de la inspección
+  useEffect(() => {
+    const cargarDetalles = async () => {
+      if (!id) return
+
+      try {
+        setLoadingInicial(true)
+        const detalles = await supabaseService.getInspeccionDetalles(id)
+
+        if (detalles.length > 0) {
+          // Convertir detalles de BD al formato del componente
+          const componentesFromDB = detalles.map(det => {
+            // Mapear estado de BD a estado del componente
+            let estado: ComponenteStatus = 'pending'
+            if (det.estado === 'Bueno') estado = 'bueno'
+            else if (det.estado === 'Mantención') estado = 'mantencion'
+            else if (det.estado === 'Cambio') estado = 'cambio'
+
+            return {
+              id: det.id,
+              nombre: det.componente,
+              estado,
+              observaciones: det.observaciones || det.detalle_tecnico || '',
+              fotos: [],
+              expandido: estado !== 'pending' && estado !== 'bueno'
+            }
+          })
+          setComponentes(componentesFromDB)
+        } else {
+          // No hay detalles previos, inicializar con componentes base
+          const componentesBase = COMPONENTES_BASE.map((nombre, index) => ({
+            id: `base-${index}`,
+            nombre,
+            estado: 'pending' as ComponenteStatus,
+            observaciones: '',
+            fotos: [],
+            expandido: false
+          }))
+          setComponentes(componentesBase)
+        }
+      } catch (error) {
+        console.error('Error cargando detalles:', error)
+        // En caso de error, inicializar con componentes base
+        const componentesBase = COMPONENTES_BASE.map((nombre, index) => ({
+          id: `base-${index}`,
+          nombre,
+          estado: 'pending' as ComponenteStatus,
+          observaciones: '',
+          fotos: [],
+          expandido: false
+        }))
+        setComponentes(componentesBase)
+      } finally {
+        setLoadingInicial(false)
+      }
     }
-  ])
+
+    cargarDetalles()
+  }, [id])
 
   const handleBack = () => {
     navigate(`/inspeccion/${id}/recepcion`)
@@ -163,7 +184,18 @@ function PeritajePage() {
   }
 
   const componentesCompletados = componentes.filter(c => c.estado !== 'pending').length
-  const progreso = (componentesCompletados / componentes.length) * 100
+  const progreso = componentes.length > 0 ? (componentesCompletados / componentes.length) * 100 : 0
+
+  if (loadingInicial) {
+    return (
+      <div className="min-h-screen bg-background-light dark:bg-background-dark flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-slate-600 dark:text-slate-400">Cargando peritaje...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-background-light dark:bg-background-dark pb-20">
@@ -178,7 +210,7 @@ function PeritajePage() {
               <span className="material-symbols-outlined">arrow_back</span>
             </button>
             <div className="flex flex-col">
-              <h2 className="text-lg font-bold leading-tight tracking-tight text-slate-900 dark:text-white">Peritaje OT #9942</h2>
+              <h2 className="text-lg font-bold leading-tight tracking-tight text-slate-900 dark:text-white">Peritaje OT #{id?.slice(0, 8) || '...'}</h2>
               <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Vignola Industrial</span>
             </div>
           </div>

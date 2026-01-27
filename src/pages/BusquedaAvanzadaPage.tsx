@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { supabaseService } from '../services/supabaseService'
 
 type FiltroBusqueda = 'orden' | 'empresa' | 'producto'
 type EstadoOrden = 'proceso' | 'completado' | 'revision'
@@ -24,20 +25,32 @@ function BusquedaAvanzadaPage() {
 
   const [busqueda, setBusqueda] = useState('')
   const [filtroActivo, setFiltroActivo] = useState<FiltroBusqueda>('orden')
-  const [busquedasRecientes, setBusquedasRecientes] = useState<BusquedaReciente[]>([
-    {
-      id: '1',
-      termino: 'Cilindro Hidráulico XL',
-      tipo: 'producto',
-      fecha: new Date()
-    },
-    {
-      id: '2',
-      termino: 'Minera Escondida',
-      tipo: 'empresa',
-      fecha: new Date()
+  const [busquedasRecientes, setBusquedasRecientes] = useState<BusquedaReciente[]>([])
+
+  // Cargar búsquedas recientes desde BD
+  useEffect(() => {
+    const cargarBusquedasRecientes = async () => {
+      try {
+        const user = JSON.parse(localStorage.getItem('user') || '{}')
+        const data = await supabaseService.getBusquedasRecientes(user.id, 5)
+
+        const busquedasMapeadas: BusquedaReciente[] = data.map((b: any) => ({
+          id: b.id,
+          termino: b.termino,
+          tipo: b.tipo === 'general' ? 'orden' : b.tipo as 'orden' | 'empresa' | 'producto',
+          fecha: new Date(b.fecha)
+        }))
+
+        setBusquedasRecientes(busquedasMapeadas)
+      } catch (error) {
+        console.error('Error cargando búsquedas recientes:', error)
+        // En caso de error, dejar array vacío
+        setBusquedasRecientes([])
+      }
     }
-  ])
+
+    cargarBusquedasRecientes()
+  }, [])
 
   // Mock data para resultados
   const resultados: ResultadoBusqueda[] = [

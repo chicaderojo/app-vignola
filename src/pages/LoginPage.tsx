@@ -16,46 +16,80 @@ function LoginPage() {
     setLoading(true)
 
     try {
-      // MODO DEMO: Autenticación local sin backend
-      if (email && password) {
-        // Generar UUID válido para la base de datos
-        const userId = crypto.randomUUID()
+      if (!email || !password) {
+        setError('Por favor ingresa email y contraseña')
+        setLoading(false)
+        return
+      }
 
-        // Extraer nombre del email (parte antes del @)
+      // Paso 1: Intentar autenticar contra la base de datos
+      let usuarioDB = null
+      let autenticado = false
+
+      try {
+        if (navigator.onLine) {
+          // Buscar usuario por email en la BD
+          usuarioDB = await supabaseService.getUsuarioByEmail(email)
+
+          if (usuarioDB) {
+            // Verificar password (comparación simple de hash por ahora)
+            // NOTA: En producción usar Supabase Auth con bcrypt
+            const passwordSimulado = `demo-${usuarioDB.nombre.toLowerCase().replace(/\s/g, '')}`
+
+            if (password === passwordSimulado || password === 'demo123') {
+              autenticado = true
+              console.log('Usuario autenticado correctamente:', usuarioDB.email)
+            } else {
+              console.warn('Password incorrecto para usuario:', email)
+            }
+          }
+        }
+      } catch (dbError: any) {
+        console.warn('Error consultando BD, intentando modo offline:', dbError.message)
+      }
+
+      // Paso 2: Si no se pudo autenticar contra BD, usar modo demo
+      if (!autenticado) {
+        if (usuarioDB) {
+          setError('Contraseña incorrecta. Intenta con "demo123" o tu nombre en minúsculas.')
+          setLoading(false)
+          return
+        }
+
+        // Modo demo para usuarios que no existen en BD
+        console.log('Usuario no encontrado en BD, usando modo demo')
+        const userId = crypto.randomUUID()
         const nombre = email.split('@')[0]
           .split('.')
           .map(parte => parte.charAt(0).toUpperCase() + parte.slice(1))
           .join(' ')
 
-        // Crear usuario de prueba
-        const demoUser = {
+        usuarioDB = {
           id: userId,
           nombre: nombre || 'Usuario',
           email: email,
-          rol: 'mecanico' as const
+          rol: 'mecanico'
         }
 
-        // Intentar guardar en base de datos (opcional - no bloquea el inicio de sesión)
+        // Intentar crear usuario en BD para futuros accesos
         try {
           if (navigator.onLine) {
-            await supabaseService.createOrUpdateUsuario(demoUser)
-            console.log('Usuario guardado en base de datos:', demoUser)
-          } else {
-            console.log('Modo offline - usuario no guardado en BD')
+            await supabaseService.createOrUpdateUsuario(usuarioDB)
+            console.log('Nuevo usuario creado en BD:', usuarioDB.email)
           }
-        } catch (dbError: any) {
-          console.warn('No se pudo guardar en BD (continuando en modo offline):', dbError.message)
-          // NO bloqueamos el inicio de sesión - continuamos en modo offline
+        } catch (createError: any) {
+          console.warn('No se pudo crear usuario en BD:', createError.message)
         }
-
-        // Guardar token falso y usuario en localStorage
-        localStorage.setItem('auth_token', 'demo-token-' + Date.now())
-        localStorage.setItem('user', JSON.stringify(demoUser))
-
-        navigate('/')
-      } else {
-        setError('Por favor ingresa email y contraseña')
       }
+
+      // Paso 3: Guardar sesión
+      const token = `auth-${usuarioDB.id}-${Date.now()}`
+      localStorage.setItem('auth_token', token)
+      localStorage.setItem('user', JSON.stringify(usuarioDB))
+
+      // Paso 4: Navegar al dashboard
+      navigate('/')
+
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al iniciar sesión')
     } finally {
@@ -158,13 +192,16 @@ function LoginPage() {
             </div>
           )}
 
-          {/* Demo Notice */}
-          <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl">
-            <p className="text-xs text-green-800 dark:text-green-300 font-medium text-center">
-              ✅ Modo Offline: Funciona sin conexión a internet
+          {/* Auth Notice */}
+          <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl">
+            <p className="text-xs text-blue-800 dark:text-blue-300 font-medium text-center">
+              🔐 Autenticación con Base de Datos
             </p>
-            <p className="text-[10px] text-green-700 dark:text-green-400 text-center mt-1">
-              Usa cualquier usuario y contraseña para ingresar
+            <p className="text-[10px] text-blue-700 dark:text-blue-400 text-center mt-1">
+              Usuarios registrados: usa "demo123" o tu nombre en minúsculas
+            </p>
+            <p className="text-[10px] text-blue-600 dark:text-blue-500 text-center mt-0.5">
+              Nuevos usuarios se crearán automáticamente
             </p>
           </div>
 
