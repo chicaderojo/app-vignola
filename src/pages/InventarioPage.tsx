@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { supabaseService } from '../services/supabaseService'
 
-type EstadoFabricacion = 'pendiente' | 'torno' | 'listo'
+type EstadoFabricacion = 'pendiente' | 'torno' | 'fresado' | 'rectificado' | 'cromado' | 'listo' | 'entregado'
 type FiltroTab = 'todos' | 'pendiente' | 'torno' | 'listo'
 
 interface OrdenFabricacion {
@@ -21,40 +22,42 @@ function InventarioPage() {
   const navigate = useNavigate()
 
   const [filtroActivo, setFiltroActivo] = useState<FiltroTab>('todos')
+  const [loading, setLoading] = useState(true)
+  const [ordenes, setOrdenes] = useState<OrdenFabricacion[]>([])
 
-  // Mock data para órdenes de fabricación
-  const ordenes: OrdenFabricacion[] = [
-    {
-      id: '1',
-      codigo: 'ID-9942-ESCONDIDA',
-      nombre: 'Vástago de Cilindro',
-      cliente: 'Minera Escondida Ltda.',
-      material: 'AISI 4140 Bonificado',
-      dimensiones: 'Ø 50mm x 1200mm',
-      estado: 'pendiente',
-      fechaLimite: '24 Oct 2023'
-    },
-    {
-      id: '2',
-      codigo: 'ID-9821-ANGLO',
-      nombre: 'Émbolo Principal',
-      cliente: 'Anglo American Sur',
-      material: 'Bronce SAE 64',
-      dimensiones: 'Ø 120mm | Espesor: 85mm',
-      estado: 'torno',
-      operario: 'J. Ramirez'
-    },
-    {
-      id: '3',
-      codigo: 'ID-9750-CODELCO',
-      nombre: 'Tapa Guía Frontal',
-      cliente: 'Codelco Chuquicamata',
-      material: 'ASTM A-36',
-      dimensiones: 'Ø 200mm x 300mm',
-      estado: 'listo',
-      ubicacion: 'Zona A - Rack 04'
+  // Cargar órdenes de fabricación desde la BD
+  useEffect(() => {
+    const cargarOrdenes = async () => {
+      try {
+        setLoading(true)
+        const data = await supabaseService.getOrdenesFabricacion()
+
+        // Mapear datos de BD al formato del componente
+        const ordenesMapeadas: OrdenFabricacion[] = data.map((orden: any) => ({
+          id: orden.id,
+          codigo: orden.codigo,
+          nombre: orden.nombre,
+          cliente: orden.cliente?.nombre || 'Sin cliente',
+          material: orden.material || 'No especificado',
+          dimensiones: orden.dimensiones || '-',
+          estado: (orden.estado === 'entregado' ? 'listo' : orden.estado) as EstadoFabricacion,
+          fechaLimite: orden.fecha_limite ? new Date(orden.fecha_limite).toLocaleDateString('es-CL', { day: '2-digit', month: 'short' }) : undefined,
+          operario: orden.operario,
+          ubicacion: orden.ubicacion
+        }))
+
+        setOrdenes(ordenesMapeadas)
+      } catch (error) {
+        console.error('Error cargando órdenes:', error)
+        // En caso de error, dejar array vacío
+        setOrdenes([])
+      } finally {
+        setLoading(false)
+      }
     }
-  ]
+
+    cargarOrdenes()
+  }, [])
 
   const handleBack = () => {
     navigate('/')
@@ -85,7 +88,35 @@ function InventarioPage() {
           dot: 'bg-primary',
           iconBg: 'bg-primary'
         }
+      case 'fresado':
+        return {
+          label: 'Fresado',
+          color: 'text-blue-500',
+          bg: 'bg-blue-500/10',
+          border: 'border-blue-500/30',
+          dot: 'bg-blue-500',
+          iconBg: 'bg-blue-500'
+        }
+      case 'rectificado':
+        return {
+          label: 'Rectificado',
+          color: 'text-purple-500',
+          bg: 'bg-purple-500/10',
+          border: 'border-purple-500/30',
+          dot: 'bg-purple-500',
+          iconBg: 'bg-purple-500'
+        }
+      case 'cromado':
+        return {
+          label: 'Cromado',
+          color: 'text-orange-500',
+          bg: 'bg-orange-500/10',
+          border: 'border-orange-500/30',
+          dot: 'bg-orange-500',
+          iconBg: 'bg-orange-500'
+        }
       case 'listo':
+      case 'entregado':
         return {
           label: 'Listo',
           color: 'text-green-500',
@@ -93,6 +124,15 @@ function InventarioPage() {
           border: 'border-green-500/30',
           dot: 'bg-green-500',
           iconBg: 'bg-industrial-gray'
+        }
+      default:
+        return {
+          label: 'Desconocido',
+          color: 'text-gray-500',
+          bg: 'bg-gray-500/10',
+          border: 'border-gray-500/30',
+          dot: 'bg-gray-500',
+          iconBg: 'bg-gray-500'
         }
     }
   }
@@ -182,18 +222,28 @@ function InventarioPage() {
       </header>
 
       <main className="p-4 space-y-4">
+        {/* Loading Indicator */}
+        {loading && (
+          <div className="flex flex-col items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            <p className="mt-4 text-slate-400">Cargando órdenes...</p>
+          </div>
+        )}
+
         {/* Section Label */}
-        <div className="flex items-center justify-between">
-          <h4 className="text-text-muted-dark text-[11px] font-bold leading-normal tracking-[0.2em] uppercase">
-            Órdenes de Fabricación Activas
-          </h4>
-          <span className="bg-primary/20 text-primary text-[10px] px-2 py-0.5 rounded font-bold">
-            {ordenesFiltradas.length} TOTAL
-          </span>
-        </div>
+        {!loading && (
+          <div className="flex items-center justify-between">
+            <h4 className="text-text-muted-dark text-[11px] font-bold leading-normal tracking-[0.2em] uppercase">
+              Órdenes de Fabricación Activas
+            </h4>
+            <span className="bg-primary/20 text-primary text-[10px] px-2 py-0.5 rounded font-bold">
+              {ordenesFiltradas.length} TOTAL
+            </span>
+          </div>
+        )}
 
         {/* Industrial Cards */}
-        {ordenesFiltradas.map((orden) => {
+        {!loading && ordenesFiltradas.map((orden) => {
           const estadoInfo = getEstadoInfo(orden.estado)
 
           return (
@@ -258,7 +308,7 @@ function InventarioPage() {
           )
         })}
 
-        {ordenesFiltradas.length === 0 && (
+        {!loading && ordenesFiltradas.length === 0 && (
           <div className="text-center py-12">
             <span className="material-symbols-outlined text-6xl text-gray-600">inventory_2</span>
             <p className="text-gray-500 mt-4">No hay órdenes en esta categoría</p>

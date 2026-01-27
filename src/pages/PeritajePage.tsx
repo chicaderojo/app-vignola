@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabaseService } from '../services/supabaseService'
+import { COMPONENTES_BASE } from '../types'
 
 type ComponenteStatus = 'pending' | 'bueno' | 'mantencion' | 'cambio'
 
@@ -17,50 +18,70 @@ function PeritajePage() {
   const navigate = useNavigate()
   const { id } = useParams()
   const [loading, setLoading] = useState(false)
+  const [loadingInicial, setLoadingInicial] = useState(true)
 
-  // Mock data para componentes
-  const [componentes, setComponentes] = useState<Componente[]>([
-    {
-      id: '1',
-      nombre: 'Vástago (Rod)',
-      estado: 'mantencion',
-      observaciones: 'Desgaste severo en cromo duro, presenta ralladuras longitudinales profundas en zona de trabajo.',
-      fotos: ['https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&h=200&fit=crop'],
-      expandido: true
-    },
-    {
-      id: '2',
-      nombre: 'Camisa (Barrel)',
-      estado: 'bueno',
-      observaciones: '',
-      fotos: [],
-      expandido: false
-    },
-    {
-      id: '3',
-      nombre: 'Sellos (Seals)',
-      estado: 'cambio',
-      observaciones: 'Kit de sellos completo dañado por uso intensivo.',
-      fotos: [],
-      expandido: false
-    },
-    {
-      id: '4',
-      nombre: 'Pistón (Piston)',
-      estado: 'pending',
-      observaciones: '',
-      fotos: [],
-      expandido: false
-    },
-    {
-      id: '5',
-      nombre: 'Puerto de Aceite',
-      estado: 'pending',
-      observaciones: '',
-      fotos: [],
-      expandido: false
+  // Componentes cargados desde BD o inicializados con componentes base
+  const [componentes, setComponentes] = useState<Componente[]>([])
+
+  // Cargar detalles existentes de la inspección
+  useEffect(() => {
+    const cargarDetalles = async () => {
+      if (!id) return
+
+      try {
+        setLoadingInicial(true)
+        const detalles = await supabaseService.getInspeccionDetalles(id)
+
+        if (detalles.length > 0) {
+          // Convertir detalles de BD al formato del componente
+          const componentesFromDB = detalles.map(det => {
+            // Mapear estado de BD a estado del componente
+            let estado: ComponenteStatus = 'pending'
+            if (det.estado === 'Bueno') estado = 'bueno'
+            else if (det.estado === 'Mantención') estado = 'mantencion'
+            else if (det.estado === 'Cambio') estado = 'cambio'
+
+            return {
+              id: det.id,
+              nombre: det.componente,
+              estado,
+              observaciones: det.observaciones || det.detalle_tecnico || '',
+              fotos: [],
+              expandido: estado !== 'pending' && estado !== 'bueno'
+            }
+          })
+          setComponentes(componentesFromDB)
+        } else {
+          // No hay detalles previos, inicializar con componentes base
+          const componentesBase = COMPONENTES_BASE.map((nombre, index) => ({
+            id: `base-${index}`,
+            nombre,
+            estado: 'pending' as ComponenteStatus,
+            observaciones: '',
+            fotos: [],
+            expandido: false
+          }))
+          setComponentes(componentesBase)
+        }
+      } catch (error) {
+        console.error('Error cargando detalles:', error)
+        // En caso de error, inicializar con componentes base
+        const componentesBase = COMPONENTES_BASE.map((nombre, index) => ({
+          id: `base-${index}`,
+          nombre,
+          estado: 'pending' as ComponenteStatus,
+          observaciones: '',
+          fotos: [],
+          expandido: false
+        }))
+        setComponentes(componentesBase)
+      } finally {
+        setLoadingInicial(false)
+      }
     }
-  ])
+
+    cargarDetalles()
+  }, [id])
 
   const handleBack = () => {
     navigate(`/inspeccion/${id}/recepcion`)
@@ -163,7 +184,18 @@ function PeritajePage() {
   }
 
   const componentesCompletados = componentes.filter(c => c.estado !== 'pending').length
-  const progreso = (componentesCompletados / componentes.length) * 100
+  const progreso = componentes.length > 0 ? (componentesCompletados / componentes.length) * 100 : 0
+
+  if (loadingInicial) {
+    return (
+      <div className="min-h-screen bg-background-light dark:bg-background-dark flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-slate-600 dark:text-slate-400">Cargando peritaje...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-background-light dark:bg-background-dark pb-20">
@@ -178,7 +210,7 @@ function PeritajePage() {
               <span className="material-symbols-outlined">arrow_back</span>
             </button>
             <div className="flex flex-col">
-              <h2 className="text-lg font-bold leading-tight tracking-tight text-slate-900 dark:text-white">Peritaje OT #9942</h2>
+              <h2 className="text-lg font-bold leading-tight tracking-tight text-slate-900 dark:text-white">Peritaje OT #{id?.slice(0, 8) || '...'}</h2>
               <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Vignola Industrial</span>
             </div>
           </div>
@@ -235,17 +267,19 @@ function PeritajePage() {
         {componentes.map((componente, index) => (
           <div
             key={componente.id}
-            className={`bg-white dark:bg-surface-dark rounded-xl shadow-sm border overflow-hidden relative group ${
+            className={`bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border overflow-hidden relative group ${
               componente.estado === 'pending'
                 ? 'border-slate-200 dark:border-slate-700/50 opacity-60'
                 : componente.estado !== 'bueno' && componente.expandido
-                ? `border-${getEstadoColor(componente.estado)}/50`
+                ? `border-status-${getEstadoColor(componente.estado)}/50`
+                : componente.estado === 'bueno'
+                ? 'border-transparent opacity-75 hover:opacity-100 transition-opacity'
                 : 'border-transparent'
             }`}
           >
             {/* Barra lateral de color */}
-            {componente.estado !== 'pending' && componente.expandido && componente.estado !== 'bueno' && (
-              <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-${getEstadoColor(componente.estado)}`}></div>
+            {componente.estado === 'mantencion' && componente.expandido && (
+              <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-status-maintain"></div>
             )}
 
             <div className="p-4">
@@ -254,59 +288,77 @@ function PeritajePage() {
                   <h4 className="text-base font-bold text-slate-900 dark:text-white">
                     {index + 1}. {componente.nombre}
                   </h4>
-                  {componente.estado !== 'pending' && (
-                    <p className={`text-xs text-${getEstadoColor(componente.estado)} font-medium mt-0.5`}>
-                      {componente.estado === 'bueno' ? 'En buen estado' :
-                       componente.estado === 'mantencion' ? 'Requiere Atención' :
-                       'Requiere Cambio'}
+                  {componente.estado === 'mantencion' && componente.expandido && (
+                    <p className="text-xs text-status-maintain font-medium mt-0.5">
+                      Requiere Atención
                     </p>
                   )}
                 </div>
+                {/* Icono de advertencia solo para mantención expandido */}
                 {componente.estado === 'mantencion' && componente.expandido && (
                   <span className="material-symbols-outlined text-status-maintain">warning</span>
+                )}
+                {/* Badge de estado para completados colapsados */}
+                {componente.expandido === false && componente.estado !== 'pending' && (
+                  <div className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs font-bold ${
+                    componente.estado === 'bueno'
+                      ? 'text-status-good bg-status-good/10'
+                      : componente.estado === 'mantencion'
+                      ? 'text-status-maintain bg-status-maintain/10'
+                      : 'text-status-replace bg-status-replace/10'
+                  }`}>
+                    <span className="material-symbols-outlined text-[14px]">
+                      {componente.estado === 'bueno' ? 'check_circle' :
+                       componente.estado === 'mantencion' ? 'build' : 'cancel'}
+                    </span>
+                    <span>{componente.estado === 'bueno' ? 'BUENO' :
+                           componente.estado === 'mantencion' ? 'MANTENCIÓN' : 'CAMBIO'}</span>
+                  </div>
                 )}
               </div>
 
               {/* Status Selectors */}
-              <div className={`grid grid-cols-3 gap-2 mb-${componente.expandido && componente.estado !== 'bueno' ? '4' : '0'} pl-2`}>
-                <button
-                  onClick={() => actualizarEstado(index, 'bueno')}
-                  className={`h-12 flex flex-col items-center justify-center rounded transition-all ${
-                    componente.estado === 'bueno'
-                      ? 'bg-status-good text-white shadow-lg ring-2 ring-status-good/30'
-                      : 'border border-slate-200 dark:border-slate-700 bg-transparent text-slate-400 hover:border-status-good hover:text-status-good'
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-[20px] mb-0.5">check_circle</span>
-                  <span className="text-[10px] font-bold uppercase">Bueno</span>
-                </button>
+              {componente.estado === 'pending' || componente.expandido ? (
+                <div className={`grid grid-cols-3 gap-2 mb-${componente.expandido && componente.estado !== 'bueno' ? '4' : '0'} pl-2`}>
+                  <button
+                    onClick={() => actualizarEstado(index, 'bueno')}
+                    className={`h-12 flex flex-col items-center justify-center rounded transition-all ${
+                      componente.estado === 'bueno'
+                        ? 'bg-status-good text-white shadow-lg ring-2 ring-status-good/30 ring-offset-1 ring-offset-surface-dark'
+                        : 'border border-slate-200 dark:border-slate-700 bg-transparent text-slate-400 hover:border-status-good hover:text-status-good hover:bg-slate-800'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-[20px] mb-0.5">check_circle</span>
+                    <span className="text-[10px] font-bold uppercase">Bueno</span>
+                  </button>
 
-                <button
-                  onClick={() => actualizarEstado(index, 'mantencion')}
-                  className={`h-12 flex flex-col items-center justify-center rounded transition-all ${
-                    componente.estado === 'mantencion'
-                      ? 'bg-status-maintain text-white shadow-lg ring-2 ring-status-maintain/30'
-                      : 'border border-slate-200 dark:border-slate-700 bg-transparent text-slate-400 hover:border-status-maintain hover:text-status-maintain'
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-[20px] mb-0.5">build</span>
-                  <span className="text-[10px] font-bold uppercase">Mantención</span>
-                </button>
+                  <button
+                    onClick={() => actualizarEstado(index, 'mantencion')}
+                    className={`h-12 flex flex-col items-center justify-center rounded transition-all ${
+                      componente.estado === 'mantencion'
+                        ? 'bg-status-maintain text-surface-dark shadow-lg ring-2 ring-status-maintain/30 ring-offset-1 ring-offset-surface-dark'
+                        : 'border border-slate-200 dark:border-slate-700 bg-transparent text-slate-400 hover:border-status-maintain hover:text-status-maintain hover:bg-slate-800'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-[20px] mb-0.5">build</span>
+                    <span className="text-[10px] font-bold uppercase">Mantención</span>
+                  </button>
 
-                <button
-                  onClick={() => actualizarEstado(index, 'cambio')}
-                  className={`h-12 flex flex-col items-center justify-center rounded transition-all ${
-                    componente.estado === 'cambio'
-                      ? 'bg-status-replace text-white shadow-lg ring-2 ring-status-replace/30'
-                      : 'border border-slate-200 dark:border-slate-700 bg-transparent text-slate-400 hover:border-status-replace hover:text-status-replace'
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-[20px] mb-0.5">cancel</span>
-                  <span className="text-[10px] font-bold uppercase">Cambio</span>
-                </button>
-              </div>
+                  <button
+                    onClick={() => actualizarEstado(index, 'cambio')}
+                    className={`h-12 flex flex-col items-center justify-center rounded transition-all ${
+                      componente.estado === 'cambio'
+                        ? 'bg-status-replace text-surface-dark shadow-lg ring-2 ring-status-replace/30 ring-offset-1 ring-offset-surface-dark'
+                        : 'border border-slate-200 dark:border-slate-700 bg-transparent text-slate-400 hover:border-status-replace hover:text-status-replace hover:bg-slate-800'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-[20px] mb-0.5">cancel</span>
+                    <span className="text-[10px] font-bold uppercase">Cambio</span>
+                  </button>
+                </div>
+              ) : null}
 
-              {/* Expanded Section */}
+              {/* Expanded Section (solo para mantención y cambio) */}
               {componente.expandido && componente.estado !== 'pending' && componente.estado !== 'bueno' && (
                 <div className="pl-2 space-y-3">
                   <div>

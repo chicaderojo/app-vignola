@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { authService } from '../services/api'
+import { supabaseService } from '../services/supabaseService'
 import { useTheme } from '../hooks/useTheme'
 
 function AjustesPage() {
@@ -13,6 +14,25 @@ function AjustesPage() {
   const [loading, setLoading] = useState(false)
   const [profilePhotoPreview, setProfilePhotoPreview] = useState<string | null>(null)
 
+  // Cargar preferencias del usuario
+  useEffect(() => {
+    const cargarPreferencias = async () => {
+      try {
+        if (user?.id) {
+          const usuarioDB = await supabaseService.getUsuarioByEmail(user.email)
+          if (usuarioDB?.preferences) {
+            const prefs = usuarioDB.preferences
+            if (prefs.notificaciones !== undefined) setNotificaciones(prefs.notificaciones)
+            if (prefs.frecuenciaSync) setFrecuenciaSync(prefs.frecuenciaSync)
+          }
+        }
+      } catch (error) {
+        console.error('Error cargando preferencias:', error)
+      }
+    }
+    cargarPreferencias()
+  }, [user?.id])
+
   const handleVolver = () => {
     navigate(-1)
   }
@@ -21,8 +41,14 @@ function AjustesPage() {
     setLoading(true)
 
     try {
-      // Simular guardado
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      // Guardar preferencias en la base de datos
+      if (user?.id) {
+        await supabaseService.saveUsuarioPreferences(user.id, {
+          notificaciones,
+          frecuenciaSync,
+          darkMode: isDark
+        })
+      }
 
       // Actualizar usuario en localStorage
       const updatedUser = {
@@ -57,18 +83,18 @@ function AjustesPage() {
     }
   }
 
-  // Función para obtener el título del usuario
-  const getTituloUsuario = (nombre: string | undefined): string => {
-    if (!nombre) return 'Inspector de Cilindros'
-
-    const nombreLower = nombre.toLowerCase()
-
-    if (nombreLower.includes('respinoza')) {
-      return 'Jefe Taller'
-    } else if (nombreLower.includes('mruiz')) {
-      return 'Jefe Sucursal'
-    } else {
-      return 'Inspector de Cilindros'
+  // Función para obtener el título del usuario según su rol
+  const getTituloUsuario = (rol: string | undefined): string => {
+    switch (rol) {
+      case 'jefe_maestranza':
+        return 'Jefe de Taller'
+      case 'jefe_sucursal':
+        return 'Jefe de Sucursal'
+      case 'administrador':
+        return 'Administrador'
+      case 'mecanico':
+      default:
+        return 'Inspector de Cilindros'
     }
   }
 
@@ -148,7 +174,7 @@ function AjustesPage() {
                   {user?.nombre || 'Juan Pérez'}
                 </p>
                 <p className="text-slate-500 dark:text-gray-400 text-base font-medium leading-normal text-center">
-                  {getTituloUsuario(user?.nombre)} • ID {userId}
+                  {getTituloUsuario(user?.rol)} • ID {userId}
                 </p>
               </div>
             </div>

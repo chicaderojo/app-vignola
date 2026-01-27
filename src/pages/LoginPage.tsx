@@ -43,33 +43,27 @@ function LoginPage() {
           userId = crypto.randomUUID()
         }
 
-        // Crear usuario de prueba
-        const demoUser = {
-          id: userId,
-          nombre: nombre || 'Usuario',
-          email: email,
-          rol: 'mecanico' as const
-        }
+        
 
-        // Guardar en base de datos (OBLIGATORIO para que funcione la app)
+        // Intentar crear usuario en BD para futuros accesos
         try {
-          await supabaseService.createOrUpdateUsuario(demoUser)
-          console.log('Usuario guardado en base de datos:', demoUser)
-        } catch (dbError: any) {
-          console.error('Error al guardar usuario en BD:', dbError)
-          setError('Error al conectar con la base de datos. Verifica tu conexión a internet.')
-          setLoading(false)
-          return
+          if (navigator.onLine) {
+            await supabaseService.createOrUpdateUsuario(usuarioDB)
+            console.log('Nuevo usuario creado en BD:', usuarioDB.email)
+          }
+        } catch (createError: any) {
+          console.warn('No se pudo crear usuario en BD:', createError.message)
         }
-
-        // Guardar token falso y usuario en localStorage
-        localStorage.setItem('auth_token', 'demo-token-' + Date.now())
-        localStorage.setItem('user', JSON.stringify(demoUser))
-
-        navigate('/')
-      } else {
-        setError('Por favor ingresa email y contraseña')
       }
+
+      // Paso 3: Guardar sesión
+      const token = `auth-${usuarioDB.id}-${Date.now()}`
+      localStorage.setItem('auth_token', token)
+      localStorage.setItem('user', JSON.stringify(usuarioDB))
+
+      // Paso 4: Navegar al dashboard
+      navigate('/')
+
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al iniciar sesión')
     } finally {
@@ -172,10 +166,16 @@ function LoginPage() {
             </div>
           )}
 
-          {/* Demo Notice */}
-          <div className="p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl">
+          {/* Auth Notice */}
+          <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl">
             <p className="text-xs text-blue-800 dark:text-blue-300 font-medium text-center">
-              🔵 Modo Demo: Usa cualquier credencial
+              🔐 Autenticación con Base de Datos
+            </p>
+            <p className="text-[10px] text-blue-700 dark:text-blue-400 text-center mt-1">
+              Usuarios registrados: usa "demo123" o tu nombre en minúsculas
+            </p>
+            <p className="text-[10px] text-blue-600 dark:text-blue-500 text-center mt-0.5">
+              Nuevos usuarios se crearán automáticamente
             </p>
           </div>
 
@@ -194,9 +194,9 @@ function LoginPage() {
 
         {/* Footer / Status */}
         <div className="mt-auto flex flex-col items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-200/50 dark:bg-surface-dark border border-slate-300 dark:border-border-dark">
-            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Sistema Online</span>
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-100/50 dark:bg-green-900/30 border border-green-300 dark:border-green-700">
+            <span className="w-2 h-2 rounded-full bg-green-500"></span>
+            <span className="text-xs font-medium text-green-700 dark:text-green-400">Sistema Disponible (Online/Offline)</span>
           </div>
           <p className="text-xs text-slate-400 dark:text-slate-600">Vignola PWA Industrial v1.0.4</p>
         </div>

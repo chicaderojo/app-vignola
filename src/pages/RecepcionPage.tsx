@@ -99,10 +99,20 @@ function RecepcionPage() {
 
       console.log('Usuario final antes de guardar inspección:', user)
 
-      // Verificar que el usuario existe en la base de datos antes de continuar
+      // Verificar/crear usuario en la base de datos y obtener el usuario actualizado
+      let usuarioActualizado = user
       try {
         await supabaseService.createOrUpdateUsuario(user)
         console.log('Usuario verificado/creado en BD correctamente')
+
+        // Obtener el usuario actualizado desde la BD para tener el ID correcto
+        const usuarioBD = await supabaseService.getUsuarioByEmail(user.email)
+        if (usuarioBD) {
+          console.log('Usuario obtenido de BD:', usuarioBD)
+          usuarioActualizado = usuarioBD
+          // Actualizar localStorage con el usuario correcto de la BD
+          localStorage.setItem('user', JSON.stringify(usuarioBD))
+        }
       } catch (error: any) {
         console.error('Error al verificar usuario en BD:', error)
         alert('Error de autenticación. Por favor cierra sesión y vuelve a iniciar sesión.')
@@ -158,8 +168,11 @@ function RecepcionPage() {
       await supabaseService.createInspeccion({
         id,
         cilindro_id: cilindroCreado.id_codigo, // Usar el ID del cilindro creado
-        usuario_id: user.id,
+        usuario_id: usuarioActualizado.id, // Usar el ID del usuario de la BD
         sap_cliente: ordenTrabajo,
+        nombre_cliente: nombreCliente || undefined,
+        contacto_cliente: contacto || undefined,
+        planta: planta || undefined,
         foto_armado_url: fotoArmadoUrl,
         foto_despiece_url: fotoDespieceUrl || '',
         notas_recepcion: JSON.stringify(infoRecepcion), // Guardar info del cliente como JSON
