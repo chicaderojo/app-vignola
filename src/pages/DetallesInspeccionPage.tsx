@@ -20,8 +20,6 @@ interface DetallesInspeccion {
   cliente: string
   contacto: string
   ubicacion: string
-  contacto: string
-  ordenTrabajo: string
   tipoCilindro: string
   diametro: string
   vastago: string
@@ -97,9 +95,8 @@ function DetallesInspeccionPage() {
           year: 'numeric'
         }),
         cliente: infoRecepcion?.cliente || cilindro?.cliente?.nombre || 'Cliente',
-        ubicacion: infoRecepcion?.planta || 'Taller Central',
         contacto: infoRecepcion?.contacto || 'N/A',
-        ordenTrabajo: insp.sap_cliente || 'N/A',
+        ubicacion: infoRecepcion?.planta || 'Taller Central',
         tipoCilindro: cilindro?.tipo || 'No especificado',
         diametro: cilindro?.diametro_camisa ? `${cilindro.diametro_camisa} mm` : 'N/A',
         vastago: cilindro?.diametro_vastago ? `${cilindro.diametro_vastago} mm` : 'N/A',
