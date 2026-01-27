@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabaseService } from '../services/supabaseService'
+import { generatePeritajePDF } from '../services/pdfService'
 
 type TabType = 'finalizados' | 'mantencion' | 'inspeccion'
 
@@ -82,8 +83,41 @@ function TrabajosListosPage() {
     navigate(`/inspeccion/${trabajoId}/detalles`)
   }
 
-  const handleGenerarPDF = (trabajoId: string) => {
-    alert(`Generando PDF para trabajo ${trabajoId}`)
+  const handleGenerarPDF = async (trabajoId: string) => {
+    try {
+      // Obtener datos completos de la inspección
+      const inspeccionData = await supabaseService.getInspeccionCompleta(trabajoId)
+
+      if (!inspeccionData) {
+        alert('Error: No se pudieron cargar los datos de la inspección')
+        return
+      }
+
+      // Mapear detalles de BD al formato de componentes UI
+      const componentesUI = inspeccionData.detalles.map(det => {
+        let estado: 'pending' | 'bueno' | 'mantencion' | 'cambio' = 'pending'
+        if (det.estado === 'Bueno') estado = 'bueno'
+        else if (det.estado === 'Mantención') estado = 'mantencion'
+        else if (det.estado === 'Cambio') estado = 'cambio'
+
+        return {
+          id: det.id,
+          nombre: det.componente,
+          estado,
+          observaciones: det.observaciones || det.detalle_tecnico || '',
+          fotos: [],
+          expandido: estado !== 'pending' && estado !== 'bueno'
+        }
+      })
+
+      // Generar PDF
+      await generatePeritajePDF(inspeccionData, componentesUI)
+
+      alert('✅ PDF generado exitosamente')
+    } catch (error: any) {
+      console.error('Error generando PDF:', error)
+      alert(`Error al generar PDF: ${error.message}`)
+    }
   }
 
   const handleReingreso = async (trabajoId: string) => {
