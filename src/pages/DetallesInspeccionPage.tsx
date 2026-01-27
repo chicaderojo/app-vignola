@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabaseService } from '../services/supabaseService'
+import { reportGenerator } from '../services/reportGenerator'
 
 type ComponenteEstado = 'ok' | 'warning' | 'error'
 
@@ -38,6 +39,7 @@ function DetallesInspeccionPage() {
   const navigate = useNavigate()
 
   const [inspeccion, setInspeccion] = useState<DetallesInspeccion | null>(null)
+  const [inspeccionCompleta, setInspeccionCompleta] = useState<any>(null) // Datos completos para generar informe
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -127,6 +129,7 @@ function DetallesInspeccionPage() {
 
       console.log('Detalles cargados:', detallesTransformados)
       setInspeccion(detallesTransformados)
+      setInspeccionCompleta(resultado) // Guardar datos completos para informe
     } catch (err: any) {
       console.error('Error cargando detalles:', err)
       setError(err.message || 'Error al cargar detalles de la inspección')
@@ -140,8 +143,44 @@ function DetallesInspeccionPage() {
   }
 
   const handleGenerarInforme = () => {
-    if (!inspeccion) return
-    alert('Generando informe técnico de la inspección ' + inspeccion.codigo)
+    if (!inspeccionCompleta) {
+      alert('No hay datos suficientes para generar el informe')
+      return
+    }
+
+    try {
+      // Generar el informe markdown
+      const markdown = reportGenerator.generarInformeMarkdown({
+        inspeccion: inspeccionCompleta.inspeccion,
+        detalles: inspeccionCompleta.detalles
+      })
+
+      // Crear un Blob con el contenido markdown
+      const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+
+      // Crear un link temporal para descargar
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `INFORME_${inspeccion?.codigo || 'INSPECCION'}_${new Date().toISOString().split('T')[0]}.md`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+
+      // Liberar el URL
+      URL.revokeObjectURL(url)
+
+      // Mostrar resumen en un modal o alerta
+      const resumen = reportGenerator.generarResumen({
+        inspeccion: inspeccionCompleta.inspeccion,
+        detalles: inspeccionCompleta.detalles
+      })
+
+      alert(`✅ Informe generado exitosamente\n\n${resumen}`)
+    } catch (error) {
+      console.error('Error generando informe:', error)
+      alert('Error al generar el informe. Por favor intenta nuevamente.')
+    }
   }
 
   const getComponenteEstadoInfo = (estado: ComponenteEstado) => {
