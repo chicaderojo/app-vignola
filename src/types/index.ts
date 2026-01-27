@@ -222,3 +222,32 @@ export interface ComponentePeritaje {
   es_base: boolean
   observaciones?: string
 }
+
+// ==================== PDF REPORTES ====================
+
+export interface PeritajePDFData {
+  inspeccion: Inspeccion
+  detalles: InspeccionDetalle[]
+  componentes: Array<{
+    nombre: string
+    estado: 'pending' | 'bueno' | 'mantencion' | 'cambio'
+    observaciones: string
+    fotos: string[]
+  }>
+  fechaEmision: string
+  horaEmision: string
+  inspectorNombre?: string
+}
+
+export interface ReportePDFData extends ReporteData {
+  includePruebas?: boolean
+  pruebasHidraulicas?: {
+    presion_objetivo: number
+    presion_inicial: number
+    presion_final: number
+    fuga_vastago: boolean
+    fuga_piston: boolean
+    deformacion: boolean
+    observaciones: string
+  }
+}

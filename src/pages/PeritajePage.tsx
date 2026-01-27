@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabaseService } from '../services/supabaseService'
+import { generatePeritajePDF } from '../services/pdfService'
 import { COMPONENTES_BASE } from '../types'
 
 type ComponenteStatus = 'pending' | 'bueno' | 'mantencion' | 'cambio'
@@ -19,6 +20,7 @@ function PeritajePage() {
   const { id } = useParams()
   const [loading, setLoading] = useState(false)
   const [loadingInicial, setLoadingInicial] = useState(true)
+  const [loadingPDF, setLoadingPDF] = useState(false)
 
   // Componentes cargados desde BD o inicializados con componentes base
   const [componentes, setComponentes] = useState<Componente[]>([])
@@ -87,7 +89,7 @@ function PeritajePage() {
     navigate(`/inspeccion/${id}/recepcion`)
   }
 
-  const handleGuardar = async () => {
+  const handleGuardarPorAhora = async () => {
     if (!id) {
       alert('Error: ID de inspección no válido')
       return
@@ -96,7 +98,7 @@ function PeritajePage() {
     try {
       setLoading(true)
       await supabaseService.savePeritaje(id, componentes)
-      alert('Peritaje guardado exitosamente')
+      alert('✅ Peritaje guardado. Puedes continuar después.')
     } catch (error: any) {
       console.error('Error guardando peritaje:', error)
       alert(`Error al guardar: ${error.message}`)
@@ -105,10 +107,11 @@ function PeritajePage() {
     }
   }
 
-  const handleFinalizar = async () => {
+  const handleIrAPruebas = async () => {
     const componentesPendientes = componentes.filter(c => c.estado === 'pending')
     if (componentesPendientes.length > 0) {
-      alert(`Falta evaluar ${componentesPendientes.length} componente(s)`)
+      const nombres = componentesPendientes.map(c => c.nombre).join(', ')
+      alert(`⚠️ Falta evaluar ${componentesPendientes.length} componente(s):\n${nombres}`)
       return
     }
 
@@ -122,9 +125,38 @@ function PeritajePage() {
       await supabaseService.savePeritaje(id, componentes)
       navigate(`/inspeccion/${id}/pruebas`)
     } catch (error: any) {
-      console.error('Error finalizando peritaje:', error)
+      console.error('Error en transición a pruebas:', error)
       alert(`Error al guardar: ${error.message}`)
       setLoading(false)
+    }
+  }
+
+  const handleGenerarPDF = async () => {
+    if (!id) {
+      alert('Error: ID de inspección no válido')
+      return
+    }
+
+    try {
+      setLoadingPDF(true)
+
+      // Obtener datos completos de la inspección
+      const inspeccionData = await supabaseService.getInspeccionCompleta(id)
+
+      if (!inspeccionData) {
+        alert('Error: No se pudieron cargar los datos de la inspección')
+        return
+      }
+
+      // Generar PDF
+      await generatePeritajePDF(inspeccionData, componentes)
+
+      alert('✅ PDF generado exitosamente')
+    } catch (error: any) {
+      console.error('Error generando PDF:', error)
+      alert(`Error al generar PDF: ${error.message}`)
+    } finally {
+      setLoadingPDF(false)
     }
   }
 
@@ -215,11 +247,11 @@ function PeritajePage() {
             </div>
           </div>
           <button
-            onClick={handleGuardar}
+            onClick={handleGuardarPorAhora}
             disabled={loading}
             className="bg-primary/10 hover:bg-primary/20 text-primary px-4 py-2 rounded-full text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? 'Guardando...' : 'Guardar'}
+            {loading ? 'Guardando...' : 'Guardar por ahora'}
           </button>
         </div>
       </header>
@@ -435,23 +467,45 @@ function PeritajePage() {
 
       {/* Floating Action Button Area / Sticky Footer */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background-dark via-background-dark to-transparent pt-8 max-w-md mx-auto">
-        <button
-          onClick={handleFinalizar}
-          disabled={loading}
-          className="w-full bg-primary hover:bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-900/50 flex items-center justify-center gap-2 transition-transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {loading ? (
-            <>
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-              Procesando...
-            </>
-          ) : (
-            <>
-              <span className="material-symbols-outlined">assignment_turned_in</span>
-              Finalizar Peritaje
-            </>
-          )}
-        </button>
+        <div className="flex gap-3">
+          {/* Botón Generar PDF - Secundario */}
+          <button
+            onClick={handleGenerarPDF}
+            disabled={loading || loadingPDF}
+            className="flex-1 bg-surface-dark hover:bg-slate-700 text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed border border-slate-600 dark:border-slate-700"
+          >
+            {loadingPDF ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                Generando...
+              </>
+            ) : (
+              <>
+                <span className="material-symbols-outlined">picture_as_pdf</span>
+                <span className="text-sm">PDF</span>
+              </>
+            )}
+          </button>
+
+          {/* Botón Ir a Pruebas - Primario */}
+          <button
+            onClick={handleIrAPruebas}
+            disabled={loading}
+            className="flex-[2] bg-primary hover:bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-900/50 flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                Procesando...
+              </>
+            ) : (
+              <>
+                <span className="material-symbols-outlined">science</span>
+                <span>Ir a Pruebas Hidráulicas</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   )
