@@ -180,6 +180,7 @@ function RecepcionPage() {
         fuga_interna: false,
         fuga_externa: false,
         estado_inspeccion: 'borrador',
+        etapas_completadas: ['recepcion'], // Inicializar etapas completadas
         created_at: new Date().toISOString()
       })
 

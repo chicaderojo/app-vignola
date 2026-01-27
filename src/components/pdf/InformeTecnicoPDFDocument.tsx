@@ -144,6 +144,40 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
 
+  // Componente Fotos Section
+  componenteFotoSection: {
+    marginBottom: 15,
+    pageBreakInside: 'avoid',
+  },
+  componenteFotoTitle: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    color: '#1e293b'
+  },
+  componenteFotoGrid: {
+    display: 'flex',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 8,
+  },
+  componenteFotoContainer: {
+    width: '48%',
+    marginBottom: 8,
+  },
+  componenteFoto: {
+    width: '100%',
+    height: 120,
+    objectFit: 'cover',
+  },
+  componenteFotoCaption: {
+    fontSize: 7,
+    color: '#64748b',
+    fontStyle: 'italic',
+    marginTop: 3,
+  },
+
   // Tabla
   table: {
     width: '100%',
@@ -428,6 +462,53 @@ const InformeTecnicoPDFDocument: React.FC<Props> = ({ data }) => {
             </View>
           )}
         </View>
+
+        {/* EVIDENCIA FOTOGRÁFICA DE COMPONENTES */}
+        {data.detalles.some((det: any) => det.fotos_urls && det.fotos_urls.length > 0) && (
+          <View style={styles.section} break>
+            <Text style={styles.sectionTitle}>Evidencia Fotográfica de Componentes</Text>
+
+            {data.detalles.map((det: any) => {
+              const fotosUrls = det.fotos_urls || []
+              if (fotosUrls.length === 0) return null
+
+              return (
+                <View key={det.componente} style={styles.componenteFotoSection}>
+                  <Text style={styles.componenteFotoTitle}>
+                    {det.componente} - {getEstadoLabel(det.estado)}
+                  </Text>
+                  <View style={styles.componenteFotoGrid}>
+                    {fotosUrls.map((url: string, idx: number) => (
+                      <View key={idx} style={styles.componenteFotoContainer}>
+                        <Image style={styles.componenteFoto} src={url} />
+                      </View>
+                    ))}
+                  </View>
+                  {(det.observaciones || det.detalle_tecnico) && (
+                    <Text style={styles.componenteFotoCaption}>
+                      {det.observaciones || det.detalle_tecnico}
+                    </Text>
+                  )}
+                </View>
+              )
+            })}
+          </View>
+        )}
+
+        {/* EVIDENCIA DE PRUEBAS HIDRÁULICAS */}
+        {data.inspeccion.fotos_pruebas_url && data.inspeccion.fotos_pruebas_url.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Evidencia de Pruebas Hidráulicas</Text>
+            <View style={styles.imageGrid}>
+              {data.inspeccion.fotos_pruebas_url.map((url: string, idx: number) => (
+                <View key={idx} style={styles.imageContainer}>
+                  <Image style={styles.image} src={url} />
+                  <Text style={styles.imageCaption}>Foto {idx + 1}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
 
         {/* Pruebas Hidráulicas si existen */}
         {(data.inspeccion.presion_prueba !== undefined || data.inspeccion.fuga_interna !== undefined || data.inspeccion.fuga_externa !== undefined) && (

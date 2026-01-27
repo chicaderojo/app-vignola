@@ -30,6 +30,29 @@ function PruebasPage() {
 
     try {
       setLoading(true)
+
+      // Subir fotos de pruebas
+      const fotosUrls: string[] = []
+      for (let i = 0; i < fotos.length; i++) {
+        const fotoUrl = fotos[i]
+
+        if (fotoUrl.startsWith('data:')) {
+          // Convertir Data URL a File y subir
+          const blob = await fetch(fotoUrl).then(r => r.blob())
+          const file = new File([blob], `prueba_${i}.jpg`, { type: 'image/jpeg' })
+
+          try {
+            const urlPublica = await supabaseService.uploadFotoPrueba(file, id, i)
+            fotosUrls.push(urlPublica)
+          } catch (error) {
+            console.error(`Error subiendo foto ${i} de pruebas:`, error)
+            fotosUrls.push(fotoUrl) // Fallback
+          }
+        } else {
+          fotosUrls.push(fotoUrl)
+        }
+      }
+
       await supabaseService.savePruebas(id, {
         presion_objetivo: parseFloat(presionObjetivo),
         sostenimiento: parseFloat(sostenimiento),
@@ -38,7 +61,8 @@ function PruebasPage() {
         fuga_vastago: fugaVastago,
         fuga_piston: fugaPiston,
         deformacion: deformacion,
-        observaciones
+        observaciones,
+        fotos_pruebas: fotosUrls
       })
       alert('Prueba guardada exitosamente')
     } catch (error: any) {
@@ -62,6 +86,29 @@ function PruebasPage() {
 
     try {
       setLoading(true)
+
+      // Subir fotos de pruebas
+      const fotosUrls: string[] = []
+      for (let i = 0; i < fotos.length; i++) {
+        const fotoUrl = fotos[i]
+
+        if (fotoUrl.startsWith('data:')) {
+          // Convertir Data URL a File y subir
+          const blob = await fetch(fotoUrl).then(r => r.blob())
+          const file = new File([blob], `prueba_${i}.jpg`, { type: 'image/jpeg' })
+
+          try {
+            const urlPublica = await supabaseService.uploadFotoPrueba(file, id, i)
+            fotosUrls.push(urlPublica)
+          } catch (error) {
+            console.error(`Error subiendo foto ${i} de pruebas:`, error)
+            fotosUrls.push(fotoUrl) // Fallback
+          }
+        } else {
+          fotosUrls.push(fotoUrl)
+        }
+      }
+
       await supabaseService.savePruebas(id, {
         presion_objetivo: parseFloat(presionObjetivo),
         sostenimiento: parseFloat(sostenimiento),
@@ -70,7 +117,8 @@ function PruebasPage() {
         fuga_vastago: fugaVastago,
         fuga_piston: fugaPiston,
         deformacion: deformacion,
-        observaciones
+        observaciones,
+        fotos_pruebas: fotosUrls
       })
       alert('Prueba finalizada exitosamente')
       navigate('/')

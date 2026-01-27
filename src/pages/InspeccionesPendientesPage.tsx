@@ -158,17 +158,47 @@ function InspeccionesPendientesPage() {
     navigate(`/inspeccion/${inspeccionId}/recepcion`)
   }
 
-  const handleContinuarInspeccion = async (inspeccionId: string) => {
+  const handleContinuarInspeccion = async (inspeccionId: string, origen: 'local' | 'supabase' | 'auto' = 'auto') => {
     try {
-      // Obtener datos de la inspección desde Dexie
-      const inspeccion = await db.inspeccionesLocales.get(inspeccionId) as any
+      let etapas: string[] = []
 
-      if (!inspeccion) {
-        console.error('Inspección no encontrada')
-        return
+      if (origen === 'auto') {
+        // Detectar origen automáticamente: intentar Supabase primero
+        try {
+          const inspeccionSupabase = await supabaseService.getInspeccionById(inspeccionId)
+          if (inspeccionSupabase) {
+            etapas = (inspeccionSupabase as any).etapas_completadas || []
+          } else {
+            // Si no está en Supabase, buscar en IndexedDB
+            const inspeccionLocal = await db.inspeccionesLocales.get(inspeccionId) as any
+            if (inspeccionLocal) {
+              etapas = inspeccionLocal.etapas_completadas || []
+            }
+          }
+        } catch (e) {
+          // Error al buscar en Supabase, intentar IndexedDB
+          const inspeccionLocal = await db.inspeccionesLocales.get(inspeccionId) as any
+          if (inspeccionLocal) {
+            etapas = inspeccionLocal.etapas_completadas || []
+          }
+        }
+      } else if (origen === 'supabase') {
+        const inspeccion = await supabaseService.getInspeccionById(inspeccionId)
+        if (!inspeccion) {
+          alert('Inspección no encontrada en Supabase')
+          return
+        }
+        etapas = (inspeccion as any).etapas_completadas || []
+      } else {
+        // local
+        const inspeccion = await db.inspeccionesLocales.get(inspeccionId) as any
+        if (!inspeccion) {
+          alert('Inspección no encontrada localmente')
+          return
+        }
+        etapas = inspeccion.etapas_completadas || []
       }
 
-      const etapas = inspeccion.etapas_completadas || []
       let ruta = `/inspeccion/${inspeccionId}/recepcion`
 
       // Determinar a qué etapa navegar
@@ -186,6 +216,7 @@ function InspeccionesPendientesPage() {
       navigate(ruta)
     } catch (error) {
       console.error('Error al continuar inspección:', error)
+      alert('Error al cargar inspección. Intenta nuevamente.')
     }
   }
 
@@ -494,7 +525,10 @@ function InspeccionesPendientesPage() {
                   {/* Action Buttons */}
                   <div className={`gap-2 mt-2 flex`}>
                     <button
-                      onClick={() => handleContinuarInspeccion(inspeccion.id)}
+                      onClick={() => handleContinuarInspeccion(
+                        inspeccion.id,
+                        inspeccion.estado_inspeccion ? 'supabase' : 'local'
+                      )}
                       className={`flex items-center justify-center gap-2 rounded-lg font-bold py-3 text-sm transition-transform active:scale-95 ${
                         inspeccion.estado === 'recepcion'
                           ? 'w-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white'

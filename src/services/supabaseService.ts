@@ -224,9 +224,15 @@ export const supabaseService = {
    * Crear una nueva inspección
    */
   async createInspeccion(inspeccion: Partial<Inspeccion>): Promise<Inspeccion> {
+    // Inicializar etapas_completadas si no se proporciona
+    const inspeccionConEtapas = {
+      ...inspeccion,
+      etapas_completadas: inspeccion.etapas_completadas || ['recepcion']
+    }
+
     const { data, error } = await supabase
       .from('inspecciones')
-      .insert([inspeccion])
+      .insert([inspeccionConEtapas])
       .select()
       .single()
 
@@ -263,13 +269,16 @@ export const supabaseService = {
       fuga_piston: boolean
       deformacion: boolean
       observaciones: string
+      fotos_pruebas?: string[]
     }
   ): Promise<void> {
     await this.updateInspeccion(inspeccionId, {
       presion_prueba: datosPrueba.presion_objetivo,
       fuga_interna: datosPrueba.fuga_piston,
       fuga_externa: datosPrueba.fuga_vastago || datosPrueba.deformacion,
-      estado_inspeccion: 'completa'
+      fotos_pruebas_url: datosPrueba.fotos_pruebas || [],
+      estado_inspeccion: 'completa',
+      etapas_completadas: ['recepcion', 'peritaje', 'pruebas', 'finalizado']
     })
   },
 
@@ -289,11 +298,20 @@ export const supabaseService = {
   /**
    * Guardar detalles de peritaje (elimina los anteriores y crea nuevos)
    */
-  async savePeritaje(inspeccionId: string, componentes: any[]): Promise<void> {
+  async savePeritaje(
+    inspeccionId: string,
+    componentes: Array<{
+      id?: string
+      nombre: string
+      estado: 'bueno' | 'mantencion' | 'cambio' | 'pending'
+      observaciones?: string
+      fotos?: string[]
+    }>
+  ): Promise<void> {
     // Eliminar detalles anteriores
     await this.deleteInspeccionDetalles(inspeccionId)
 
-    // Crear nuevos detalles
+    // Crear nuevos detalles con fotos
     const detalles = componentes
       .filter(c => c.estado !== 'pending')
       .map((c, index) => ({
@@ -302,12 +320,18 @@ export const supabaseService = {
         estado: (c.estado === 'bueno' ? 'Bueno' : c.estado === 'mantencion' ? 'Mantención' : 'Cambio') as 'Bueno' | 'Mantención' | 'Cambio',
         detalle_tecnico: c.observaciones || undefined,
         accion_propuesta: undefined,
+        fotos_urls: c.fotos || [],
         orden: index
       }))
 
     if (detalles.length > 0) {
       await this.createInspeccionDetalles(detalles)
     }
+
+    // Actualizar etapas_completadas
+    await this.updateInspeccion(inspeccionId, {
+      etapas_completadas: ['recepcion', 'peritaje']
+    })
   },
 
   /**
@@ -343,6 +367,70 @@ export const supabaseService = {
     }
 
     // Obtener URL pública
+    const { data: { publicUrl } } = supabase.storage
+      .from('inspecciones-fotos')
+      .getPublicUrl(filePath)
+
+    return publicUrl
+  },
+
+  /**
+   * Subir foto de componente a Supabase Storage
+   * Similar a uploadFoto pero para fotos adicionales de componentes
+   */
+  async uploadFotoComponente(
+    file: File,
+    inspeccionId: string,
+    detalleId: string,
+    index: number
+  ): Promise<string> {
+    const fileExt = file.name.split('.').pop()
+    const fileName = `${inspeccionId}/componentes/${detalleId}_foto_${index}.${fileExt}`
+    const filePath = fileName
+
+    const { error } = await supabase.storage
+      .from('inspecciones-fotos')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      })
+
+    if (error) {
+      console.error('Error subiendo foto de componente:', error)
+      throw error
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('inspecciones-fotos')
+      .getPublicUrl(filePath)
+
+    return publicUrl
+  },
+
+  /**
+   * Subir foto de prueba hidráulica
+   */
+  async uploadFotoPrueba(
+    file: File,
+    inspeccionId: string,
+    index: number
+  ): Promise<string> {
+    const fileExt = file.name.split('.').pop()
+    const fileName = `${inspeccionId}/pruebas/prueba_${index}.${fileExt}`
+    const filePath = fileName
+
+    const { error } = await supabase.storage
+      .from('inspecciones-fotos')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      })
+
+    if (error) {
+      console.error('Error subiendo foto de prueba:', error)
+      throw error
+    }
+
     const { data: { publicUrl } } = supabase.storage
       .from('inspecciones-fotos')
       .getPublicUrl(filePath)

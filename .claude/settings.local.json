@@ -12,7 +12,8 @@
       "mcp__supabase__apply_migration",
       "mcp__supabase__list_migrations",
       "mcp__supabase__list_tables",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(test:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

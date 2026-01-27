@@ -67,7 +67,10 @@ export interface Inspeccion {
   fuga_interna: boolean
   fuga_externa: boolean
   notas_recepcion?: string
+  notas_pruebas?: string
   estado_inspeccion: EstadoInspeccion
+  etapas_completadas?: string[] // Etapas completadas: ['recepcion'], ['recepcion', 'peritaje'], etc.
+  fotos_pruebas_url?: string[] // URLs de fotos de pruebas hidráulicas
   created_at: string
   detalles?: InspeccionDetalle[]
 }
@@ -82,6 +85,7 @@ export interface InspeccionDetalle {
   detalle_tecnico?: string
   accion_propuesta?: string
   observaciones?: string
+  fotos_urls?: string[] // URLs de fotos adicionales del componente
   orden?: number
   created_at?: string
 }

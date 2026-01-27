@@ -48,7 +48,7 @@ function PeritajePage() {
               nombre: det.componente,
               estado,
               observaciones: det.observaciones || det.detalle_tecnico || '',
-              fotos: [],
+              fotos: det.fotos_urls || [],
               expandido: estado !== 'pending' && estado !== 'bueno'
             }
           })
@@ -97,7 +97,49 @@ function PeritajePage() {
 
     try {
       setLoading(true)
-      await supabaseService.savePeritaje(id, componentes)
+
+      // Subir fotos de componentes a Storage
+      const componentesConFotos = await Promise.all(
+        componentes.map(async (comp) => {
+          if (comp.fotos && comp.fotos.length > 0) {
+            // Convertir Data URLs a Files y subir
+            const urlsSubidas: string[] = []
+
+            for (let i = 0; i < comp.fotos.length; i++) {
+              const fotoUrl = comp.fotos[i]
+
+              // Si es Data URL, convertirla a File y subirla
+              if (fotoUrl.startsWith('data:')) {
+                const blob = await fetch(fotoUrl).then(r => r.blob())
+                const file = new File([blob], `componente_${comp.nombre}_${i}.jpg`, { type: 'image/jpeg' })
+
+                try {
+                  const urlPublica = await supabaseService.uploadFotoComponente(
+                    file,
+                    id,
+                    comp.id,
+                    i
+                  )
+                  urlsSubidas.push(urlPublica)
+                } catch (error) {
+                  console.error(`Error subiendo foto ${i} de ${comp.nombre}:`, error)
+                  // Mantener la Data URL como fallback
+                  urlsSubidas.push(fotoUrl)
+                }
+              } else {
+                // Ya es una URL pública
+                urlsSubidas.push(fotoUrl)
+              }
+            }
+
+            return { ...comp, fotos: urlsSubidas }
+          }
+
+          return comp
+        })
+      )
+
+      await supabaseService.savePeritaje(id, componentesConFotos)
       alert('✅ Peritaje guardado. Puedes continuar después.')
       navigate('/')
     } catch (error: any) {
@@ -123,7 +165,49 @@ function PeritajePage() {
 
     try {
       setLoading(true)
-      await supabaseService.savePeritaje(id, componentes)
+
+      // Subir fotos de componentes a Storage
+      const componentesConFotos = await Promise.all(
+        componentes.map(async (comp) => {
+          if (comp.fotos && comp.fotos.length > 0) {
+            // Convertir Data URLs a Files y subir
+            const urlsSubidas: string[] = []
+
+            for (let i = 0; i < comp.fotos.length; i++) {
+              const fotoUrl = comp.fotos[i]
+
+              // Si es Data URL, convertirla a File y subirla
+              if (fotoUrl.startsWith('data:')) {
+                const blob = await fetch(fotoUrl).then(r => r.blob())
+                const file = new File([blob], `componente_${comp.nombre}_${i}.jpg`, { type: 'image/jpeg' })
+
+                try {
+                  const urlPublica = await supabaseService.uploadFotoComponente(
+                    file,
+                    id,
+                    comp.id,
+                    i
+                  )
+                  urlsSubidas.push(urlPublica)
+                } catch (error) {
+                  console.error(`Error subiendo foto ${i} de ${comp.nombre}:`, error)
+                  // Mantener la Data URL como fallback
+                  urlsSubidas.push(fotoUrl)
+                }
+              } else {
+                // Ya es una URL pública
+                urlsSubidas.push(fotoUrl)
+              }
+            }
+
+            return { ...comp, fotos: urlsSubidas }
+          }
+
+          return comp
+        })
+      )
+
+      await supabaseService.savePeritaje(id, componentesConFotos)
       navigate(`/inspeccion/${id}/pruebas`)
     } catch (error: any) {
       console.error('Error en transición a pruebas:', error)
