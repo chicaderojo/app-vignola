@@ -2,6 +2,7 @@ import { pdf } from '@react-pdf/renderer'
 import { saveAs } from 'file-saver'
 import PeritajePDFDocument from '../components/pdf/PeritajePDFDocument'
 import InformeTecnicoPDFDocument from '../components/pdf/InformeTecnicoPDFDocument'
+import PDFCompletoDocument from '../components/pdf/PDFCompletoDocument'
 import { Inspeccion, InspeccionDetalle } from '../types'
 
 interface ComponentePeritaje {
@@ -107,6 +108,71 @@ export const generateInformeTecnicoPDF = async (
 
   } catch (error) {
     console.error('Error en generateInformeTecnicoPDF:', error)
+    throw error
+  }
+}
+
+/**
+ * Genera un PDF COMPLETO con Inspección (50%) + Mantención (100%)
+ * Incluye TODO el flujo completo: recepción, pruebas presión, peritaje, mantención, pruebas mantención
+ */
+export const generatePDFCompleto = async (
+  inspeccionData: InspeccionCompleta,
+  mantencionData?: {
+    componentes: Array<{
+      id: string
+      nombre: string
+      accion: 'brunido' | 'rectificado' | 'soldadura' | 'cambio_total' | 'ninguna'
+      detallesTecnicos: string
+      fotoAntes: string | null
+      fotoDespues: string | null
+    }>
+    verificaciones: {
+      limpieza: boolean
+      lubricacion: boolean
+      pruebaPresion: boolean
+    }
+  },
+  pruebaMantencionData?: {
+    presion: number
+    tiempo: number
+    fuga_interna: boolean
+    fuga_externa: boolean
+    fallas: string
+    observaciones: string
+    fotos: string[]
+  },
+  incluirImagenes: boolean = true
+): Promise<void> => {
+  try {
+    // Preparar datos para el PDF completo
+    const pdfData = {
+      inspeccion: inspeccionData.inspeccion,
+      detalles: inspeccionData.detalles,
+      mantencion: mantencionData,
+      pruebaMantencion: pruebaMantencionData,
+      fechaEmision: new Date().toLocaleDateString('es-CL', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric'
+      }),
+      incluirImagenes
+    }
+
+    // Crear documento PDF completo
+    const doc = <PDFCompletoDocument data={pdfData} />
+
+    // Generar blob
+    const blob = await pdf(doc).toBlob()
+
+    // Guardar archivo con nombre distintivo
+    const cilindro = inspeccionData.inspeccion.cilindro as any
+    const codigoCilindro = cilindro?.id_codigo || inspeccionData.inspeccion.cilindro_id
+    const filename = `INFORME_COMPLETO_${codigoCilindro}_${Date.now()}.pdf`
+    saveAs(blob, filename)
+
+  } catch (error) {
+    console.error('Error en generatePDFCompleto:', error)
     throw error
   }
 }

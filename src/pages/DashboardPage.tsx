@@ -296,8 +296,8 @@ function DashboardPage() {
         </button>
       </div>
 
-      {/* Primary Action */}
-      <div className="px-4 py-2">
+      {/* Primary Actions */}
+      <div className="px-4 py-2 space-y-2">
         <button
           onClick={handleNuevaInspeccion}
           className="w-full flex items-center justify-between bg-primary hover:bg-primary/90 active:bg-primary/80 text-white rounded-xl p-4 shadow-lg shadow-primary/20 transition-all group"
@@ -306,6 +306,20 @@ function DashboardPage() {
           <div className="bg-white/20 rounded-lg p-2 group-hover:bg-white/30 transition-colors">
             <span className="material-symbols-outlined text-[28px]">add</span>
           </div>
+        </button>
+
+        <button
+          onClick={() => navigate('/mantencion-pendiente')}
+          className="w-full flex items-center justify-between bg-success hover:bg-success/90 text-white rounded-xl p-4 shadow-lg shadow-success/20 transition-all group"
+        >
+          <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined text-[28px]">build</span>
+            <div className="text-left">
+              <span className="font-bold text-lg block">Nueva Mantención</span>
+              <span className="text-sm opacity-90">Completar órdenes al 50%</span>
+            </div>
+          </div>
+          <span className="material-symbols-outlined">arrow_forward</span>
         </button>
       </div>
 

@@ -49,6 +49,8 @@ function MonitoreoPage() {
         return 'Listo para Pruebas'
       case 'en_proceso':
         return 'En Proceso'
+      case 'listo_mantencion':
+        return 'Listo para Mantención'
       case 'completado':
         return 'Completado'
     }
@@ -60,6 +62,8 @@ function MonitoreoPage() {
         return 'bg-success/10 text-success'
       case 'en_proceso':
         return 'bg-neutral-gray/10 text-neutral-gray'
+      case 'listo_mantencion':
+        return 'bg-orange-500/10 text-orange-500'
       case 'completado':
         return 'bg-primary/10 text-primary'
     }
@@ -71,6 +75,8 @@ function MonitoreoPage() {
         return 'settings_input_component'
       case 'en_proceso':
         return 'build'
+      case 'listo_mantencion':
+        return 'construction'
       case 'completado':
         return 'check_circle'
     }

@@ -781,8 +781,8 @@ export const supabaseService = {
     return (data || []).map((inspeccion: any) => {
       const etapas = inspeccion.etapas_completadas || []
       let progreso = 0
-      let estado: 'en_proceso' | 'listo_pruebas' | 'completado' = 'en_proceso'
-      let etapa_actual: 'recepcion' | 'pruebas_presion' | 'peritaje' | 'completado' = 'recepcion'
+      let estado: 'en_proceso' | 'listo_pruebas' | 'listo_mantencion' | 'completado' = 'en_proceso'
+      let etapa_actual: 'recepcion' | 'pruebas_presion' | 'peritaje' | 'mantencion' | 'completado' = 'recepcion'
 
       // Calcular progreso basado en etapas completadas
       if (etapas.includes('recepcion')) {
@@ -796,13 +796,22 @@ export const supabaseService = {
       }
       if (etapas.includes('peritaje')) {
         progreso = 50
+        etapa_actual = 'mantencion'
+
+        // Si tiene peritaje pero NO mantención, está listo para mantención
+        if (!etapas.includes('mantencion')) {
+          estado = 'listo_mantencion'
+        }
+      }
+      if (etapas.includes('mantencion')) {
+        progreso = 100
         etapa_actual = 'completado'
         estado = 'completado'
       }
 
-      // Si está completa, mantener ese estado
-      if (inspeccion.estado_inspeccion === 'completa') {
-        estado = 'completado'
+      // Si está completa en BD pero sin mantencion, mantener listo para mantencion
+      if (inspeccion.estado_inspeccion === 'completa' && !etapas.includes('mantencion')) {
+        estado = 'listo_mantencion'
         progreso = 50
       }
 
@@ -868,6 +877,110 @@ export const supabaseService = {
         enProceso: 0
       }
     }
+  },
+
+  /**
+   * Obtiene inspecciones pendientes de mantención (al 50%)
+   * Filtro: estado='completa' + tiene 'peritaje' en etapas + NO tiene 'mantencion'
+   */
+  async getMantenimientosPendientes(): Promise<Inspeccion[]> {
+    const { data, error } = await supabase
+      .from('inspecciones')
+      .select(`
+        *,
+        cilindro:cilindros(id_codigo, tipo, fabricante, diametro_camisa, diametro_vastago, carrera),
+        usuario:usuarios(id, nombre, email)
+      `)
+      .eq('estado_inspeccion', 'completa')
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+
+    // Filtrar manualmente las que tienen peritaje pero no mantencion
+    const filtradas = (data || []).filter((insp: any) => {
+      const etapas = insp.etapas_completadas || []
+      return etapas.includes('peritaje') && !etapas.includes('mantencion')
+    })
+
+    return filtradas
+  },
+
+  /**
+   * Guarda registro de mantención con componentes
+   */
+  async saveMantencion(
+    inspeccionId: string,
+    registro: {
+      componentes: any[]
+      verificaciones: { limpieza: boolean; lubricacion: boolean; pruebaPresion: boolean }
+      observaciones: string
+    }
+  ): Promise<void> {
+    // Por ahora, guardar como JSON en notas_recepcion o en una nueva columna
+    // TODO: Implementar tabla específica de mantenciones cuando se requiera
+    const { error } = await supabase
+      .from('inspecciones')
+      .update({
+        notas_mantencion: JSON.stringify(registro)
+      })
+      .eq('id', inspeccionId)
+
+    if (error) throw error
+  },
+
+  /**
+   * Obtiene datos de mantención de una inspección
+   */
+  async getMantencion(
+    inspeccionId: string
+  ): Promise<{
+    componentes: any[]
+    verificaciones: { limpieza: boolean; lubricacion: boolean; pruebaPresion: boolean }
+    observaciones?: string
+  } | null> {
+    const { data, error } = await supabase
+      .from('inspecciones')
+      .select('notas_mantencion')
+      .eq('id', inspeccionId)
+      .single()
+
+    if (error) throw error
+
+    if (!data?.notas_mantencion) return null
+
+    try {
+      return JSON.parse(data.notas_mantencion)
+    } catch (e) {
+      console.warn('No se pudo parsear notas_mantencion:', e)
+      return null
+    }
+  },
+
+  /**
+   * Guarda pruebas de mantención y marca como completa al 100%
+   */
+  async savePruebasMantencion(
+    inspeccionId: string,
+    pruebas: {
+      presion: number
+      tiempo: number
+      fuga_interna: boolean
+      fuga_externa: boolean
+      fallas: string
+      observaciones: string
+      fotos: string[]
+    }
+  ): Promise<void> {
+    // Guardar datos de pruebas en la inspección
+    const { error } = await supabase
+      .from('inspecciones')
+      .update({
+        notas_pruebas_mantencion: JSON.stringify(pruebas),
+        etapas_completadas: ['recepcion', 'peritaje', 'mantencion']
+      })
+      .eq('id', inspeccionId)
+
+    if (error) throw error
   }
 }
 

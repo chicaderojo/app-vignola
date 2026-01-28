@@ -232,18 +232,60 @@ export interface ComponentePeritaje {
 export interface Mantenimiento {
   id: string
   inspeccion_id: string
-  estado: 'en_proceso' | 'listo_pruebas' | 'completado'
+  estado: 'en_proceso' | 'listo_pruebas' | 'listo_mantencion' | 'completado'
   progreso: number // 0-100, peritaje completado = 50%
   cilindro: Cilindro
   cliente: string
   prioridad: 'Normal' | 'Urgente'
-  etapa_actual: 'recepcion' | 'pruebas_presion' | 'peritaje' | 'completado'
+  etapa_actual: 'recepcion' | 'pruebas_presion' | 'peritaje' | 'mantencion' | 'completado'
 }
 
 export interface ResumenSemanal {
   cilindrosListos: number
   promedioDias: number
   enProceso: number
+}
+
+// ==================== MANTENCIÓN ====================
+
+export interface ComponenteMantencion {
+  id: string
+  nombre: string
+  accion: 'brunido' | 'rectificado' | 'soldadura' | 'cambio_total' | 'ninguna'
+  detallesTecnicos: string
+  fotoAntes: string | null
+  fotoDespues: string | null
+}
+
+export interface RegistroMantencion {
+  inspeccion_id: string
+  componentes: ComponenteMantencion[]
+  verificaciones: {
+    limpieza: boolean
+    lubricacion: boolean
+    pruebaPresion: boolean
+  }
+  observaciones?: string
+}
+
+export interface PruebaMantencion {
+  inspeccion_id: string
+  presion: number
+  tiempo: number // en minutos
+  fuga_interna: boolean
+  fuga_externa: boolean
+  fallas: string
+  observaciones: string
+  fotos: string[]
+}
+
+export interface OrdenPendiente {
+  id: string
+  cilindroId: string
+  cliente: string
+  tipoCilindro: string
+  progreso: number // Siempre 50
+  estado: 'pendiente_mantencion'
 }
 
 // ==================== PDF REPORTES ====================
