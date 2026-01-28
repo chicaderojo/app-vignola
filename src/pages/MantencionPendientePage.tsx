@@ -135,7 +135,7 @@ function MantencionPendientePage() {
 
                   <button
                     onClick={() => handleContinuarMantencion(orden.id)}
-                    className="w-full bg-success hover:bg-success/90 text-white rounded-lg font-bold py-3 px-4 shadow-md shadow-success/20 flex items-center justify-center gap-2 transition-colors"
+                    className="w-full bg-primary hover:bg-primary/90 text-white rounded-lg font-bold py-3 px-4 shadow-md shadow-primary/20 flex items-center justify-center gap-2 transition-colors"
                   >
                     <span className="material-symbols-outlined text-[20px]">build</span>
                     <span>Continuar Mantención</span>

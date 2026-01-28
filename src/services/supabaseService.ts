@@ -907,7 +907,7 @@ export const supabaseService = {
 
   /**
    * Guarda registro de mantención con componentes
-   * NOTA: Usa notas_pruebas_mantencion con estructura combinada
+   * NOTA: Usa notas_recepcion con estructura anidada para no interferir con datos existentes
    */
   async saveMantencion(
     inspeccionId: string,
@@ -917,32 +917,32 @@ export const supabaseService = {
       observaciones: string
     }
   ): Promise<void> {
-    // Primero verificar si ya existen datos en notas_pruebas_mantencion
+    // Primero verificar si ya existen datos en notas_recepcion
     const { data: existingData } = await supabase
       .from('inspecciones')
-      .select('notas_pruebas_mantencion')
+      .select('notas_recepcion')
       .eq('id', inspeccionId)
       .single()
 
     let datosCombinados: any = {}
 
     // Si ya hay datos, mantenerlos
-    if (existingData?.notas_pruebas_mantencion) {
+    if (existingData?.notas_recepcion) {
       try {
-        datosCombinados = JSON.parse(existingData.notas_pruebas_mantencion)
+        datosCombinados = JSON.parse(existingData.notas_recepcion)
       } catch (e) {
-        console.warn('No se pudo parsear notas_pruebas_mantencion existente:', e)
+        console.warn('No se pudo parsear notas_recepcion existente:', e)
       }
     }
 
-    // Agregar o actualizar el registro de mantención
-    datosCombinados.registro_mantencion = registro
+    // Agregar o actualizar el registro de mantención en una sección separada
+    datosCombinados._mantencion = registro
 
     // Guardar datos combinados
     const { error } = await supabase
       .from('inspecciones')
       .update({
-        notas_pruebas_mantencion: JSON.stringify(datosCombinados)
+        notas_recepcion: JSON.stringify(datosCombinados)
       })
       .eq('id', inspeccionId)
 
@@ -961,27 +961,27 @@ export const supabaseService = {
   } | null> {
     const { data, error } = await supabase
       .from('inspecciones')
-      .select('notas_pruebas_mantencion')
+      .select('notas_recepcion')
       .eq('id', inspeccionId)
       .single()
 
     if (error) throw error
 
-    if (!data?.notas_pruebas_mantencion) return null
+    if (!data?.notas_recepcion) return null
 
     try {
-      const parsed = JSON.parse(data.notas_pruebas_mantencion)
-      // Retornar el registro de mantención si existe
-      return parsed.registro_mantencion || null
+      const parsed = JSON.parse(data.notas_recepcion)
+      // Retornar el registro de mantención si existe (usando _mantencion para no interferir)
+      return parsed._mantencion || null
     } catch (e) {
-      console.warn('No se pudo parsear notas_pruebas_mantencion:', e)
+      console.warn('No se pudo parsear notas_recepcion:', e)
       return null
     }
   },
 
   /**
    * Guarda pruebas de mantención y marca como completa al 100%
-   * NOTA: Combina con registro_mantencion si ya existe
+   * NOTA: Usa notas_recepcion con estructura anidada
    */
   async savePruebasMantencion(
     inspeccionId: string,
@@ -995,32 +995,32 @@ export const supabaseService = {
       fotos: string[]
     }
   ): Promise<void> {
-    // Primero verificar si ya existe un registro de mantención
+    // Primero verificar si ya existen datos en notas_recepcion
     const { data: existingData } = await supabase
       .from('inspecciones')
-      .select('notas_pruebas_mantencion')
+      .select('notas_recepcion')
       .eq('id', inspeccionId)
       .single()
 
     let datosCombinados: any = {}
 
-    // Si ya hay datos, mantener el registro de mantención
-    if (existingData?.notas_pruebas_mantencion) {
+    // Si ya hay datos, mantenerlos
+    if (existingData?.notas_recepcion) {
       try {
-        datosCombinados = JSON.parse(existingData.notas_pruebas_mantencion)
+        datosCombinados = JSON.parse(existingData.notas_recepcion)
       } catch (e) {
-        console.warn('No se pudo parsear notas_pruebas_mantencion existente:', e)
+        console.warn('No se pudo parsear notas_recepcion existente:', e)
       }
     }
 
-    // Agregar las pruebas de mantención
-    datosCombinados.pruebas_mantencion = pruebas
+    // Agregar las pruebas de mantención en una sección separada
+    datosCombinados._pruebas_mantencion = pruebas
 
     // Guardar datos combinados
     const { error } = await supabase
       .from('inspecciones')
       .update({
-        notas_pruebas_mantencion: JSON.stringify(datosCombinados),
+        notas_recepcion: JSON.stringify(datosCombinados),
         etapas_completadas: ['recepcion', 'peritaje', 'mantencion']
       })
       .eq('id', inspeccionId)
