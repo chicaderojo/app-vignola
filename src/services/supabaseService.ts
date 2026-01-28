@@ -907,6 +907,7 @@ export const supabaseService = {
 
   /**
    * Guarda registro de mantención con componentes
+   * NOTA: Usa observaciones_internas temporalmente hasta que se cree la columna notas_mantencion
    */
   async saveMantencion(
     inspeccionId: string,
@@ -916,12 +917,15 @@ export const supabaseService = {
       observaciones: string
     }
   ): Promise<void> {
-    // Por ahora, guardar como JSON en notas_recepcion o en una nueva columna
-    // TODO: Implementar tabla específica de mantenciones cuando se requiera
+    // Guardar como JSON en observaciones_internas
+    // TODO: Cuando se agregue la columna notas_mantencion a Supabase, cambiar a esa columna
     const { error } = await supabase
       .from('inspecciones')
       .update({
-        notas_mantencion: JSON.stringify(registro)
+        observaciones_internas: JSON.stringify({
+          tipo: 'registro_mantencion',
+          datos: registro
+        })
       })
       .eq('id', inspeccionId)
 
@@ -930,6 +934,7 @@ export const supabaseService = {
 
   /**
    * Obtiene datos de mantención de una inspección
+   * NOTA: Lee de observaciones_internas temporalmente
    */
   async getMantencion(
     inspeccionId: string
@@ -940,18 +945,23 @@ export const supabaseService = {
   } | null> {
     const { data, error } = await supabase
       .from('inspecciones')
-      .select('notas_mantencion')
+      .select('observaciones_internas')
       .eq('id', inspeccionId)
       .single()
 
     if (error) throw error
 
-    if (!data?.notas_mantencion) return null
+    if (!data?.observaciones_internas) return null
 
     try {
-      return JSON.parse(data.notas_mantencion)
+      const parsed = JSON.parse(data.observaciones_internas)
+      // Solo retornar si es del tipo correcto
+      if (parsed.tipo === 'registro_mantencion') {
+        return parsed.datos
+      }
+      return null
     } catch (e) {
-      console.warn('No se pudo parsear notas_mantencion:', e)
+      console.warn('No se pudo parsear observaciones_internas:', e)
       return null
     }
   },
