@@ -907,7 +907,7 @@ export const supabaseService = {
 
   /**
    * Guarda registro de mantención con componentes
-   * NOTA: Usa observaciones_internas temporalmente hasta que se cree la columna notas_mantencion
+   * NOTA: Usa notas_pruebas_mantencion con estructura combinada
    */
   async saveMantencion(
     inspeccionId: string,
@@ -917,15 +917,32 @@ export const supabaseService = {
       observaciones: string
     }
   ): Promise<void> {
-    // Guardar como JSON en observaciones_internas
-    // TODO: Cuando se agregue la columna notas_mantencion a Supabase, cambiar a esa columna
+    // Primero verificar si ya existen datos en notas_pruebas_mantencion
+    const { data: existingData } = await supabase
+      .from('inspecciones')
+      .select('notas_pruebas_mantencion')
+      .eq('id', inspeccionId)
+      .single()
+
+    let datosCombinados: any = {}
+
+    // Si ya hay datos, mantenerlos
+    if (existingData?.notas_pruebas_mantencion) {
+      try {
+        datosCombinados = JSON.parse(existingData.notas_pruebas_mantencion)
+      } catch (e) {
+        console.warn('No se pudo parsear notas_pruebas_mantencion existente:', e)
+      }
+    }
+
+    // Agregar o actualizar el registro de mantención
+    datosCombinados.registro_mantencion = registro
+
+    // Guardar datos combinados
     const { error } = await supabase
       .from('inspecciones')
       .update({
-        observaciones_internas: JSON.stringify({
-          tipo: 'registro_mantencion',
-          datos: registro
-        })
+        notas_pruebas_mantencion: JSON.stringify(datosCombinados)
       })
       .eq('id', inspeccionId)
 
@@ -934,7 +951,6 @@ export const supabaseService = {
 
   /**
    * Obtiene datos de mantención de una inspección
-   * NOTA: Lee de observaciones_internas temporalmente
    */
   async getMantencion(
     inspeccionId: string
@@ -945,29 +961,27 @@ export const supabaseService = {
   } | null> {
     const { data, error } = await supabase
       .from('inspecciones')
-      .select('observaciones_internas')
+      .select('notas_pruebas_mantencion')
       .eq('id', inspeccionId)
       .single()
 
     if (error) throw error
 
-    if (!data?.observaciones_internas) return null
+    if (!data?.notas_pruebas_mantencion) return null
 
     try {
-      const parsed = JSON.parse(data.observaciones_internas)
-      // Solo retornar si es del tipo correcto
-      if (parsed.tipo === 'registro_mantencion') {
-        return parsed.datos
-      }
-      return null
+      const parsed = JSON.parse(data.notas_pruebas_mantencion)
+      // Retornar el registro de mantención si existe
+      return parsed.registro_mantencion || null
     } catch (e) {
-      console.warn('No se pudo parsear observaciones_internas:', e)
+      console.warn('No se pudo parsear notas_pruebas_mantencion:', e)
       return null
     }
   },
 
   /**
    * Guarda pruebas de mantención y marca como completa al 100%
+   * NOTA: Combina con registro_mantencion si ya existe
    */
   async savePruebasMantencion(
     inspeccionId: string,
@@ -981,11 +995,32 @@ export const supabaseService = {
       fotos: string[]
     }
   ): Promise<void> {
-    // Guardar datos de pruebas en la inspección
+    // Primero verificar si ya existe un registro de mantención
+    const { data: existingData } = await supabase
+      .from('inspecciones')
+      .select('notas_pruebas_mantencion')
+      .eq('id', inspeccionId)
+      .single()
+
+    let datosCombinados: any = {}
+
+    // Si ya hay datos, mantener el registro de mantención
+    if (existingData?.notas_pruebas_mantencion) {
+      try {
+        datosCombinados = JSON.parse(existingData.notas_pruebas_mantencion)
+      } catch (e) {
+        console.warn('No se pudo parsear notas_pruebas_mantencion existente:', e)
+      }
+    }
+
+    // Agregar las pruebas de mantención
+    datosCombinados.pruebas_mantencion = pruebas
+
+    // Guardar datos combinados
     const { error } = await supabase
       .from('inspecciones')
       .update({
-        notas_pruebas_mantencion: JSON.stringify(pruebas),
+        notas_pruebas_mantencion: JSON.stringify(datosCombinados),
         etapas_completadas: ['recepcion', 'peritaje', 'mantencion']
       })
       .eq('id', inspeccionId)
