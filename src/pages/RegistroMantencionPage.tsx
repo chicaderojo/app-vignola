@@ -25,7 +25,7 @@ function RegistroMantencionPage() {
   const navigate = useNavigate()
   const { id } = useParams()
 
-  const [loading, setLoading] = useState(false)
+  const [, setLoading] = useState(false)
   const [loadingInicial, setLoadingInicial] = useState(true)
   const [esReingreso, setEsReingreso] = useState(false)
 

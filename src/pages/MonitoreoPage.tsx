@@ -7,7 +7,7 @@ type EstadoMantenimiento = 'todos' | 'en_proceso' | 'listos'
 
 interface MantenimientoCard {
   id: string
-  estado: 'en_proceso' | 'listo_pruebas' | 'completado'
+  estado: 'en_proceso' | 'listo_pruebas' | 'listo_mantencion' | 'completado'
   cilindroId: string
   cliente: string
   progreso: number

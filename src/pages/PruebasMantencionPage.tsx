@@ -37,7 +37,6 @@ function PruebasMantencionPage() {
   const [fallasDetectadas, setFallasDetectadas] = useState('')
   const [observaciones, setObservaciones] = useState('')
   const [fotos, setFotos] = useState<string[]>([])
-  const [loading, setLoading] = useState(false)
   const [loadingPDF, setLoadingPDF] = useState(false)
 
   const handleBack = () => {
@@ -337,7 +336,7 @@ function PruebasMantencionPage() {
       <footer className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 dark:bg-background-dark/95 backdrop-blur-md border-t border-gray-200 dark:border-border-dark z-20 max-w-md mx-auto">
         <button
           onClick={handleGenerarInformePDF}
-          disabled={loading || loadingPDF}
+          disabled={loadingPDF}
           className="w-full rounded-xl bg-success h-14 text-white text-base font-bold shadow-lg shadow-success/20 hover:bg-success/90 active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loadingPDF ? (

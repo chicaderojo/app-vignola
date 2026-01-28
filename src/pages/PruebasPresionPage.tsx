@@ -42,8 +42,7 @@ function PruebasPresionPage() {
         fuga_vastago: fugaInterna,
         fuga_piston: fugaExterna,
         deformacion: false,
-        fallas: fallasDetectadas,
-        observaciones,
+        observaciones: fallasDetectadas ? `${fallasDetectadas}\n\n${observaciones}` : observaciones,
         fotos_pruebas: fotos
       })
 
