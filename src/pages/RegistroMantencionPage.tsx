@@ -27,6 +27,7 @@ function RegistroMantencionPage() {
 
   const [loading, setLoading] = useState(false)
   const [loadingInicial, setLoadingInicial] = useState(true)
+  const [esReingreso, setEsReingreso] = useState(false)
 
   // Componentes de mantención
   const [componentes, setComponentes] = useState<ComponenteMantencion[]>([])
@@ -48,17 +49,55 @@ function RegistroMantencionPage() {
         const inspeccion = await supabaseService.getInspeccionById(id)
 
         if (inspeccion) {
-          // Inicializar componentes base
-          const componentesBase = COMPONENTES_BASE.map((nombre, index) => ({
-            id: `mant-${index}`,
-            nombre,
-            accion: 'ninguna' as AccionMantencion,
-            detallesTecnicos: '',
-            fotoAntes: null,
-            fotoDespues: null,
-            expandido: false
-          }))
-          setComponentes(componentesBase)
+          // Verificar si es reingreso (tiene _mantencion en notas_recepcion)
+          let infoRecepcion: any = null
+          if (inspeccion.notas_recepcion) {
+            try {
+              infoRecepcion = JSON.parse(inspeccion.notas_recepcion)
+            } catch (e) {
+              console.warn('No se pudo parsear notas_recepcion:', e)
+            }
+          }
+
+          // Si tiene datos de mantención previa, cargarlos
+          if (infoRecepcion?._mantencion) {
+            setEsReingreso(true)
+
+            const mantencionPrev = infoRecepcion._mantencion
+
+            // Mapear componentes previos
+            const componentesConDatos = COMPONENTES_BASE.map((nombre, index) => {
+              const compPrev = mantencionPrev.componentes?.find((c: any) => c.nombre === nombre)
+              return {
+                id: `mant-${index}`,
+                nombre,
+                accion: compPrev?.accion || 'ninguna' as AccionMantencion,
+                detallesTecnicos: compPrev?.detallesTecnicos || '',
+                fotoAntes: compPrev?.fotoAntes || null,
+                fotoDespues: compPrev?.fotoDespues || null,
+                expandido: compPrev?.accion !== 'ninguna'
+              }
+            })
+
+            setComponentes(componentesConDatos)
+            setVerificaciones(mantencionPrev.verificaciones || {
+              limpieza: false,
+              lubricacion: false,
+              pruebaPresion: false
+            })
+          } else {
+            // Inicializar componentes vacíos (flujo normal)
+            const componentesBase = COMPONENTES_BASE.map((nombre, index) => ({
+              id: `mant-${index}`,
+              nombre,
+              accion: 'ninguna' as AccionMantencion,
+              detallesTecnicos: '',
+              fotoAntes: null,
+              fotoDespues: null,
+              expandido: false
+            }))
+            setComponentes(componentesBase)
+          }
         }
       } catch (error) {
         console.error('Error cargando inspección:', error)
@@ -213,6 +252,25 @@ function RegistroMantencionPage() {
           </div>
         </div>
       </header>
+
+      {/* Reingreso Indicator */}
+      {esReingreso && (
+        <div className="mx-4 mt-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl p-4">
+          <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined text-orange-600 dark:text-orange-400 text-[24px]">
+              autorenew
+            </span>
+            <div>
+              <p className="text-sm font-bold text-orange-900 dark:text-orange-200">
+                Reingreso de Garantía
+              </p>
+              <p className="text-xs text-orange-700 dark:text-orange-300">
+                Se han cargado los datos de mantención previa. Puedes editarlos o continuar.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Progress Bar */}
       <div className="fixed top-0 left-0 right-0 h-1 bg-primary/20 z-[60]">

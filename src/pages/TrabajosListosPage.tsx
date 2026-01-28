@@ -121,30 +121,26 @@ function TrabajosListosPage() {
   }
 
   const handleReingreso = async (trabajoId: string) => {
-    if (confirm('¿Deseas crear un reingreso para esta inspección? Se creará una nueva inspección basada en los datos de esta.')) {
+    if (confirm('¿Deseas reingresar esta orden para garantía? Se cargarán los datos de mantención previa.')) {
       try {
-        // Crear nueva inspección basada en la existente
-        const inspeccionOriginal = await supabaseService.getInspeccionById(trabajoId)
-        if (inspeccionOriginal) {
-          const nuevaInspeccion = {
-            cilindro_id: inspeccionOriginal.cilindro_id,
-            usuario_id: inspeccionOriginal.usuario_id,
-            sap_cliente: inspeccionOriginal.sap_cliente,
-            foto_armado_url: '',
-            foto_despiece_url: '',
-            presion_prueba: 0,
-            fuga_interna: false,
-            fuga_externa: false,
-            estado_inspeccion: 'borrador' as const,
-            created_at: new Date().toISOString()
-          }
+        setLoading(true)
 
-          const nueva = await supabaseService.createInspeccion(nuevaInspeccion)
-          navigate(`/inspeccion/${nueva.id}/recepcion`)
+        // Verificar que tiene datos de mantención
+        const mantencionData = await supabaseService.getMantencion(trabajoId)
+
+        if (!mantencionData) {
+          alert('Esta orden no tiene datos de mantención previa. No se puede reingresar.')
+          return
         }
+
+        // Navegar directamente a registro de mantención con la MISMA inspección
+        alert('✅ Cargando datos de mantención previa.')
+        navigate(`/inspeccion/${trabajoId}/registro-mantencion`)
       } catch (error: any) {
-        console.error('Error creando reingreso:', error)
-        alert('Error al crear reingreso')
+        console.error('Error en reingreso:', error)
+        alert('Error al cargar reingreso')
+      } finally {
+        setLoading(false)
       }
     }
   }

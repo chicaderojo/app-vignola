@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { v4 as uuidv4 } from 'uuid'
 import { supabaseService } from '../services/supabaseService'
 
-type InspeccionStatus = 'aprobado' | 'revision' | 'rechazado'
+type InspeccionStatus = 'borrador' | 'en_recepcion' | 'en_progreso' | 'en_mantencion' | 'finalizado'
 
 interface Inspeccion {
   id: string
@@ -33,18 +33,13 @@ function HistorialPage() {
       setError(null)
       console.log('Cargando historial desde Supabase...')
 
-      // Cargar inspecciones completas y sincronizadas
+      // Cargar todas las inspecciones
       const datos = await supabaseService.getInspecciones()
 
-      // Filtrar solo completas y sincronizadas
-      const completas = datos.filter((insp: any) =>
-        insp.estado_inspeccion === 'completa' || insp.estado_inspeccion === 'sincronizada'
-      )
-
-      console.log('Inspecciones completas:', completas)
+      console.log('Inspecciones cargadas:', datos)
 
       // Transformar al formato de Historial
-      const listaTransformada: Inspeccion[] = completas.map((insp: any) => {
+      const listaTransformada: Inspeccion[] = datos.map((insp: any) => {
         const cilindro = insp.cilindro as any
         const fecha = new Date(insp.created_at)
         const hoy = new Date()
@@ -58,15 +53,40 @@ function HistorialPage() {
           fechaTexto = 'Ayer'
         }
 
-        // Determinar estado basado en estado_inspeccion
-        let estado: InspeccionStatus = 'aprobado'
-        if (insp.estado_inspeccion === 'sincronizada') {
-          estado = 'aprobado'
-        } else {
-          // Para 'completa', aleatoriamente asignar estados (en producción vendría de un campo real)
-          const random = Math.random()
-          if (random > 0.7) estado = 'revision'
-          else if (random > 0.9) estado = 'rechazado'
+        // Determinar estado basado en etapas_completadas
+        const etapas = (insp as any).etapas_completadas || []
+        const estadoInspec = insp.estado_inspeccion
+
+        let estado: InspeccionStatus = 'borrador'
+
+        // Si está sincronizada, siempre es finalizado
+        if (estadoInspec === 'sincronizada') {
+          estado = 'finalizado'
+        }
+        // Si está en borrador, es borrador
+        else if (estadoInspec === 'borrador') {
+          estado = 'borrador'
+        }
+        // Si no tiene etapas, es borrador
+        else if (!etapas || etapas.length === 0) {
+          estado = 'borrador'
+        }
+        // Si tiene las 3 etapas, es finalizado
+        else if (etapas.includes('recepcion') &&
+                 etapas.includes('peritaje') &&
+                 etapas.includes('mantencion')) {
+          estado = 'finalizado'
+        }
+        // Si tiene recepcion y peritaje, está en mantención
+        else if (etapas.includes('peritaje')) {
+          estado = 'en_mantencion'
+        }
+        // Si tiene recepcion, está en progreso
+        else if (etapas.includes('recepcion')) {
+          estado = 'en_progreso'
+        }
+        else {
+          estado = 'borrador'
         }
 
         return {
@@ -89,7 +109,7 @@ function HistorialPage() {
     }
   }
 
-  const [filtroActivo, setFiltroActivo] = useState<'todos' | 'aprobados' | 'revision' | 'rechazados'>('todos')
+  const [filtroActivo, setFiltroActivo] = useState<'todos' | 'borrador' | 'en_recepcion' | 'en_progreso' | 'en_mantencion' | 'finalizado'>('todos')
   const [busqueda, setBusqueda] = useState('')
 
   const handleNuevaInspeccion = () => {
@@ -103,7 +123,47 @@ function HistorialPage() {
 
   const getEstadoInfo = (estado: InspeccionStatus) => {
     switch (estado) {
-      case 'aprobado':
+      case 'borrador':
+        return {
+          icon: 'edit_note',
+          bgColor: 'bg-gray-100 dark:bg-gray-800',
+          textColor: 'text-gray-600 dark:text-gray-400',
+          badgeBg: 'bg-gray-50 dark:bg-gray-900/30',
+          badgeText: 'text-gray-700 dark:text-gray-400',
+          badgeRing: 'ring-gray-600/20',
+          label: 'Borrador'
+        }
+      case 'en_recepcion':
+        return {
+          icon: 'inbox',
+          bgColor: 'bg-blue-100 dark:bg-blue-900/20',
+          textColor: 'text-blue-600 dark:text-blue-400',
+          badgeBg: 'bg-blue-50 dark:bg-blue-900/30',
+          badgeText: 'text-blue-700 dark:text-blue-400',
+          badgeRing: 'ring-blue-600/20',
+          label: 'En Recepción'
+        }
+      case 'en_progreso':
+        return {
+          icon: 'engineering',
+          bgColor: 'bg-purple-100 dark:bg-purple-900/20',
+          textColor: 'text-purple-600 dark:text-purple-400',
+          badgeBg: 'bg-purple-50 dark:bg-purple-900/30',
+          badgeText: 'text-purple-700 dark:text-purple-400',
+          badgeRing: 'ring-purple-600/20',
+          label: 'En Progreso'
+        }
+      case 'en_mantencion':
+        return {
+          icon: 'build',
+          bgColor: 'bg-orange-100 dark:bg-orange-900/20',
+          textColor: 'text-orange-600 dark:text-orange-400',
+          badgeBg: 'bg-orange-50 dark:bg-orange-900/30',
+          badgeText: 'text-orange-700 dark:text-orange-400',
+          badgeRing: 'ring-orange-600/20',
+          label: 'En Mantención'
+        }
+      case 'finalizado':
         return {
           icon: 'check_circle',
           bgColor: 'bg-green-100 dark:bg-green-900/20',
@@ -111,37 +171,14 @@ function HistorialPage() {
           badgeBg: 'bg-green-50 dark:bg-green-900/30',
           badgeText: 'text-green-700 dark:text-green-400',
           badgeRing: 'ring-green-600/20',
-          label: 'Aprobado'
-        }
-      case 'revision':
-        return {
-          icon: 'engineering',
-          bgColor: 'bg-yellow-100 dark:bg-yellow-900/20',
-          textColor: 'text-yellow-600 dark:text-yellow-400',
-          badgeBg: 'bg-yellow-50 dark:bg-yellow-900/30',
-          badgeText: 'text-yellow-700 dark:text-yellow-400',
-          badgeRing: 'ring-yellow-600/20',
-          label: 'En Revisión'
-        }
-      case 'rechazado':
-        return {
-          icon: 'cancel',
-          bgColor: 'bg-red-100 dark:bg-red-900/20',
-          textColor: 'text-red-600 dark:text-red-400',
-          badgeBg: 'bg-red-50 dark:bg-red-900/30',
-          badgeText: 'text-red-700 dark:text-red-400',
-          badgeRing: 'ring-red-600/20',
-          label: 'Rechazado'
+          label: 'Finalizado'
         }
     }
   }
 
   // Filtrar inspecciones
   const inspeccionesFiltradas = inspecciones.filter(inspeccion => {
-    const cumpleFiltro = filtroActivo === 'todos' ||
-      (filtroActivo === 'aprobados' && inspeccion.estado === 'aprobado') ||
-      (filtroActivo === 'revision' && inspeccion.estado === 'revision') ||
-      (filtroActivo === 'rechazados' && inspeccion.estado === 'rechazado')
+    const cumpleFiltro = filtroActivo === 'todos' || inspeccion.estado === filtroActivo
 
     const cumpleBusqueda = !busqueda ||
       inspeccion.codigo.toLowerCase().includes(busqueda.toLowerCase()) ||
@@ -210,36 +247,58 @@ function HistorialPage() {
         </button>
 
         <button
-          onClick={() => setFiltroActivo('aprobados')}
+          onClick={() => setFiltroActivo('borrador')}
           className={`flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full px-4 transition-transform active:scale-95 ${
-            filtroActivo === 'aprobados'
-              ? 'bg-primary text-white shadow-md shadow-primary/20'
+            filtroActivo === 'borrador'
+              ? 'bg-gray-500 text-white shadow-md shadow-gray-500/20'
               : 'bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 text-slate-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'
           }`}
         >
-          <span className="text-sm font-medium">Aprobados</span>
+          <span className="text-sm font-medium">Borrador</span>
         </button>
 
         <button
-          onClick={() => setFiltroActivo('revision')}
+          onClick={() => setFiltroActivo('en_recepcion')}
           className={`flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full px-4 transition-transform active:scale-95 ${
-            filtroActivo === 'revision'
-              ? 'bg-primary text-white shadow-md shadow-primary/20'
+            filtroActivo === 'en_recepcion'
+              ? 'bg-blue-500 text-white shadow-md shadow-blue-500/20'
               : 'bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 text-slate-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'
           }`}
         >
-          <span className="text-sm font-medium">En Revisión</span>
+          <span className="text-sm font-medium">Recepción</span>
         </button>
 
         <button
-          onClick={() => setFiltroActivo('rechazados')}
+          onClick={() => setFiltroActivo('en_progreso')}
           className={`flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full px-4 transition-transform active:scale-95 ${
-            filtroActivo === 'rechazados'
-              ? 'bg-primary text-white shadow-md shadow-primary/20'
+            filtroActivo === 'en_progreso'
+              ? 'bg-purple-500 text-white shadow-md shadow-purple-500/20'
               : 'bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 text-slate-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'
           }`}
         >
-          <span className="text-sm font-medium">Rechazados</span>
+          <span className="text-sm font-medium">En Progreso</span>
+        </button>
+
+        <button
+          onClick={() => setFiltroActivo('en_mantencion')}
+          className={`flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full px-4 transition-transform active:scale-95 ${
+            filtroActivo === 'en_mantencion'
+              ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
+              : 'bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 text-slate-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'
+          }`}
+        >
+          <span className="text-sm font-medium">Mantención</span>
+        </button>
+
+        <button
+          onClick={() => setFiltroActivo('finalizado')}
+          className={`flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full px-4 transition-transform active:scale-95 ${
+            filtroActivo === 'finalizado'
+              ? 'bg-green-500 text-white shadow-md shadow-green-500/20'
+              : 'bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 text-slate-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'
+          }`}
+        >
+          <span className="text-sm font-medium">Finalizados</span>
         </button>
       </div>
 

@@ -142,7 +142,8 @@ export const generatePDFCompleto = async (
     observaciones: string
     fotos: string[]
   },
-  incluirImagenes: boolean = true
+  incluirImagenes: boolean = true,
+  esReingreso: boolean = false
 ): Promise<void> => {
   try {
     // Preparar datos para el PDF completo
@@ -156,7 +157,8 @@ export const generatePDFCompleto = async (
         month: 'long',
         year: 'numeric'
       }),
-      incluirImagenes
+      incluirImagenes,
+      esReingreso
     }
 
     // Crear documento PDF completo

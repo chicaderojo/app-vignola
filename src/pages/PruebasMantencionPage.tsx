@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabaseService } from '../services/supabaseService'
 import { generatePDFCompleto } from '../services/pdfService'
@@ -6,6 +6,28 @@ import { generatePDFCompleto } from '../services/pdfService'
 function PruebasMantencionPage() {
   const navigate = useNavigate()
   const { id } = useParams()
+  const [esReingreso, setEsReingreso] = useState(false)
+
+  // Verificar si es reingreso al montar
+  useEffect(() => {
+    const verificarReingreso = async () => {
+      if (!id) return
+
+      try {
+        const inspeccion = await supabaseService.getInspeccionById(id)
+        if (inspeccion?.notas_recepcion) {
+          const parsed = JSON.parse(inspeccion.notas_recepcion)
+          if (parsed._mantencion) {
+            setEsReingreso(true)
+          }
+        }
+      } catch (error) {
+        console.error('Error verificando reingreso:', error)
+      }
+    }
+
+    verificarReingreso()
+  }, [id])
 
   // Form state
   const [presionPrueba, setPresionPrueba] = useState('')
@@ -81,7 +103,8 @@ function PruebasMantencionPage() {
           observaciones,
           fotos
         },
-        true // Incluir imágenes
+        true, // Incluir imágenes
+        esReingreso // PASAR indicador de reingreso
       )
 
       // 6. Mostrar éxito y navegar

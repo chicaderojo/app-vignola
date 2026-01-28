@@ -310,7 +310,7 @@ function DashboardPage() {
 
         <button
           onClick={() => navigate('/mantencion-pendiente')}
-          className="w-full flex items-center justify-between bg-success hover:bg-success/90 text-white rounded-xl p-4 shadow-lg shadow-success/20 transition-all group"
+          className="w-full flex items-center justify-between bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 active:from-emerald-700 active:to-green-800 text-white rounded-xl p-4 shadow-lg shadow-emerald-500/30 transition-all group"
         >
           <div className="flex items-center gap-3">
             <span className="material-symbols-outlined text-[28px]">build</span>

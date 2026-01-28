@@ -10,6 +10,7 @@ function PruebasPresionPage() {
   const [presionPrueba, setPresionPrueba] = useState('')
   const [fugaInterna, setFugaInterna] = useState(false)
   const [fugaExterna, setFugaExterna] = useState(false)
+  const [fallasDetectadas, setFallasDetectadas] = useState('')
   const [observaciones, setObservaciones] = useState('')
   const [fotos, setFotos] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
@@ -41,6 +42,7 @@ function PruebasPresionPage() {
         fuga_vastago: fugaInterna,
         fuga_piston: fugaExterna,
         deformacion: false,
+        fallas: fallasDetectadas,
         observaciones,
         fotos_pruebas: fotos
       })
@@ -103,7 +105,7 @@ function PruebasPresionPage() {
             </button>
             <div className="flex flex-col">
               <h2 className="text-lg font-bold leading-tight tracking-tight text-slate-900 dark:text-white">Pruebas de Presión</h2>
-              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Inspección Previa</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Pruebas de Presión en Inspección</span>
             </div>
           </div>
         </div>
@@ -207,6 +209,20 @@ function PruebasPresionPage() {
               onChange={(e) => setObservaciones(e.target.value)}
               className="w-full bg-transparent border-0 rounded-xl p-4 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-0 resize-none"
               placeholder="Agrega observaciones sobre las pruebas realizadas..."
+              rows={3}
+            />
+          </div>
+        </section>
+
+        {/* Fallas Detectadas */}
+        <section>
+          <h3 className="text-base font-bold leading-tight tracking-tight text-slate-800 dark:text-white mb-3">Fallas Detectadas</h3>
+          <div className="bg-white dark:bg-surface-card rounded-xl border border-slate-200 dark:border-slate-700">
+            <textarea
+              value={fallasDetectadas}
+              onChange={(e) => setFallasDetectadas(e.target.value)}
+              className="w-full bg-transparent border-0 rounded-xl p-4 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-0 resize-none"
+              placeholder="Describe cualquier falla o anomalía detectada durante las pruebas..."
               rows={3}
             />
           </div>

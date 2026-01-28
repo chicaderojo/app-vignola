@@ -48,6 +48,7 @@ interface PDFCompletoData {
   pruebaMantencion?: PruebaMantencion
   fechaEmision: string
   incluirImagenes: boolean
+  esReingreso?: boolean
 }
 
 interface Props {
@@ -449,6 +450,18 @@ const PDFCompletoDocument: React.FC<Props> = ({ data }) => {
           </View>
         </View>
 
+        {/* Sección REINGRESO DE GARANTÍA */}
+        {data.esReingreso && (
+          <View style={styles.section} break>
+            <Text style={styles.sectionTitleMantencion}>⚠ REINGRESO DE GARANTÍA</Text>
+            <View style={styles.pruebasCardMantencion}>
+              <Text style={styles.pruebasTextMantencion}>
+                Este documento corresponde a un reingreso por garantía del cilindro. Se han cargado los datos de mantención previa y se han realizado nuevas acciones de reparación y pruebas finales.
+              </Text>
+            </View>
+          </View>
+        )}
+
         {/* =============================================
             PARTE 1: RECEPCIÓN (50%)
             ============================================= */}
@@ -805,12 +818,18 @@ const PDFCompletoDocument: React.FC<Props> = ({ data }) => {
                 ✅ EL CILINDRO HA COMPLETADO EL PROCESO DE INSPECCIÓN Y MANTENCIÓN AL 100%.
               </Text>
             )}
+
+            {data.esReingreso && (
+              <Text style={[styles.conclusionText, { fontStyle: 'italic', color: '#166534', marginTop: 5 }]}>
+                Nota: Este reingreso extiende la garantía del cilindro según términos aplicables.
+              </Text>
+            )}
           </View>
         </View>
 
         {/* Footer */}
         <View style={styles.footer} fixed>
-          <Text>Vignola Industrial - Servicio Técnico Hidráulico</Text>
+          <Text>Vignola Industrial - Servicio Técnico Hidráulico{data.esReingreso ? ' - Reingreso de Garantía' : ''}</Text>
           <Text>Página 1 de 1</Text>
         </View>
       </Page>
