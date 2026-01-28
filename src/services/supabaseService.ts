@@ -81,7 +81,7 @@ export const supabaseService = {
         usuario:usuarios(id, nombre, email)
       `)
       .eq('id', id)
-      .single()
+      .maybeSingle() // Usar maybeSingle() en lugar de single() para devolver null si no existe
 
     if (error) throw error
     return data
