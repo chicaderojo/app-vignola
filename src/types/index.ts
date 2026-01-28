@@ -227,6 +227,25 @@ export interface ComponentePeritaje {
   observaciones?: string
 }
 
+// ==================== MONITOREO DE MANTENCION ====================
+
+export interface Mantenimiento {
+  id: string
+  inspeccion_id: string
+  estado: 'en_proceso' | 'listo_pruebas' | 'completado'
+  progreso: number // 0-100, peritaje completado = 50%
+  cilindro: Cilindro
+  cliente: string
+  prioridad: 'Normal' | 'Urgente'
+  etapa_actual: 'recepcion' | 'pruebas_presion' | 'peritaje' | 'completado'
+}
+
+export interface ResumenSemanal {
+  cilindrosListos: number
+  promedioDias: number
+  enProceso: number
+}
+
 // ==================== PDF REPORTES ====================
 
 export interface PeritajePDFData {

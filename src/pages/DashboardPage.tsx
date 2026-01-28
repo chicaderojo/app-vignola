@@ -355,99 +355,23 @@ function DashboardPage() {
         </div>
       </div>
 
-      {/* Recent Inspections List */}
-      <div className="px-4 pt-6 pb-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-slate-900 dark:text-white text-lg font-bold">Inspecciones Recientes</h3>
-          <button onClick={handleVerHistorial} className="text-primary text-sm font-semibold">Ver todo</button>
-        </div>
-
-        {loading ? (
-          <div className="flex justify-center items-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      {/* Monitoreo de Mantención Button */}
+      <div className="px-4 py-2">
+        <button
+          onClick={() => navigate('/monitoreo')}
+          className="w-full flex items-center justify-between bg-primary hover:bg-primary/90 active:bg-primary/80 text-white rounded-xl p-4 shadow-lg shadow-primary/20 transition-all group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="bg-white/10 rounded-lg p-2 group-hover:bg-white/20 transition-colors">
+              <span className="material-symbols-outlined text-[28px]">monitoring</span>
+            </div>
+            <div className="text-left">
+              <span className="font-bold text-lg block">Monitoreo de Mantención</span>
+              <span className="text-sm opacity-90">Ver progreso de peritajes</span>
+            </div>
           </div>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {inspecciones.slice(0, 5).map((inspeccion) => {
-              const estadoColor = inspeccion.estado_inspeccion === 'borrador' ? 'primary' :
-                                  inspeccion.estado_inspeccion === 'completa' ? 'orange' : 'green'
-              const estadoLabel = inspeccion.estado_inspeccion === 'borrador' ? 'En Progreso' :
-                                 inspeccion.estado_inspeccion === 'completa' ? 'Completa' : 'Sincronizada'
-              const fecha = new Date(inspeccion.created_at).toLocaleDateString('es-CL', {
-                day: 'numeric',
-                month: 'short'
-              })
-
-              return (
-                <div
-                  key={inspeccion.id}
-                  onClick={() => navigate(`/inspeccion/${inspeccion.id}/detalles`)}
-                  className={`bg-white dark:bg-surface-card rounded-xl p-4 border border-slate-200 dark:border-slate-700 shadow-sm relative overflow-hidden group cursor-pointer hover:border-primary/50 transition-colors ${
-                    inspeccion.estado_inspeccion === 'sincronizada' ? 'opacity-60' : ''
-                  }`}
-                >
-                  <div className={`absolute left-0 top-0 bottom-0 w-1 ${
-                    estadoColor === 'primary' ? 'bg-primary' :
-                    estadoColor === 'orange' ? 'bg-orange-500' : 'bg-green-500'
-                  }`}></div>
-
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="flex-1">
-                      <span className="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-mono px-2 py-1 rounded">
-                        #{(inspeccion.cilindro as any)?.id_codigo || inspeccion.cilindro_id}
-                      </span>
-                      <h4 className="text-slate-900 dark:text-white font-bold mt-2">
-                        Cilindro {(inspeccion.cilindro as any)?.tipo || 'Oleohidráulico'}
-                      </h4>
-                      <p className="text-slate-500 dark:text-slate-400 text-sm">
-                        {(inspeccion.cilindro as any)?.fabricante || 'Rexroth'} • {(inspeccion.cilindro as any)?.diametro_camisa || 'Ø80'}
-                      </p>
-                    </div>
-                    <span className={`flex items-center gap-1 ${
-                      estadoColor === 'primary' ? 'bg-primary/10 text-primary' :
-                      estadoColor === 'orange' ? 'bg-orange-500/10 text-orange-500' :
-                      'bg-green-500/10 text-green-500'
-                    } px-2 py-1 rounded text-xs font-bold whitespace-nowrap`}>
-                      {inspeccion.estado_inspeccion !== 'sincronizada' && (
-                        <span className={`size-1.5 rounded-full ${
-                          estadoColor === 'primary' ? 'bg-primary' :
-                          estadoColor === 'orange' ? 'bg-orange-500' : 'bg-green-500'
-                        } ${inspeccion.estado_inspeccion === 'borrador' ? 'animate-pulse' : ''}`}></span>
-                      )}
-                      {estadoLabel}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-4 mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
-                    <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400 text-xs">
-                      <span className="material-symbols-outlined text-[16px]">calendar_today</span>
-                      <span>{fecha}</span>
-                    </div>
-                    {inspeccion.presion_prueba > 0 && (
-                      <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400 text-xs">
-                        <span className="material-symbols-outlined text-[16px]">compress</span>
-                        <span>{inspeccion.presion_prueba} bar</span>
-                      </div>
-                    )}
-                    {(inspeccion.fuga_interna || inspeccion.fuga_externa) && (
-                      <div className="flex items-center gap-1 text-red-500 text-xs">
-                        <span className="material-symbols-outlined text-[16px]">warning</span>
-                        <span>Fuga</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-
-            {inspecciones.length === 0 && (
-              <div className="text-center py-8">
-                <span className="material-symbols-outlined text-4xl text-slate-300 dark:text-slate-600">inbox</span>
-                <p className="text-slate-500 dark:text-slate-400 mt-2">No hay inspecciones registradas</p>
-              </div>
-            )}
-          </div>
-        )}
+          <span className="material-symbols-outlined">arrow_forward</span>
+        </button>
       </div>
 
       {/* Bottom Navigation */}

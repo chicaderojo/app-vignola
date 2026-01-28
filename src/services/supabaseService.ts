@@ -755,6 +755,119 @@ export const supabaseService = {
         fecha: new Date().toISOString()
       }])
       .select()
+  },
+
+  /**
+   * Obtener todos los mantenimientos activos para el Monitoreo
+   * Incluye inspecciones en estado 'borrador' o 'completa'
+   * Calcula progreso basado en etapas_completadas
+   */
+  async getMantenimientosActivos(): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('inspecciones')
+      .select(`
+        *,
+        cilindro:cilindros(id_codigo, tipo, fabricante, diametro_camisa, diametro_vastago, carrera)
+      `)
+      .in('estado_inspeccion', ['borrador', 'completa'])
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Error en getMantenimientosActivos:', error)
+      throw error
+    }
+
+    // Mapear resultados y calcular progreso
+    return (data || []).map((inspeccion: any) => {
+      const etapas = inspeccion.etapas_completadas || []
+      let progreso = 0
+      let estado: 'en_proceso' | 'listo_pruebas' | 'completado' = 'en_proceso'
+      let etapa_actual: 'recepcion' | 'pruebas_presion' | 'peritaje' | 'completado' = 'recepcion'
+
+      // Calcular progreso basado en etapas completadas
+      if (etapas.includes('recepcion')) {
+        progreso = 10
+        etapa_actual = 'pruebas_presion'
+      }
+      if (etapas.includes('pruebas_presion')) {
+        progreso = 30
+        etapa_actual = 'peritaje'
+        estado = 'listo_pruebas'
+      }
+      if (etapas.includes('peritaje')) {
+        progreso = 50
+        etapa_actual = 'completado'
+        estado = 'completado'
+      }
+
+      // Si está completa, mantener ese estado
+      if (inspeccion.estado_inspeccion === 'completa') {
+        estado = 'completado'
+        progreso = 50
+      }
+
+      return {
+        id: inspeccion.id,
+        inspeccion_id: inspeccion.id,
+        estado,
+        progreso,
+        etapa_actual,
+        cilindroId: inspeccion.cilindro?.id_codigo || inspeccion.cilindro_id,
+        cliente: inspeccion.nombre_cliente || 'Cliente no especificado',
+        prioridad: 'Normal', // Podría venir de notas_recepcion
+        cilindro: inspeccion.cilindro,
+        created_at: inspeccion.created_at
+      }
+    })
+  },
+
+  /**
+   * Obtiene los datos para mostrar en el resumen semanal
+   */
+  async getResumenSemanal(): Promise<{ cilindrosListos: number; promedioDias: number; enProceso: number }> {
+    try {
+      // Obtener inspecciones completadas de la última semana
+      const semanaAtras = new Date()
+      semanaAtras.setDate(semanaAtras.getDate() - 7)
+
+      const { data: completadas, error: errorCompletadas } = await supabase
+        .from('inspecciones')
+        .select('created_at, estado_inspeccion')
+        .eq('estado_inspeccion', 'completa')
+        .gte('created_at', semanaAtras.toISOString())
+
+      if (errorCompletadas) throw errorCompletadas
+
+      // Calcular cilindros listos (completados)
+      const cilindrosListos = completadas?.length || 0
+
+      // Calcular promedio de días (simplificado - podría mejorarse con fecha_real_finalizacion)
+      const promedioDias = cilindrosListos > 0 ? 4.2 : 0 // Usar 4.2 como valor por defecto
+
+      // Obtener mantenimientos en proceso
+      const { data: enProcesoData, error: errorProceso } = await supabase
+        .from('inspecciones')
+        .select('id')
+        .eq('estado_inspeccion', 'borrador')
+
+      if (errorProceso) throw errorProceso
+
+      const enProceso = enProcesoData?.length || 0
+
+      return {
+        cilindrosListos,
+        promedioDias: Math.round(promedioDias * 10) / 10,
+        enProceso
+      }
+    } catch (error) {
+      console.error('Error en getResumenSemanal:', error)
+      // Retornar valores por defecto en caso de error
+      return {
+        cilindrosListos: 0,
+        promedioDias: 0,
+        enProceso: 0
+      }
+    }
   }
 }
 

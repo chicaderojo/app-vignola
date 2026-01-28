@@ -15,6 +15,9 @@ import MantenimientoPage from './pages/MantenimientoPage'
 import TrabajosListosPage from './pages/TrabajosListosPage'
 import MantencionPage from './pages/MantencionPage'
 import AjustesPage from './pages/AjustesPage'
+import MonitoreoPage from './pages/MonitoreoPage'
+import PreguntaPruebasPage from './pages/PreguntaPruebasPage'
+import PruebasPresionPage from './pages/PruebasPresionPage'
 import SyncStatusIndicator from './components/SyncStatusIndicator'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -143,6 +146,30 @@ function App() {
           element={
             <PrivateRoute>
               <AjustesPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/monitoreo"
+          element={
+            <PrivateRoute>
+              <MonitoreoPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/inspeccion/:id/pregunta-pruebas"
+          element={
+            <PrivateRoute>
+              <PreguntaPruebasPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/inspeccion/:id/pruebas-presion"
+          element={
+            <PrivateRoute>
+              <PruebasPresionPage />
             </PrivateRoute>
           }
         />

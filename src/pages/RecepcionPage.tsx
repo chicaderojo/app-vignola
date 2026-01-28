@@ -204,8 +204,8 @@ function RecepcionPage() {
       // Mostrar mensaje de éxito
       alert('✅ Recepción guardada exitosamente')
 
-      // Navegar a la siguiente página
-      navigate(`/inspeccion/${id}/peritaje`)
+      // Navegar a la página de decisión de pruebas
+      navigate(`/inspeccion/${id}/pregunta-pruebas`)
     } catch (error: any) {
       console.error('Error guardando recepción:', error)
       alert(`Error al guardar: ${error.message}`)
