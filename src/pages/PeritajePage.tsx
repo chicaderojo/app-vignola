@@ -274,13 +274,6 @@ function PeritajePage() {
               <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Vignola Industrial</span>
             </div>
           </div>
-          <button
-            onClick={handleGuardarPorAhora}
-            disabled={loading}
-            className="bg-primary/10 hover:bg-primary/20 text-primary px-4 py-2 rounded-full text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? 'Guardando...' : 'Guardar por ahora'}
-          </button>
         </div>
       </header>
 

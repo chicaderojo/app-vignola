@@ -314,12 +314,11 @@ function DashboardPage() {
         >
           <div className="flex items-center gap-3">
             <span className="material-symbols-outlined text-[28px]">build</span>
-            <div className="text-left">
-              <span className="font-bold text-lg block">Nueva Mantención</span>
-              <span className="text-sm opacity-90">Completar órdenes al 50%</span>
-            </div>
+            <span className="font-bold text-lg block">Nueva Mantención</span>
           </div>
-          <span className="material-symbols-outlined">arrow_forward</span>
+          <div className="bg-white/20 rounded-lg p-2 group-hover:bg-white/30 transition-colors">
+            <span className="material-symbols-outlined text-[28px]">add</span>
+          </div>
         </button>
       </div>
 
