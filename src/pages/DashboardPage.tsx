@@ -316,7 +316,6 @@ function DashboardPage() {
             <span className="material-symbols-outlined text-[28px]">build</span>
             <div className="text-left">
               <span className="font-bold text-lg block">Nueva Mantención</span>
-              <span className="text-sm opacity-90">Completar órdenes al 50%</span>
             </div>
           </div>
           <span className="material-symbols-outlined">arrow_forward</span>
