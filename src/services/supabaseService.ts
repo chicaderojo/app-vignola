@@ -39,6 +39,7 @@ export const supabaseService = {
         cilindro:cilindros(id_codigo, tipo, fabricante, diametro_camisa, diametro_vastago, carrera, cliente_id),
         usuario:usuarios(id, nombre, email)
       `)
+      .eq('estado_inspeccion', 'borrador') // Solo inspecciones pendientes
       .order('created_at', { ascending: false })
 
     if (error) {
