@@ -382,7 +382,7 @@ function PeritajePage() {
                 </div>
               ) : null}
 
-              {/* Expanded Section (solo para mantención y cambio) */}
+              {/* Expanded Section (para mantención y cambio) */}
               {componente.expandido && componente.estado !== 'pending' && componente.estado !== 'bueno' && (
                 <div className="pl-2 space-y-3">
                   <div>
@@ -398,7 +398,7 @@ function PeritajePage() {
                     />
                   </div>
 
-                  {/* Evidence Section */}
+                  {/* Evidence Section - AHORA DISPONIBLE PARA TODOS LOS ESTADOS */}
                   <div className="flex gap-2 overflow-x-auto pb-1">
                     {componente.fotos.map((foto, fotoIndex) => (
                       <div
@@ -416,7 +416,7 @@ function PeritajePage() {
                       </div>
                     ))}
 
-                    {/* Add Photo Button */}
+                    {/* Add Photo Button - SIEMPRE VISIBLE */}
                     <button
                       onClick={() => handleAgregarFoto(index)}
                       className="size-16 shrink-0 rounded-lg border border-dashed border-slate-400 dark:border-slate-600 flex flex-col items-center justify-center text-slate-500 hover:text-primary hover:border-primary hover:bg-primary/5 transition-all"
@@ -428,8 +428,60 @@ function PeritajePage() {
                 </div>
               )}
 
-              {/* Collapsed View (for completed items) */}
-              {componente.expandido === false && componente.estado !== 'pending' && (
+              {/* Section para componentes en estado bueno */}
+              {componente.estado === 'bueno' && (
+                <div className="pl-2 space-y-3">
+                  {/* Observaciones para estado bueno */}
+                  <div>
+                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5 block">
+                      Observaciones
+                    </label>
+                    <textarea
+                      value={componente.observaciones}
+                      onChange={(e) => actualizarObservaciones(index, e.target.value)}
+                      className="w-full bg-background-light dark:bg-background-dark border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:ring-1 focus:ring-status-good focus:border-status-good outline-none resize-none"
+                      placeholder="Añada observaciones sobre el estado bueno del componente..."
+                      rows={2}
+                    />
+                  </div>
+
+                  {/* Evidence Section - SIEMPRE DISPONIBLE */}
+                  <div>
+                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5 block">
+                      Evidencia Fotográfica
+                    </label>
+                    <div className="flex gap-2 overflow-x-auto pb-1">
+                      {componente.fotos.map((foto, fotoIndex) => (
+                        <div
+                          key={fotoIndex}
+                          className="relative size-16 shrink-0 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 group/img"
+                        >
+                          <img
+                            alt={`Evidencia ${fotoIndex + 1}`}
+                            className="object-cover w-full h-full opacity-80"
+                            src={foto}
+                          />
+                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity">
+                            <span className="material-symbols-outlined text-white text-sm">visibility</span>
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* Add Photo Button - SIEMPRE VISIBLE */}
+                      <button
+                        onClick={() => handleAgregarFoto(index)}
+                        className="size-16 shrink-0 rounded-lg border border-dashed border-slate-400 dark:border-slate-600 flex flex-col items-center justify-center text-slate-500 hover:text-primary hover:border-primary hover:bg-primary/5 transition-all"
+                      >
+                        <span className="material-symbols-outlined text-[20px]">add_a_photo</span>
+                        <span className="text-[9px] font-medium mt-1">Foto</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Collapsed View (for completed items other than bueno) */}
+              {componente.expandido === false && componente.estado !== 'pending' && componente.estado !== 'bueno' && (
                 <div className="flex items-center justify-between text-xs text-slate-500">
                   <span className="truncate max-w-[200px]">
                     {componente.observaciones || 'Sin observaciones'}
