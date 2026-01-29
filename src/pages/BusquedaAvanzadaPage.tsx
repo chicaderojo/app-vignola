@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabaseService } from '../services/supabaseService'
-import BottomNavigation from '../components/layout/BottomNavigation'
+import { BottomNavigation } from '../components/layout/BottomNavigation'
 
 type FiltroBusqueda = 'cliente' | 'fecha' | 'orden'
 type EstadoOrden = 'proceso' | 'completado' | 'revision'

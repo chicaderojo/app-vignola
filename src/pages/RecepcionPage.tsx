@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabaseService } from '../services/supabaseService'
 import { authService } from '../services/api'
-import BottomNavigation from '../components/layout/BottomNavigation'
+import { BottomNavigation } from '../components/layout/BottomNavigation'
 
 function RecepcionPage() {
   const navigate = useNavigate()
@@ -34,6 +34,8 @@ function RecepcionPage() {
   const [observacionesPrueba, setObservacionesPrueba] = useState('')
   const [fallasDetectadas, setFallasDetectadas] = useState('')
   const [fotosPrueba, setFotosPrueba] = useState<string[]>([])
+  const [fotosFugaInterna, setFotosFugaInterna] = useState<string[]>([])
+  const [fotosFugaExterna, setFotosFugaExterna] = useState<string[]>([])
 
   const handleCerrar = () => {
     navigate('/')
@@ -70,11 +72,6 @@ function RecepcionPage() {
   const handleGuardar = async () => {
     if (!fotoArmado) {
       alert('Debes capturar la foto obligatoria de Armado antes de guardar')
-      return
-    }
-
-    if (!numeroSAP.trim()) {
-      alert('Debes ingresar el N° SAP')
       return
     }
 
@@ -222,7 +219,11 @@ function RecepcionPage() {
             deformacion: false,
             fallas: fallasDetectadas,
             observaciones: observacionesPrueba,
-            fotos_pruebas: fotosPrueba
+            fotos_pruebas: [
+              ...fotosPrueba,
+              ...fotosFugaInterna.map(foto => ({ tipo: 'fuga_interna', url: foto })),
+              ...fotosFugaExterna.map(foto => ({ tipo: 'fuga_externa', url: foto }))
+            ]
           })
 
           // Actualizar inspección con datos de prueba
@@ -336,14 +337,13 @@ function RecepcionPage() {
 
               {/* N° SAP */}
               <label className="flex flex-col flex-1 min-w-[140px]">
-                <p className="text-sm font-medium leading-normal pb-2 text-slate-600 dark:text-text-muted-dark">N° SAP <span className="text-red-500">*</span></p>
+                <p className="text-sm font-medium leading-normal pb-2 text-slate-600 dark:text-text-muted-dark">N° SAP</p>
                 <input
                   type="text"
                   value={numeroSAP}
                   onChange={(e) => setNumeroSAP(e.target.value)}
                   className="w-full rounded-xl border border-gray-300 dark:border-border-dark bg-white dark:bg-surface-dark h-12 px-4 text-base font-normal placeholder:text-gray-400 dark:placeholder:text-text-muted-dark/50 focus:ring-2 focus:ring-primary focus:border-primary transition-all shadow-sm text-slate-900 dark:text-white"
                   placeholder="Ej: 4500012345"
-                  required
                 />
               </label>
 
@@ -573,6 +573,104 @@ function RecepcionPage() {
                 </div>
               </div>
 
+              {/* Evidencia de Fuga Interna */}
+              {fugaInterna && (
+                <div>
+                  <h3 className="text-base font-bold leading-tight tracking-tight text-slate-800 dark:text-white mb-3">Evidencia - Fuga Interna</h3>
+                  <div className="grid grid-cols-3 gap-3">
+                    {fotosFugaInterna.map((foto, index) => (
+                      <div key={index} className="relative aspect-square rounded-xl overflow-hidden border border-red-200 dark:border-red-700 bg-red-50 dark:bg-red-900/10 group">
+                        <img src={foto} alt={`Fuga Interna ${index + 1}`} className="w-full h-full object-cover" />
+                        <button
+                          onClick={() => {
+                            const nuevasFotos = fotosFugaInterna.filter((_, i) => i !== index)
+                            setFotosFugaInterna(nuevasFotos)
+                          }}
+                          className="absolute top-2 right-2 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">close</span>
+                        </button>
+                      </div>
+                    ))}
+
+                    {fotosFugaInterna.length < 6 && (
+                      <button
+                        onClick={() => {
+                          const input = document.createElement('input')
+                          input.type = 'file'
+                          input.accept = 'image/*'
+                          input.capture = 'environment'
+                          input.onchange = async (e) => {
+                            const file = (e.target as HTMLInputElement).files?.[0]
+                            if (file) {
+                              const reader = new FileReader()
+                              reader.onloadend = () => {
+                                setFotosFugaInterna([...fotosFugaInterna, reader.result as string])
+                              }
+                              reader.readAsDataURL(file)
+                            }
+                          }
+                          input.click()
+                        }}
+                        className="aspect-square rounded-xl border-2 border-dashed border-red-300 dark:border-red-600 flex flex-col items-center justify-center gap-2 hover:border-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-red-400 text-[28px]">add_a_photo</span>
+                        <span className="text-xs text-red-500 font-medium">Agregar Fuga</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Evidencia de Fuga Externa */}
+              {fugaExterna && (
+                <div>
+                  <h3 className="text-base font-bold leading-tight tracking-tight text-slate-800 dark:text-white mb-3">Evidencia - Fuga Externa</h3>
+                  <div className="grid grid-cols-3 gap-3">
+                    {fotosFugaExterna.map((foto, index) => (
+                      <div key={index} className="relative aspect-square rounded-xl overflow-hidden border border-orange-200 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/10 group">
+                        <img src={foto} alt={`Fuga Externa ${index + 1}`} className="w-full h-full object-cover" />
+                        <button
+                          onClick={() => {
+                            const nuevasFotos = fotosFugaExterna.filter((_, i) => i !== index)
+                            setFotosFugaExterna(nuevasFotos)
+                          }}
+                          className="absolute top-2 right-2 w-7 h-7 bg-orange-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">close</span>
+                        </button>
+                      </div>
+                    ))}
+
+                    {fotosFugaExterna.length < 6 && (
+                      <button
+                        onClick={() => {
+                          const input = document.createElement('input')
+                          input.type = 'file'
+                          input.accept = 'image/*'
+                          input.capture = 'environment'
+                          input.onchange = async (e) => {
+                            const file = (e.target as HTMLInputElement).files?.[0]
+                            if (file) {
+                              const reader = new FileReader()
+                              reader.onloadend = () => {
+                                setFotosFugaExterna([...fotosFugaExterna, reader.result as string])
+                              }
+                              reader.readAsDataURL(file)
+                            }
+                          }
+                          input.click()
+                        }}
+                        className="aspect-square rounded-xl border-2 border-dashed border-orange-300 dark:border-orange-600 flex flex-col items-center justify-center gap-2 hover:border-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/10 transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-orange-400 text-[28px]">add_a_photo</span>
+                        <span className="text-xs text-orange-500 font-medium">Agregar Fuga</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Observaciones */}
               <div>
                 <h3 className="text-base font-bold leading-tight tracking-tight text-slate-800 dark:text-white mb-3">Observaciones</h3>
@@ -743,7 +841,7 @@ function RecepcionPage() {
       </main>
 
       {/* Fixed Footer Action */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 dark:bg-background-dark/95 backdrop-blur-md border-t border-gray-200 dark:border-border-dark z-20 max-w-md mx-auto">
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 dark:bg-background-dark/95 backdrop-blur-md border-t border-gray-200 dark:border-border-dark z-50 max-w-md mx-auto">
         <div className="max-w-3xl mx-auto flex gap-3">
           <button
             onClick={handleGuardar}
