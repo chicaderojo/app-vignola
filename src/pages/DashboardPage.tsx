@@ -72,7 +72,7 @@ function DashboardPage() {
   }
 
   // Calcular contadores dinámicos desde Supabase
-  const contarInspecciones = () => stats.inspeccionesPendientes + stats.inspeccionesCompletas // Total de inspecciones en proceso y completas
+  const contarInspecciones = () => stats.inspeccionesPendientes // Solo inspecciones pendientes (en borrador)
   const contarMantencion = () => Math.floor(stats.totalInspecciones * 0.3) // Estimado
   const contarListas = () => stats.inspeccionesCompletas
 

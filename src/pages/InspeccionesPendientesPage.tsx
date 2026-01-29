@@ -126,17 +126,11 @@ function InspeccionesPendientesPage() {
       setError(null)
       console.log('Cargando inspecciones pendientes desde Supabase...')
 
-      // Cargar inspecciones en estado borrador y completa (para ver peritajes en curso)
-      const [datosBorrador, datosCompleta] = await Promise.all([
-        supabaseService.getInspeccionesByEstado('borrador'),
-        supabaseService.getInspeccionesByEstado('completa')
-      ])
+      // Cargar SOLO inspecciones en estado borrador (las completas no son pendientes)
+      const datosBorrador = await supabaseService.getInspeccionesByEstado('borrador')
 
-      // Combinar ambas listas
-      const todosLosDatos = [...datosBorrador, ...datosCompleta]
-
-      console.log('Inspecciones pendientes de Supabase:', todosLosDatos)
-      setInspeccionesSupabase(todosLosDatos)
+      console.log('Inspecciones pendientes de Supabase:', datosBorrador)
+      setInspeccionesSupabase(datosBorrador)
     } catch (err: any) {
       console.error('Error cargando inspecciones desde Supabase:', err)
       setError(err.message || 'Error al cargar inspecciones')
