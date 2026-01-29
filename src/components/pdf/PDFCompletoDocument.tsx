@@ -240,11 +240,11 @@ const styles = StyleSheet.create({
     color: '#64748B',
   },
   tableCellComp: {
-    flex: 2,
+    flex: 1.5,
     paddingRight: 10,
   },
   tableCellStatus: {
-    width: 80,
+    width: 90,
   },
   statusBadge: {
     paddingHorizontal: 6,
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
     color: '#991B1B',
   },
   tableCellObs: {
-    flex: 2,
+    flex: 2.5,
     color: '#64748B',
     fontSize: 9,
   },
@@ -578,9 +578,9 @@ const PDFCompletoDocument: React.FC<Props> = ({ data }) => {
           {/* Header de tabla */}
           <View style={styles.tableHeader}>
             <Text style={styles.tableHeaderText}>#</Text>
-            <Text style={[styles.tableHeaderText, { flex: 2 }]}>Componente</Text>
-            <Text style={[styles.tableHeaderText, { width: 80 }]}>Estado</Text>
-            <Text style={[styles.tableHeaderText, { flex: 2 }]}>Observaciones</Text>
+            <Text style={[styles.tableHeaderText, { flex: 1.5 }]}>Componente</Text>
+            <Text style={[styles.tableHeaderText, { width: 90 }]}>Estado</Text>
+            <Text style={[styles.tableHeaderText, { flex: 2.5 }]}>Observaciones</Text>
           </View>
 
           {/* Filas de componentes */}
