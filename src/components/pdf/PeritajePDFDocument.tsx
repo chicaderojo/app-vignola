@@ -179,6 +179,7 @@ const styles = StyleSheet.create({
     flex: 2.5,
     color: '#64748B',
     fontSize: 9,
+    paddingLeft: 8,
   },
 
   // Observaciones
