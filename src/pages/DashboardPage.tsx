@@ -300,7 +300,7 @@ function DashboardPage() {
       <div className="px-4 py-2 space-y-2">
         <button
           onClick={handleNuevaInspeccion}
-          className="w-full flex items-center justify-between bg-primary hover:bg-primary/90 active:bg-primary/80 text-white rounded-xl p-4 shadow-lg shadow-primary/20 transition-all group"
+          className="w-full flex items-center justify-between bg-primary hover:bg-primary/90 active:bg-primary/80 text-white rounded-xl p-4 shadow-lg shadow-primary/20 transition-all group min-h-[60px]"
         >
           <span className="font-bold text-lg">Nueva Inspección</span>
           <div className="bg-white/20 rounded-lg p-2 group-hover:bg-white/30 transition-colors">
@@ -310,7 +310,7 @@ function DashboardPage() {
 
         <button
           onClick={() => navigate('/mantencion-pendiente')}
-          className="w-full flex items-center justify-between bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 active:from-emerald-700 active:to-green-800 text-white rounded-xl p-4 shadow-lg shadow-emerald-500/30 transition-all group"
+          className="w-full flex items-center justify-between bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 active:from-emerald-700 active:to-green-800 text-white rounded-xl p-4 shadow-lg shadow-emerald-500/30 transition-all group min-h-[60px]"
         >
           <div className="flex items-center gap-3">
             <span className="material-symbols-outlined text-[28px]">build</span>
