@@ -97,7 +97,7 @@ export const generateInformeTecnicoPDF = async (
     // Crear documento PDF
     const doc = <InformeTecnicoPDFDocument data={pdfData} />
 
-    // Generar blob
+    // Generar blob con mejor calidad de imagen
     const blob = await pdf(doc).toBlob()
 
     // Guardar archivo
@@ -164,7 +164,7 @@ export const generatePDFCompleto = async (
     // Crear documento PDF completo
     const doc = <PDFCompletoDocument data={pdfData} />
 
-    // Generar blob
+    // Generar blob con mejor calidad de imagen
     const blob = await pdf(doc).toBlob()
 
     // Guardar archivo con nombre distintivo

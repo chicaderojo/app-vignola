@@ -132,8 +132,9 @@ const styles = StyleSheet.create({
   },
   image: {
     width: '100%',
-    height: 150,
-    objectFit: 'cover',
+    height: 'auto',
+    maxHeight: 300,
+    objectFit: 'contain',
     borderRadius: 5,
   },
   imageCaption: {
@@ -168,8 +169,9 @@ const styles = StyleSheet.create({
   },
   componenteFoto: {
     width: '100%',
-    height: 120,
-    objectFit: 'cover',
+    height: 'auto',
+    maxHeight: 200,
+    objectFit: 'contain',
   },
   componenteFotoCaption: {
     fontSize: 7,

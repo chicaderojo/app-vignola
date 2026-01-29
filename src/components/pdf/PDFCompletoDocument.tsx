@@ -173,8 +173,9 @@ const styles = StyleSheet.create({
   },
   image: {
     width: '100%',
-    height: 150,
-    objectFit: 'cover',
+    height: 'auto',
+    maxHeight: 300,
+    objectFit: 'contain',
     borderRadius: 5,
   },
   imageCaption: {
@@ -203,8 +204,9 @@ const styles = StyleSheet.create({
   },
   fotoAntesDespuesImage: {
     width: '100%',
-    height: 120,
-    objectFit: 'cover',
+    height: 'auto',
+    maxHeight: 200,
+    objectFit: 'contain',
     borderRadius: 4,
     border: '1pt solid #E2E8F0',
   },
