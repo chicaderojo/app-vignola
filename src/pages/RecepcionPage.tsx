@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabaseService } from '../services/supabaseService'
 import { authService } from '../services/api'
+import { BottomNavigation } from '../components/layout/BottomNavigation'
 
 function RecepcionPage() {
   const navigate = useNavigate()
@@ -12,6 +13,8 @@ function RecepcionPage() {
   const [ordenTrabajo, setOrdenTrabajo] = useState('')
   const [contacto, setContacto] = useState('')
   const [planta, setPlanta] = useState('')
+  const [numeroSAP, setNumeroSAP] = useState('')
+  const [numeroCilindros, setNumeroCilindros] = useState('')
   const [tipoComponente, setTipoComponente] = useState('Cilindro Hidráulico')
   const [prioridad, setPrioridad] = useState<'Normal' | 'Urgente'>('Normal')
   const [diametroCamisa, setDiametroCamisa] = useState('')
@@ -22,6 +25,17 @@ function RecepcionPage() {
   const [previewArmado, setPreviewArmado] = useState<string | null>(null)
   const [previewDespiece, setPreviewDespiece] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  // Prueba de Presión
+  const [activarPruebaPresion, setActivarPruebaPresion] = useState(false)
+  const [presionPrueba, setPresionPrueba] = useState('')
+  const [fugaInterna, setFugaInterna] = useState(false)
+  const [fugaExterna, setFugaExterna] = useState(false)
+  const [observacionesPrueba, setObservacionesPrueba] = useState('')
+  const [fallasDetectadas, setFallasDetectadas] = useState('')
+  const [fotosPrueba, setFotosPrueba] = useState<string[]>([])
+  const [fotosFugaInterna, setFotosFugaInterna] = useState<string[]>([])
+  const [fotosFugaExterna, setFotosFugaExterna] = useState<string[]>([])
 
   const handleCerrar = () => {
     navigate('/')
@@ -58,6 +72,11 @@ function RecepcionPage() {
   const handleGuardar = async () => {
     if (!fotoArmado) {
       alert('Debes capturar la foto obligatoria de Armado antes de guardar')
+      return
+    }
+
+    if (activarPruebaPresion && !presionPrueba) {
+      alert('Debes registrar la presión de prueba cuando está activada')
       return
     }
 
@@ -161,7 +180,9 @@ function RecepcionPage() {
         cliente: nombreCliente,
         planta: planta,
         contacto: contacto,
-        prioridad: prioridad
+        prioridad: prioridad,
+        numeroSAP: numeroSAP,
+        numeroCilindros: numeroCilindros || '1'
       }
 
       // Crear nueva inspección con todos los datos
@@ -185,14 +206,47 @@ function RecepcionPage() {
         created_at: new Date().toISOString()
       })
 
+      // Si la prueba de presión está activa, guardar los datos
+      if (activarPruebaPresion) {
+        try {
+          await supabaseService.savePruebas(id, {
+            presion_objetivo: parseFloat(presionPrueba),
+            sostenimiento: 0, // No aplica para inspección
+            presion_inicial: parseFloat(presionPrueba),
+            presion_final: parseFloat(presionPrueba),
+            fuga_vastago: fugaInterna,
+            fuga_piston: fugaExterna,
+            deformacion: false,
+            fallas: fallasDetectadas,
+            observaciones: observacionesPrueba,
+            fotos_pruebas: [
+              ...fotosPrueba,
+              ...fotosFugaInterna.map(foto => ({ tipo: 'fuga_interna', url: foto })),
+              ...fotosFugaExterna.map(foto => ({ tipo: 'fuga_externa', url: foto }))
+            ]
+          })
+
+          // Actualizar inspección con datos de prueba
+          await supabaseService.updateInspeccion(id, {
+            etapas_completadas: ['recepcion', 'pruebas_presion'],
+            presion_prueba: parseFloat(presionPrueba),
+            fuga_interna: fugaInterna,
+            fuga_externa: fugaExterna,
+            notas_pruebas: observacionesPrueba
+          })
+        } catch (error) {
+          console.warn('Error guardando prueba de presión, continuando...', error)
+        }
+      }
+
       // Guardar datos adicionales del cilindro en localStorage para uso futuro
       localStorage.setItem(`cilindro_${id}`, JSON.stringify(cilindroData))
 
       // Mostrar mensaje de éxito
       alert('✅ Recepción guardada exitosamente')
 
-      // Navegar a la página de decisión de pruebas
-      navigate(`/inspeccion/${id}/pregunta-pruebas`)
+      // Navegar directamente a Peritaje
+      navigate(`/inspeccion/${id}/peritaje`)
     } catch (error: any) {
       console.error('Error guardando recepción:', error)
       alert(`Error al guardar: ${error.message}`)
@@ -278,6 +332,31 @@ function RecepcionPage() {
                   onChange={(e) => setPlanta(e.target.value)}
                   className="w-full rounded-xl border border-gray-300 dark:border-border-dark bg-white dark:bg-surface-dark h-12 px-4 text-base font-normal placeholder:text-gray-400 dark:placeholder:text-text-muted-dark/50 focus:ring-2 focus:ring-primary focus:border-primary transition-all shadow-sm text-slate-900 dark:text-white"
                   placeholder="Nombre planta"
+                />
+              </label>
+
+              {/* N° SAP */}
+              <label className="flex flex-col flex-1 min-w-[140px]">
+                <p className="text-sm font-medium leading-normal pb-2 text-slate-600 dark:text-text-muted-dark">N° SAP</p>
+                <input
+                  type="text"
+                  value={numeroSAP}
+                  onChange={(e) => setNumeroSAP(e.target.value)}
+                  className="w-full rounded-xl border border-gray-300 dark:border-border-dark bg-white dark:bg-surface-dark h-12 px-4 text-base font-normal placeholder:text-gray-400 dark:placeholder:text-text-muted-dark/50 focus:ring-2 focus:ring-primary focus:border-primary transition-all shadow-sm text-slate-900 dark:text-white"
+                  placeholder="Ej: 4500012345"
+                />
+              </label>
+
+              {/* N° de Cilindros */}
+              <label className="flex flex-col flex-1 min-w-[140px]">
+                <p className="text-sm font-medium leading-normal pb-2 text-slate-600 dark:text-text-muted-dark">N° de Cilindros</p>
+                <input
+                  type="number"
+                  value={numeroCilindros}
+                  onChange={(e) => setNumeroCilindros(e.target.value)}
+                  className="w-full rounded-xl border border-gray-300 dark:border-border-dark bg-white dark:bg-surface-dark h-12 px-4 text-base font-normal placeholder:text-gray-400 dark:placeholder:text-text-muted-dark/50 focus:ring-2 focus:ring-primary focus:border-primary transition-all shadow-sm text-slate-900 dark:text-white"
+                  placeholder="Ej: 1"
+                  min="1"
                 />
               </label>
             </div>
@@ -384,6 +463,292 @@ function RecepcionPage() {
         {/* Divider */}
         <div className="h-px bg-gray-200 dark:bg-border-dark w-full"></div>
 
+        {/* Section: Prueba de Presión */}
+        <section className="px-4 py-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary text-[20px]">science</span>
+              <h2 className="text-[22px] font-bold leading-tight">Prueba de Presión</h2>
+            </div>
+            <button
+              onClick={() => setActivarPruebaPresion(!activarPruebaPresion)}
+              className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
+                activarPruebaPresion ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-600'
+              }`}
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                  activarPruebaPresion ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+
+          {activarPruebaPresion && (
+            <div className="space-y-4 mt-4">
+              {/* Info Box */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
+                <div className="flex items-start gap-3">
+                  <span className="material-symbols-outlined text-blue-600 dark:text-blue-400 text-[20px] shrink-0">info</span>
+                  <p className="text-sm text-blue-900 dark:text-blue-200">
+                    Registra los resultados de las pruebas de presión hidráulica realizadas durante la inspección.
+                  </p>
+                </div>
+              </div>
+
+              {/* Presión de Prueba */}
+              <div>
+                <h3 className="text-base font-bold leading-tight tracking-tight text-slate-800 dark:text-white mb-3">Presión de Prueba</h3>
+                <div className="bg-white dark:bg-surface-card rounded-xl p-4 border border-slate-200 dark:border-slate-700">
+                  <label className="flex flex-col gap-2">
+                    <p className="text-sm font-medium text-slate-600 dark:text-text-muted-dark">Presión (bar)</p>
+                    <input
+                      type="number"
+                      value={presionPrueba}
+                      onChange={(e) => setPresionPrueba(e.target.value)}
+                      className="w-full rounded-xl border border-gray-300 dark:border-border-dark bg-white dark:bg-surface-dark h-12 px-4 text-base"
+                      placeholder="Ej: 250"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {/* Detección de Fugas */}
+              <div>
+                <h3 className="text-base font-bold leading-tight tracking-tight text-slate-800 dark:text-white mb-3">Detección de Fugas</h3>
+                <div className="space-y-3">
+                  {/* Fuga Interna */}
+                  <button
+                    onClick={() => setFugaInterna(!fugaInterna)}
+                    className={`w-full bg-white dark:bg-surface-card rounded-xl p-4 border flex items-center justify-between transition-all ${
+                      fugaInterna
+                        ? 'border-red-500 dark:border-red-500 bg-red-50 dark:bg-red-900/20'
+                        : 'border-slate-200 dark:border-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className={`material-symbols-outlined text-[24px] ${fugaInterna ? 'text-red-500' : 'text-slate-400'}`}>
+                        {fugaInterna ? 'warning' : 'check_circle'}
+                      </span>
+                      <div className="text-left">
+                        <p className="font-semibold text-slate-900 dark:text-white">Fuga Interna</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Pistón o válvula interna</p>
+                      </div>
+                    </div>
+                    <div className={`w-12 h-7 rounded-full transition-all ${
+                      fugaInterna ? 'bg-red-500' : 'bg-slate-300 dark:bg-slate-600'
+                    }`}>
+                      <div className={`w-5 h-5 bg-white rounded-full shadow-md transition-all ${
+                        fugaInterna ? 'translate-x-7' : 'translate-x-1'
+                      }`} style={{ transform: `translateX(${fugaInterna ? '1.75rem' : '0.25rem'})` }}></div>
+                    </div>
+                  </button>
+
+                  {/* Fuga Externa */}
+                  <button
+                    onClick={() => setFugaExterna(!fugaExterna)}
+                    className={`w-full bg-white dark:bg-surface-card rounded-xl p-4 border flex items-center justify-between transition-all ${
+                      fugaExterna
+                        ? 'border-orange-500 dark:border-orange-500 bg-orange-50 dark:bg-orange-900/20'
+                        : 'border-slate-200 dark:border-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className={`material-symbols-outlined text-[24px] ${fugaExterna ? 'text-orange-500' : 'text-slate-400'}`}>
+                        {fugaExterna ? 'warning' : 'check_circle'}
+                      </span>
+                      <div className="text-left">
+                        <p className="font-semibold text-slate-900 dark:text-white">Fuga Externa</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Vástago o sellos</p>
+                      </div>
+                    </div>
+                    <div className={`w-12 h-7 rounded-full transition-all ${
+                      fugaExterna ? 'bg-orange-500' : 'bg-slate-300 dark:bg-slate-600'
+                    }`}>
+                      <div className={`w-5 h-5 bg-white rounded-full shadow-md transition-all ${
+                        fugaExterna ? 'translate-x-7' : 'translate-x-1'
+                      }`} style={{ transform: `translateX(${fugaExterna ? '1.75rem' : '0.25rem'})` }}></div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Evidencia de Fuga Interna */}
+              {fugaInterna && (
+                <div>
+                  <h3 className="text-base font-bold leading-tight tracking-tight text-slate-800 dark:text-white mb-3">Evidencia - Fuga Interna</h3>
+                  <div className="grid grid-cols-3 gap-3">
+                    {fotosFugaInterna.map((foto, index) => (
+                      <div key={index} className="relative aspect-square rounded-xl overflow-hidden border border-red-200 dark:border-red-700 bg-red-50 dark:bg-red-900/10 group">
+                        <img src={foto} alt={`Fuga Interna ${index + 1}`} className="w-full h-full object-cover" />
+                        <button
+                          onClick={() => {
+                            const nuevasFotos = fotosFugaInterna.filter((_, i) => i !== index)
+                            setFotosFugaInterna(nuevasFotos)
+                          }}
+                          className="absolute top-2 right-2 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">close</span>
+                        </button>
+                      </div>
+                    ))}
+
+                    {fotosFugaInterna.length < 6 && (
+                      <button
+                        onClick={() => {
+                          const input = document.createElement('input')
+                          input.type = 'file'
+                          input.accept = 'image/*'
+                          input.capture = 'environment'
+                          input.onchange = async (e) => {
+                            const file = (e.target as HTMLInputElement).files?.[0]
+                            if (file) {
+                              const reader = new FileReader()
+                              reader.onloadend = () => {
+                                setFotosFugaInterna([...fotosFugaInterna, reader.result as string])
+                              }
+                              reader.readAsDataURL(file)
+                            }
+                          }
+                          input.click()
+                        }}
+                        className="aspect-square rounded-xl border-2 border-dashed border-red-300 dark:border-red-600 flex flex-col items-center justify-center gap-2 hover:border-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-red-400 text-[28px]">add_a_photo</span>
+                        <span className="text-xs text-red-500 font-medium">Agregar Fuga</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Evidencia de Fuga Externa */}
+              {fugaExterna && (
+                <div>
+                  <h3 className="text-base font-bold leading-tight tracking-tight text-slate-800 dark:text-white mb-3">Evidencia - Fuga Externa</h3>
+                  <div className="grid grid-cols-3 gap-3">
+                    {fotosFugaExterna.map((foto, index) => (
+                      <div key={index} className="relative aspect-square rounded-xl overflow-hidden border border-orange-200 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/10 group">
+                        <img src={foto} alt={`Fuga Externa ${index + 1}`} className="w-full h-full object-cover" />
+                        <button
+                          onClick={() => {
+                            const nuevasFotos = fotosFugaExterna.filter((_, i) => i !== index)
+                            setFotosFugaExterna(nuevasFotos)
+                          }}
+                          className="absolute top-2 right-2 w-7 h-7 bg-orange-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">close</span>
+                        </button>
+                      </div>
+                    ))}
+
+                    {fotosFugaExterna.length < 6 && (
+                      <button
+                        onClick={() => {
+                          const input = document.createElement('input')
+                          input.type = 'file'
+                          input.accept = 'image/*'
+                          input.capture = 'environment'
+                          input.onchange = async (e) => {
+                            const file = (e.target as HTMLInputElement).files?.[0]
+                            if (file) {
+                              const reader = new FileReader()
+                              reader.onloadend = () => {
+                                setFotosFugaExterna([...fotosFugaExterna, reader.result as string])
+                              }
+                              reader.readAsDataURL(file)
+                            }
+                          }
+                          input.click()
+                        }}
+                        className="aspect-square rounded-xl border-2 border-dashed border-orange-300 dark:border-orange-600 flex flex-col items-center justify-center gap-2 hover:border-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/10 transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-orange-400 text-[28px]">add_a_photo</span>
+                        <span className="text-xs text-orange-500 font-medium">Agregar Fuga</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Observaciones */}
+              <div>
+                <h3 className="text-base font-bold leading-tight tracking-tight text-slate-800 dark:text-white mb-3">Observaciones</h3>
+                <div className="bg-white dark:bg-surface-card rounded-xl border border-slate-200 dark:border-slate-700">
+                  <textarea
+                    value={observacionesPrueba}
+                    onChange={(e) => setObservacionesPrueba(e.target.value)}
+                    className="w-full bg-transparent border-0 rounded-xl p-4 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-0 resize-none"
+                    placeholder="Agrega observaciones sobre las pruebas realizadas..."
+                    rows={3}
+                  />
+                </div>
+              </div>
+
+              {/* Fallas Detectadas */}
+              <div>
+                <h3 className="text-base font-bold leading-tight tracking-tight text-slate-800 dark:text-white mb-3">Fallas Detectadas</h3>
+                <div className="bg-white dark:bg-surface-card rounded-xl border border-slate-200 dark:border-slate-700">
+                  <textarea
+                    value={fallasDetectadas}
+                    onChange={(e) => setFallasDetectadas(e.target.value)}
+                    className="w-full bg-transparent border-0 rounded-xl p-4 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-0 resize-none"
+                    placeholder="Describe cualquier falla o anomalía detectada..."
+                    rows={3}
+                  />
+                </div>
+              </div>
+
+              {/* Evidencia Fotográfica de Prueba */}
+              <div>
+                <h3 className="text-base font-bold leading-tight tracking-tight text-slate-800 dark:text-white mb-3">Evidencia Fotográfica</h3>
+                <div className="grid grid-cols-3 gap-3">
+                  {fotosPrueba.map((foto, index) => (
+                    <div key={index} className="relative aspect-square rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 group">
+                      <img src={foto} alt={`Foto ${index + 1}`} className="w-full h-full object-cover" />
+                      <button
+                        onClick={() => {
+                          const nuevasFotos = fotosPrueba.filter((_, i) => i !== index)
+                          setFotosPrueba(nuevasFotos)
+                        }}
+                        className="absolute top-2 right-2 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">close</span>
+                      </button>
+                    </div>
+                  ))}
+
+                  {fotosPrueba.length < 6 && (
+                    <button
+                      onClick={() => {
+                        const input = document.createElement('input')
+                        input.type = 'file'
+                        input.accept = 'image/*'
+                        input.capture = 'environment'
+                        input.onchange = async (e) => {
+                          const file = (e.target as HTMLInputElement).files?.[0]
+                          if (file) {
+                            const reader = new FileReader()
+                            reader.onloadend = () => {
+                              setFotosPrueba([...fotosPrueba, reader.result as string])
+                            }
+                            reader.readAsDataURL(file)
+                          }
+                        }
+                        input.click()
+                      }}
+                      className="aspect-square rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-600 flex flex-col items-center justify-center gap-2 hover:border-primary hover:bg-primary/5 transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-slate-400 text-[28px]">add_a_photo</span>
+                      <span className="text-xs text-slate-500 font-medium">Agregar</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
+
         {/* Section: Evidencia Fotográfica */}
         <section>
           <div className="flex items-center justify-between py-4">
@@ -476,7 +841,7 @@ function RecepcionPage() {
       </main>
 
       {/* Fixed Footer Action */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 dark:bg-background-dark/95 backdrop-blur-md border-t border-gray-200 dark:border-border-dark z-20 max-w-md mx-auto">
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 dark:bg-background-dark/95 backdrop-blur-md border-t border-gray-200 dark:border-border-dark z-50 max-w-md mx-auto">
         <div className="max-w-3xl mx-auto flex gap-3">
           <button
             onClick={handleGuardar}
@@ -497,6 +862,8 @@ function RecepcionPage() {
           </button>
         </div>
       </div>
+
+      <BottomNavigation />
 
       {/* Background Pattern Effect */}
       <div className="fixed inset-0 pointer-events-none opacity-[0.03] dark:opacity-[0.05] z-0" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
