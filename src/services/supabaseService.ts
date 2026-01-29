@@ -70,6 +70,37 @@ export const supabaseService = {
   },
 
   /**
+   * Buscar inspecciones por término y filtro
+   */
+  async buscarInspecciones(
+    termino: string,
+    filtro: 'cliente' | 'fecha' | 'orden'
+  ): Promise<Inspeccion[]> {
+    let query = supabase
+      .from('inspecciones')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    switch (filtro) {
+      case 'cliente':
+        query = query.ilike('nombre_cliente', `%${termino}%`)
+        break
+      case 'fecha':
+        // Buscar por fecha (formato YYYY-MM-DD o DD-MM-YYYY)
+        query = query.ilike('created_at', `%${termino}%`)
+        break
+      case 'orden':
+        query = query.or(`sap_cliente.ilike.%${termino}%,id.ilike.%${termino}%`)
+        break
+    }
+
+    const { data, error } = await query.limit(20)
+
+    if (error) throw error
+    return data || []
+  },
+
+  /**
    * Obtener una inspección por ID
    */
   async getInspeccionById(id: string): Promise<Inspeccion | null> {

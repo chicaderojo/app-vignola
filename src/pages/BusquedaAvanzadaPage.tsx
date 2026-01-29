@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabaseService } from '../services/supabaseService'
+import BottomNavigation from '../components/layout/BottomNavigation'
 
-type FiltroBusqueda = 'orden' | 'empresa' | 'producto'
+type FiltroBusqueda = 'cliente' | 'fecha' | 'orden'
 type EstadoOrden = 'proceso' | 'completado' | 'revision'
 
 interface BusquedaReciente {
@@ -20,12 +21,23 @@ interface ResultadoBusqueda {
   estado: EstadoOrden
 }
 
+interface Inspeccion {
+  id: string
+  sap_cliente: string | null
+  nombre_cliente: string | null
+  cilindro_id: string
+  estado_inspeccion: string
+  created_at: string
+}
+
 function BusquedaAvanzadaPage() {
   const navigate = useNavigate()
 
   const [busqueda, setBusqueda] = useState('')
   const [filtroActivo, setFiltroActivo] = useState<FiltroBusqueda>('orden')
   const [busquedasRecientes, setBusquedasRecientes] = useState<BusquedaReciente[]>([])
+  const [resultados, setResultados] = useState<Inspeccion[]>([])
+  const [loadingResultados, setLoadingResultados] = useState(false)
 
   // Cargar búsquedas recientes desde BD
   useEffect(() => {
@@ -52,30 +64,35 @@ function BusquedaAvanzadaPage() {
     cargarBusquedasRecientes()
   }, [])
 
-  // Mock data para resultados
-  const resultados: ResultadoBusqueda[] = [
-    {
-      id: '1',
-      codigo: 'ORD-5521',
-      cliente: 'Mining Corp SA',
-      producto: 'Cilindro Doble Acción - Tipo A',
-      estado: 'proceso'
-    },
-    {
-      id: '2',
-      codigo: 'ORD-5109',
-      cliente: 'Constructora del Norte',
-      producto: 'Unidad Hidráulica Compacta',
-      estado: 'completado'
-    },
-    {
-      id: '3',
-      codigo: 'ORD-5540',
-      cliente: 'Forestal Arauco',
-      producto: 'Pistón de Grúa M-200',
-      estado: 'revision'
+  // Buscar inspecciones en tiempo real
+  useEffect(() => {
+    const buscarInspecciones = async () => {
+      if (!busqueda.trim()) {
+        setResultados([])
+        return
+      }
+
+      setLoadingResultados(true)
+      try {
+        const resultadosBD = await supabaseService.buscarInspecciones(
+          busqueda,
+          filtroActivo
+        )
+        setResultados(resultadosBD)
+      } catch (error) {
+        console.error('Error buscando:', error)
+        setResultados([])
+      } finally {
+        setLoadingResultados(false)
+      }
     }
-  ]
+
+    const delayDebounce = setTimeout(() => {
+      buscarInspecciones()
+    }, 500)
+
+    return () => clearTimeout(delayDebounce)
+  }, [busqueda, filtroActivo])
 
   const handleClearSearch = () => {
     setBusqueda('')
@@ -87,32 +104,6 @@ function BusquedaAvanzadaPage() {
 
   const handleVerResultado = (resultadoId: string) => {
     navigate(`/inspeccion/${resultadoId}/detalles`)
-  }
-
-  const getEstadoInfo = (estado: EstadoOrden) => {
-    switch (estado) {
-      case 'proceso':
-        return {
-          label: 'En Proceso',
-          color: 'text-yellow-500',
-          bg: 'bg-yellow-500/10',
-          strip: 'bg-yellow-500'
-        }
-      case 'completado':
-        return {
-          label: 'Completado',
-          color: 'text-green-500',
-          bg: 'bg-green-500/10',
-          strip: 'bg-green-500'
-        }
-      case 'revision':
-        return {
-          label: 'Revisión',
-          color: 'text-blue-500',
-          bg: 'bg-blue-500/10',
-          strip: 'bg-blue-500'
-        }
-    }
   }
 
   return (
@@ -174,39 +165,39 @@ function BusquedaAvanzadaPage() {
         <div className="px-4 pt-1 pb-2 overflow-x-auto no-scrollbar">
           <div className="flex gap-2 min-w-max">
             <button
-              onClick={() => setFiltroActivo('orden')}
+              onClick={() => setFiltroActivo('cliente')}
               className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium shadow-md transition-transform active:scale-95 ${
-                filtroActivo === 'orden'
+                filtroActivo === 'cliente'
                   ? 'bg-primary text-white shadow-primary/20'
                   : 'bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
               }`}
             >
+              <span className="material-symbols-outlined text-[18px]">apartment</span>
+              Cliente
+            </button>
+
+            <button
+              onClick={() => setFiltroActivo('fecha')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-transform active:scale-95 ${
+                filtroActivo === 'fecha'
+                  ? 'bg-primary text-white shadow-md shadow-primary/20'
+                  : 'bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[18px]">calendar_today</span>
+              Fecha
+            </button>
+
+            <button
+              onClick={() => setFiltroActivo('orden')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-transform active:scale-95 ${
+                filtroActivo === 'orden'
+                  ? 'bg-primary text-white shadow-md shadow-primary/20'
+                  : 'bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+              }`}
+            >
               <span className="material-symbols-outlined text-[18px]">receipt_long</span>
-              Código de Orden
-            </button>
-
-            <button
-              onClick={() => setFiltroActivo('empresa')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-transform active:scale-95 ${
-                filtroActivo === 'empresa'
-                  ? 'bg-primary text-white shadow-md shadow-primary/20'
-                  : 'bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[18px]">domain</span>
-              Empresa
-            </button>
-
-            <button
-              onClick={() => setFiltroActivo('producto')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-transform active:scale-95 ${
-                filtroActivo === 'producto'
-                  ? 'bg-primary text-white shadow-md shadow-primary/20'
-                  : 'bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[18px]">extension</span>
-              Producto
+              Orden de Trabajo
             </button>
           </div>
         </div>
@@ -251,34 +242,53 @@ function BusquedaAvanzadaPage() {
         <div className="pt-2">
           <div className="flex items-center justify-between px-4 mb-3">
             <h3 className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-wider">
-              Resultados Sugeridos
+              Resultados de Búsqueda
             </h3>
-            <span className="text-xs text-primary font-medium">{resultados.length} encontrados</span>
+            {busqueda && !loadingResultados && (
+              <span className="text-xs text-primary font-medium">{resultados.length} encontrados</span>
+            )}
           </div>
 
-          <div className="flex flex-col gap-3 px-4">
-            {resultados.map((resultado) => {
-              const estadoInfo = getEstadoInfo(resultado.estado)
+          {/* Loading State */}
+          {loadingResultados && (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          )}
 
-              return (
+          {/* Empty State */}
+          {!loadingResultados && busqueda && resultados.length === 0 && (
+            <div className="px-4 py-8 text-center">
+              <p className="text-gray-500 dark:text-gray-400">
+                No se encontraron resultados para "{busqueda}"
+              </p>
+            </div>
+          )}
+
+          {/* Resultados */}
+          {!loadingResultados && resultados.length > 0 && (
+            <div className="flex flex-col gap-3 px-4">
+              {resultados.map((inspeccion) => (
                 <div
-                  key={resultado.id}
-                  onClick={() => handleVerResultado(resultado.id)}
+                  key={inspeccion.id}
+                  onClick={() => handleVerResultado(inspeccion.id)}
                   className="bg-white dark:bg-surface-dark rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm active:scale-[0.98] transition-transform cursor-pointer relative overflow-hidden group"
                 >
-                  {/* Status Strip */}
-                  <div className={`absolute left-0 top-0 bottom-0 w-1 ${estadoInfo.strip}`}></div>
+                  {/* Status Strip según estado_inspeccion */}
+                  <div className={`absolute left-0 top-0 bottom-0 w-1 ${
+                    inspeccion.estado_inspeccion === 'completado' ? 'bg-green-500' :
+                    inspeccion.estado_inspeccion === 'en_progreso' ? 'bg-yellow-500' :
+                    'bg-blue-500'
+                  }`}></div>
 
                   <div className="flex justify-between items-start mb-2 pl-2">
                     <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className={`text-xs font-bold ${estadoInfo.color} ${estadoInfo.bg} px-2 py-0.5 rounded uppercase tracking-wide`}>
-                          {estadoInfo.label}
-                        </span>
-                      </div>
                       <h4 className="text-lg font-bold text-slate-900 dark:text-white">
-                        #{resultado.codigo}
+                        #{inspeccion.sap_cliente || inspeccion.id.slice(0, 8)}
                       </h4>
+                      <p className="text-xs text-gray-500">
+                        {new Date(inspeccion.created_at).toLocaleDateString()}
+                      </p>
                     </div>
                     <span className="material-symbols-outlined text-gray-400 group-hover:text-primary transition-colors">
                       chevron_right
@@ -288,28 +298,21 @@ function BusquedaAvanzadaPage() {
                   <div className="space-y-2 pl-2">
                     <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                       <span className="material-symbols-outlined text-[18px] text-gray-400">apartment</span>
-                      <span className="truncate">{resultado.cliente}</span>
+                      <span className="truncate">{inspeccion.nombre_cliente || 'Cliente'}</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                       <span className="material-symbols-outlined text-[18px] text-gray-400">extension</span>
-                      <span className="truncate">{resultado.producto}</span>
+                      <span className="truncate">{inspeccion.cilindro_id}</span>
                     </div>
                   </div>
                 </div>
-              )
-            })}
-
-            {/* Loading State / More */}
-            <div className="flex justify-center py-4">
-              <div className="animate-pulse flex space-x-2 items-center text-gray-500 text-sm">
-                <div className="h-2 w-2 bg-gray-500 rounded-full"></div>
-                <div className="h-2 w-2 bg-gray-500 rounded-full"></div>
-                <div className="h-2 w-2 bg-gray-500 rounded-full"></div>
-              </div>
+              ))}
             </div>
-          </div>
+          )}
         </div>
       </main>
+
+      <BottomNavigation />
     </div>
   )
 }
