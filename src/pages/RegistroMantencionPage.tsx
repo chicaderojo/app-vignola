@@ -113,32 +113,6 @@ function RegistroMantencionPage() {
     navigate('/mantencion-pendiente')
   }
 
-  const handleGuardarPorAhora = async () => {
-    if (!id) {
-      alert('Error: ID de inspección no válido')
-      return
-    }
-
-    try {
-      setLoading(true)
-
-      // Guardar registro de mantención temporal
-      await supabaseService.saveMantencion(id, {
-        componentes,
-        verificaciones,
-        observaciones: ''
-      })
-
-      alert('✅ Registro guardado. Puedes continuar después.')
-      navigate('/mantencion-pendiente')
-    } catch (error: any) {
-      console.error('Error guardando mantención:', error)
-      alert(`Error al guardar: ${error.message}`)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const handlePasarAPruebas = async () => {
     // Validar que al menos un componente tenga acción seleccionada
     const componentesConAccion = componentes.filter(c => c.accion !== 'ninguna')

@@ -217,12 +217,11 @@ function RecepcionPage() {
             fuga_vastago: fugaInterna,
             fuga_piston: fugaExterna,
             deformacion: false,
-            fallas: fallasDetectadas,
-            observaciones: observacionesPrueba,
+            observaciones: fallasDetectadas ? `${fallasDetectadas}\n\n${observacionesPrueba}` : observacionesPrueba,
             fotos_pruebas: [
               ...fotosPrueba,
-              ...fotosFugaInterna.map(foto => ({ tipo: 'fuga_interna', url: foto })),
-              ...fotosFugaExterna.map(foto => ({ tipo: 'fuga_externa', url: foto }))
+              ...fotosFugaInterna,
+              ...fotosFugaExterna
             ]
           })
 

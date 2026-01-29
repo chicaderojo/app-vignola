@@ -2,32 +2,15 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabaseService } from '../services/supabaseService'
 import { BottomNavigation } from '../components/layout/BottomNavigation'
+import { Inspeccion } from '../types'
 
 type FiltroBusqueda = 'cliente' | 'fecha' | 'orden'
-type EstadoOrden = 'proceso' | 'completado' | 'revision'
 
 interface BusquedaReciente {
   id: string
   termino: string
   tipo: 'orden' | 'empresa' | 'producto'
   fecha: Date
-}
-
-interface ResultadoBusqueda {
-  id: string
-  codigo: string
-  cliente: string
-  producto: string
-  estado: EstadoOrden
-}
-
-interface Inspeccion {
-  id: string
-  sap_cliente: string | null
-  nombre_cliente: string | null
-  cilindro_id: string
-  estado_inspeccion: string
-  created_at: string
 }
 
 function BusquedaAvanzadaPage() {
@@ -276,8 +259,8 @@ function BusquedaAvanzadaPage() {
                 >
                   {/* Status Strip según estado_inspeccion */}
                   <div className={`absolute left-0 top-0 bottom-0 w-1 ${
-                    inspeccion.estado_inspeccion === 'completado' ? 'bg-green-500' :
-                    inspeccion.estado_inspeccion === 'en_progreso' ? 'bg-yellow-500' :
+                    inspeccion.estado_inspeccion === 'sincronizada' ? 'bg-green-500' :
+                    inspeccion.estado_inspeccion === 'borrador' ? 'bg-yellow-500' :
                     'bg-blue-500'
                   }`}></div>
 
