@@ -347,9 +347,9 @@ function RecepcionPage() {
                 />
               </label>
 
-              {/* N° de Cilindros */}
+              {/* Código de cilindro */}
               <label className="flex flex-col flex-1 min-w-[140px]">
-                <p className="text-sm font-medium leading-normal pb-2 text-slate-600 dark:text-text-muted-dark">N° de Cilindros</p>
+                <p className="text-sm font-medium leading-normal pb-2 text-slate-600 dark:text-text-muted-dark">Código de cilindro</p>
                 <input
                   type="number"
                   value={numeroCilindros}
