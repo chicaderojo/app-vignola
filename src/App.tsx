@@ -16,7 +16,6 @@ import TrabajosListosPage from './pages/TrabajosListosPage'
 import MantencionPage from './pages/MantencionPage'
 import AjustesPage from './pages/AjustesPage'
 import MonitoreoPage from './pages/MonitoreoPage'
-import PreguntaPruebasPage from './pages/PreguntaPruebasPage'
 import PruebasPresionPage from './pages/PruebasPresionPage'
 import MantencionPendientePage from './pages/MantencionPendientePage'
 import RegistroMantencionPage from './pages/RegistroMantencionPage'
@@ -157,14 +156,6 @@ function App() {
           element={
             <PrivateRoute>
               <MonitoreoPage />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/inspeccion/:id/pregunta-pruebas"
-          element={
-            <PrivateRoute>
-              <PreguntaPruebasPage />
             </PrivateRoute>
           }
         />

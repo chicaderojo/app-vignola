@@ -244,11 +244,9 @@ function RegistroMantencionPage() {
               <span className="material-symbols-outlined text-[28px]">arrow_back_ios</span>
             </button>
           </div>
-          <h2 className="text-lg font-bold leading-tight tracking-tight flex-1 text-center">Registro de Mantención</h2>
+          <h2 className="text-lg font-bold leading-tight tracking-tight flex-1 text-center pr-14">Registro de Mantención</h2>
           <div className="flex w-12 items-center justify-end">
-            <button onClick={handleGuardarPorAhora} className="text-primary text-base font-bold">
-              Guardar
-            </button>
+            {/* Espacio vacío para mantener centrado el título */}
           </div>
         </div>
       </header>
