@@ -267,7 +267,7 @@ function BusquedaAvanzadaPage() {
                   <div className="flex justify-between items-start mb-2 pl-2">
                     <div>
                       <h4 className="text-lg font-bold text-slate-900 dark:text-white">
-                        #{inspeccion.sap_cliente || inspeccion.id.slice(0, 8)}
+                        #{(inspeccion as any).cilindro?.id_codigo || inspeccion.sap_cliente || inspeccion.id.slice(0, 8)}
                       </h4>
                       <p className="text-xs text-gray-500">
                         {new Date(inspeccion.created_at).toLocaleDateString()}

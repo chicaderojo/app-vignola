@@ -108,20 +108,17 @@ function LoginPage() {
         {/* Header / Logo Section */}
         <div className="flex flex-col items-center gap-6">
           {/* Logo */}
-          <div className="relative w-24 h-24 rounded-2xl overflow-hidden shadow-2xl shadow-black/50 border border-white/10">
-            <div
-              className="w-full h-full bg-cover bg-center"
-              style={{
-                backgroundImage: "url('https://images.unsplash.com/photo-1565435391196-0c797872e1e1?w=400&h=400&fit=crop')",
-              }}
-            >
-              <div className="absolute inset-0 bg-primary/40 mix-blend-overlay"></div>
-            </div>
+          <div className="relative">
+            <img
+              src="https://maas-log-prod.cn-wlcb.ufileos.com/anthropic/a1cd8fe7-b09f-4354-8d9f-8e9da54472c2/b607b72f3feb76436a465b60ed73d93f.png?UCloudPublicKey=TOKEN_e15ba47a-d098-4fbd-9afc-a0dcf0e4e621&Expires=1769788941&Signature=D4wQYCUEWRkY74ZVJKzsQA02+w8="
+              alt="V-Report Logo"
+              className="w-48 h-auto object-contain"
+            />
           </div>
 
           {/* Title */}
           <div className="text-center space-y-2">
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Vignola</h1>
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">V-Report</h1>
             <h2 className="text-slate-500 dark:text-slate-400 font-medium text-lg">Inspección de Cilindros</h2>
           </div>
         </div>

@@ -389,10 +389,6 @@ const InformeTecnicoPDFDocument: React.FC<Props> = ({ data }) => {
               <Text style={styles.value}>{cilindro?.tipo || 'No especificado'}</Text>
             </View>
             <View style={styles.infoItem}>
-              <Text style={styles.label}>Fabricante:</Text>
-              <Text style={styles.value}>{cilindro?.fabricante || 'No especificado'}</Text>
-            </View>
-            <View style={styles.infoItem}>
               <Text style={styles.label}>Diám. Camisa:</Text>
               <Text style={styles.value}>{cilindro?.diametro_camisa || 'N/A'}</Text>
             </View>

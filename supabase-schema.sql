@@ -111,6 +111,8 @@ CREATE TABLE inspeccion_detalles (
   observaciones TEXT,
   es_base BOOLEAN DEFAULT false, -- Si es componente pre-cargado o manual
   orden INTEGER DEFAULT 0, -- Orden en el reporte
+  requiere_fabricacion BOOLEAN DEFAULT false, -- Si el componente requiere fabricación
+  orden_fabricacion_id UUID REFERENCES ordenes_fabricacion(id) ON DELETE SET NULL, -- Vínculo con orden de fabricación
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -118,6 +120,7 @@ CREATE TABLE inspeccion_detalles (
 CREATE INDEX idx_detalles_inspeccion ON inspeccion_detalles(inspeccion_id);
 CREATE INDEX idx_detalles_componente ON inspeccion_detalles(componente);
 CREATE INDEX idx_detalles_estado ON inspeccion_detalles(estado);
+CREATE INDEX idx_detalles_requiere_fabricacion ON inspeccion_detalles(requiere_fabricacion) WHERE requiere_fabricacion = true;
 
 -- =============================================
 -- 6. FUNCIONES Y TRIGGERS PARA updated_at

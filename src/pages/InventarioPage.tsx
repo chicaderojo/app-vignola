@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabaseService } from '../services/supabaseService'
 
 type EstadoFabricacion = 'pendiente' | 'torno' | 'fresado' | 'rectificado' | 'cromado' | 'listo' | 'entregado'
-type FiltroTab = 'todos' | 'pendiente' | 'torno' | 'listo'
+type FiltroTab = 'todos' | 'pendiente' | 'listo'
 
 interface OrdenFabricacion {
   id: string
@@ -16,6 +16,7 @@ interface OrdenFabricacion {
   fechaLimite?: string
   operario?: string
   ubicacion?: string
+  origen?: 'fabricacion' | 'peritaje' // Para distinguir origen
 }
 
 function InventarioPage() {
@@ -25,15 +26,20 @@ function InventarioPage() {
   const [loading, setLoading] = useState(true)
   const [ordenes, setOrdenes] = useState<OrdenFabricacion[]>([])
 
-  // Cargar órdenes de fabricación desde la BD
+  // Cargar órdenes de fabricación y componentes del peritaje desde la BD
   useEffect(() => {
-    const cargarOrdenes = async () => {
+    const cargarDatosFabricacion = async () => {
       try {
         setLoading(true)
-        const data = await supabaseService.getOrdenesFabricacion()
 
-        // Mapear datos de BD al formato del componente
-        const ordenesMapeadas: OrdenFabricacion[] = data.map((orden: any) => ({
+        // Cargar ambas fuentes de datos en paralelo
+        const [ordenesData, componentesData] = await Promise.all([
+          supabaseService.getOrdenesFabricacion(),
+          supabaseService.getComponentesParaFabricacion()
+        ])
+
+        // Mapear datos de órdenes de fabricación
+        const ordenesMapeadas: OrdenFabricacion[] = ordenesData.map((orden: any) => ({
           id: orden.id,
           codigo: orden.codigo,
           nombre: orden.nombre,
@@ -43,12 +49,26 @@ function InventarioPage() {
           estado: (orden.estado === 'entregado' ? 'listo' : orden.estado) as EstadoFabricacion,
           fechaLimite: orden.fecha_limite ? new Date(orden.fecha_limite).toLocaleDateString('es-CL', { day: '2-digit', month: 'short' }) : undefined,
           operario: orden.operario,
-          ubicacion: orden.ubicacion
+          ubicacion: orden.ubicacion,
+          origen: 'fabricacion' as const
         }))
 
-        setOrdenes(ordenesMapeadas)
+        // Mapear componentes del peritaje que requieren fabricación
+        const componentesMapeados: OrdenFabricacion[] = componentesData.map((comp: any) => ({
+          id: comp.id,
+          codigo: comp.inspeccion?.cilindro?.id_codigo || comp.inspeccion?.sap_cliente || 'N/A',
+          nombre: comp.componente,
+          cliente: comp.inspeccion?.cilindro?.cliente?.nombre || 'Cliente',
+          material: 'N/A',
+          dimensiones: '-',
+          estado: 'pendiente' as EstadoFabricacion,
+          origen: 'peritaje' as const
+        }))
+
+        // Combinar ambas listas
+        setOrdenes([...ordenesMapeadas, ...componentesMapeados])
       } catch (error) {
-        console.error('Error cargando órdenes:', error)
+        console.error('Error cargando datos de fabricación:', error)
         // En caso de error, dejar array vacío
         setOrdenes([])
       } finally {
@@ -56,7 +76,7 @@ function InventarioPage() {
       }
     }
 
-    cargarOrdenes()
+    cargarDatosFabricacion()
   }, [])
 
   const handleBack = () => {
@@ -146,6 +166,10 @@ function InventarioPage() {
   // Filtrar órdenes según el tab activo
   const ordenesFiltradas = ordenes.filter(orden => {
     if (filtroActivo === 'todos') return true
+    if (filtroActivo === 'pendiente') {
+      // Incluir órdenes con estado 'pendiente' y componentes del peritaje
+      return orden.estado === 'pendiente' || orden.origen === 'peritaje'
+    }
     return orden.estado === filtroActivo
   })
 
@@ -162,7 +186,7 @@ function InventarioPage() {
           </button>
           <div className="flex-1 px-2">
             <h2 className="text-white text-lg font-bold leading-tight tracking-tight uppercase">Inventario de Fabricación</h2>
-            <p className="text-text-muted-dark text-[10px] uppercase tracking-widest font-semibold">Taller de Cilindros Vignola</p>
+            <p className="text-text-muted-dark text-[10px] uppercase tracking-widest font-semibold">Vignola, Maestranza Concepción</p>
           </div>
           <div className="flex size-10 items-center justify-end">
             <button className="flex items-center justify-center rounded bg-slate-700 dark:bg-surface-dark p-2">
@@ -182,7 +206,7 @@ function InventarioPage() {
                   : 'border-transparent text-text-muted-dark'
               }`}
             >
-              <p className="text-sm font-bold tracking-wider">TODOS</p>
+              <p className="text-sm font-bold tracking-wider">Todos</p>
             </button>
 
             <button
@@ -193,18 +217,7 @@ function InventarioPage() {
                   : 'border-transparent text-text-muted-dark'
               }`}
             >
-              <p className="text-sm font-bold tracking-wider">PENDIENTE</p>
-            </button>
-
-            <button
-              onClick={() => setFiltroActivo('torno')}
-              className={`flex flex-col items-center justify-center border-b-2 pb-3 pt-2 shrink-0 transition-colors ${
-                filtroActivo === 'torno'
-                  ? 'border-primary text-white'
-                  : 'border-transparent text-text-muted-dark'
-              }`}
-            >
-              <p className="text-sm font-bold tracking-wider">EN TORNO</p>
+              <p className="text-sm font-bold tracking-wider">Pendientes</p>
             </button>
 
             <button
@@ -215,7 +228,7 @@ function InventarioPage() {
                   : 'border-transparent text-text-muted-dark'
               }`}
             >
-              <p className="text-sm font-bold tracking-wider">LISTO</p>
+              <p className="text-sm font-bold tracking-wider">Listos</p>
             </button>
           </div>
         </div>

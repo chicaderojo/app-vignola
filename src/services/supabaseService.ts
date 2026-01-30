@@ -79,7 +79,10 @@ export const supabaseService = {
   ): Promise<Inspeccion[]> {
     let query = supabase
       .from('inspecciones')
-      .select('*')
+      .select(`
+        *,
+        cilindro:cilindros(id_codigo)
+      `)
       .order('created_at', { ascending: false })
 
     switch (filtro) {
@@ -91,7 +94,8 @@ export const supabaseService = {
         query = query.ilike('created_at', `%${termino}%`)
         break
       case 'orden':
-        query = query.or(`sap_cliente.ilike.%${termino}%,id.ilike.%${termino}%`)
+        // Buscar por sap_cliente, id o id_codigo del cilindro
+        query = query.or(`sap_cliente.ilike.%${termino}%,id.ilike.%${termino}%,cilindro.id_codigo.ilike.%${termino}%`)
         break
     }
 
@@ -366,6 +370,7 @@ export const supabaseService = {
       estado: 'bueno' | 'mantencion' | 'cambio' | 'pending'
       observaciones?: string
       fotos?: string[]
+      requiereFabricacion?: boolean
     }>
   ): Promise<void> {
     // Eliminar detalles anteriores
@@ -381,6 +386,7 @@ export const supabaseService = {
         detalle_tecnico: c.observaciones || undefined,
         accion_propuesta: undefined,
         fotos_urls: [] as string[], // Temporalmente vacío
+        requiere_fabricacion: c.requiereFabricacion || false,
         orden: index
       }))
 
@@ -752,6 +758,32 @@ export const supabaseService = {
 
     if (error) throw error
     return data
+  },
+
+  /**
+   * Obtener componentes que requieren fabricación desde peritajes
+   * Devuelve componentes marcados como "Cambio" con requiere_fabricacion=true
+   * que no tienen una orden de fabricación asociada
+   */
+  async getComponentesParaFabricacion(): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('inspeccion_detalles')
+      .select(`
+        *,
+        inspeccion:inspecciones(
+          id,
+          sap_cliente,
+          cilindro_id,
+          cilindro:cilindros(id_codigo, cliente:clientes(id, nombre))
+        )
+      `)
+      .eq('estado', 'Cambio')
+      .eq('requiere_fabricacion', true)
+      .is('orden_fabricacion_id', null)
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+    return data || []
   },
 
   /**

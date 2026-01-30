@@ -109,7 +109,7 @@ function HistorialPage() {
     }
   }
 
-  const [filtroActivo, setFiltroActivo] = useState<'todos' | 'borrador' | 'en_recepcion' | 'en_progreso' | 'en_mantencion' | 'finalizado'>('todos')
+  const [filtroActivo, setFiltroActivo] = useState<'todos' | 'borrador' | 'en_recepcion' | 'en_mantencion' | 'finalizado'>('todos')
   const [busqueda, setBusqueda] = useState('')
 
   const handleNuevaInspeccion = () => {
@@ -141,7 +141,7 @@ function HistorialPage() {
           badgeBg: 'bg-blue-50 dark:bg-blue-900/30',
           badgeText: 'text-blue-700 dark:text-blue-400',
           badgeRing: 'ring-blue-600/20',
-          label: 'En Recepción'
+          label: 'Inspección'
         }
       case 'en_progreso':
         return {
@@ -265,18 +265,7 @@ function HistorialPage() {
               : 'bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 text-slate-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'
           }`}
         >
-          <span className="text-sm font-medium">Recepción</span>
-        </button>
-
-        <button
-          onClick={() => setFiltroActivo('en_progreso')}
-          className={`flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full px-4 transition-transform active:scale-95 ${
-            filtroActivo === 'en_progreso'
-              ? 'bg-purple-500 text-white shadow-md shadow-purple-500/20'
-              : 'bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 text-slate-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'
-          }`}
-        >
-          <span className="text-sm font-medium">En Progreso</span>
+          <span className="text-sm font-medium">Inspección</span>
         </button>
 
         <button

@@ -15,7 +15,8 @@
       "Bash(npx tsc:*)",
       "Bash(test:*)",
       "Bash(find:*)",
-      "Bash(npm run clean-db:*)"
+      "Bash(npm run clean-db:*)",
+      "Bash(ping:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

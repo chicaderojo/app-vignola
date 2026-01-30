@@ -22,11 +22,37 @@ function PeritajePage() {
   const { id } = useParams()
   const [loading, setLoading] = useState(false)
   const [loadingInicial, setLoadingInicial] = useState(true)
+  const [inspeccion, setInspeccion] = useState<any>(null)
   const [loadingPDF, setLoadingPDF] = useState(false)
   const [showAgregarComponente, setShowAgregarComponente] = useState(false)
 
   // Componentes cargados desde BD o inicializados con componentes base
   const [componentes, setComponentes] = useState<Componente[]>([])
+
+  // Extraer número de cilindro desde notas_recepcion
+  const getNumeroCilindro = () => {
+    if (!inspeccion?.notas_recepcion) return 'N/A'
+    try {
+      const notas = JSON.parse(inspeccion.notas_recepcion)
+      return notas.numeroCilindros || 'N/A'
+    } catch {
+      return 'N/A'
+    }
+  }
+
+  // Cargar inspección para obtener sap_cliente (OT)
+  useEffect(() => {
+    const cargarInspeccion = async () => {
+      if (!id) return
+      try {
+        const data = await supabaseService.getInspeccionById(id)
+        setInspeccion(data)
+      } catch (error) {
+        console.error('Error cargando inspección:', error)
+      }
+    }
+    cargarInspeccion()
+  }, [id])
 
   // Cargar detalles existentes de la inspección
   useEffect(() => {
@@ -92,7 +118,7 @@ function PeritajePage() {
   }, [id])
 
   const handleBack = () => {
-    navigate(`/inspeccion/${id}/recepcion`)
+    navigate('/')  // Ir al dashboard
   }
 
   const handleGuardarPorAhora = async () => {
@@ -272,22 +298,26 @@ function PeritajePage() {
               <span className="material-symbols-outlined">arrow_back</span>
             </button>
             <div className="flex flex-col">
-              <h2 className="text-lg font-bold leading-tight tracking-tight text-slate-900 dark:text-white">Peritaje OT #{id?.slice(0, 8) || '...'}</h2>
+              <h2 className="text-lg font-bold leading-tight tracking-tight text-slate-900 dark:text-white">Peritaje OT #{inspeccion?.sap_cliente || id?.slice(0, 8) || '...'}</h2>
               <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Vignola Industrial</span>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Job Context Meta */}
+      {/* Job Context Meta - Información del Cilindro y Cliente */}
       <div className="bg-white dark:bg-surface-dark px-4 py-3 shadow-sm border-b border-slate-200 dark:border-slate-700/50">
         <div className="flex items-start gap-3">
           <div className="mt-1 bg-blue-500/10 p-2 rounded-lg shrink-0">
             <span className="material-symbols-outlined text-primary text-[20px]">fluid</span>
           </div>
           <div>
-            <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">Cilindro Telescópico</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Cliente: Minera Escondida • Planta Coloso</p>
+            <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+              Cilindro Hidráulico OT #{inspeccion?.sap_cliente || id?.slice(0, 8) || '...'}
+            </p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Cliente: {inspeccion?.nombre_cliente || 'Cargando...'} • CIL: {getNumeroCilindro()}
+            </p>
           </div>
         </div>
       </div>

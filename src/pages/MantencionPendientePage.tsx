@@ -5,6 +5,7 @@ import { BottomNavigation } from '../components/layout/BottomNavigation'
 
 interface OrdenPendiente {
   id: string
+  ot: string
   cilindroId: string
   cliente: string
   tipoCilindro: string
@@ -29,6 +30,7 @@ function MantencionPendientePage() {
       // Mapear a formato de orden pendiente
       const ordenesPendientes = data.map((inspeccion: any) => ({
         id: inspeccion.id,
+        ot: inspeccion.sap_cliente || 'N/A',
         cilindroId: (inspeccion.cilindro as any)?.id_codigo || inspeccion.cilindro_id,
         cliente: inspeccion.nombre_cliente || 'Cliente no especificado',
         tipoCilindro: (inspeccion.cilindro as any)?.tipo || 'Oleohidráulico',
@@ -105,7 +107,7 @@ function MantencionPendientePage() {
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-warning/10 text-warning uppercase tracking-wider mb-2">
                         Pendiente de Mantención
                       </span>
-                      <h3 className="text-xl font-bold text-primary dark:text-white">ID: {orden.cilindroId}</h3>
+                      <h3 className="text-xl font-bold text-primary dark:text-white">OT {orden.ot}</h3>
                     </div>
                     <div className="text-right">
                       <p className="text-2xl font-bold text-success">50%</p>
@@ -120,7 +122,7 @@ function MantencionPendientePage() {
 
                   <div className="flex items-center gap-2 mb-4">
                     <span className="material-symbols-outlined text-gray-400 text-sm">settings</span>
-                    <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">{orden.tipoCilindro}</p>
+                    <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">{orden.cilindroId}</p>
                   </div>
 
                   {/* Progress Bar */}

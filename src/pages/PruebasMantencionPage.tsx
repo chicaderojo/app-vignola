@@ -426,28 +426,28 @@ function PruebasMantencionPage() {
             </button>
           </div>
         </section>
-      </main>
 
-      {/* Fixed Footer Action */}
-      <footer className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 dark:bg-background-dark/95 backdrop-blur-md border-t border-gray-200 dark:border-border-dark z-20 max-w-md mx-auto">
-        <button
-          onClick={handleGenerarInformePDF}
-          disabled={loadingPDF}
-          className="w-full rounded-xl bg-success h-14 text-white text-base font-bold shadow-lg shadow-success/20 hover:bg-success/90 active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {loadingPDF ? (
-            <>
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-              Generando Informe...
-            </>
-          ) : (
-            <>
-              <span className="material-symbols-outlined">picture_as_pdf</span>
-              <span>Generar Informe Técnico PDF</span>
-            </>
-          )}
-        </button>
-      </footer>
+        {/* Botón Generar Informe PDF */}
+        <section className="mt-6">
+          <button
+            onClick={handleGenerarInformePDF}
+            disabled={loadingPDF}
+            className="w-full rounded-xl bg-success h-14 text-white text-base font-bold shadow-lg shadow-success/20 hover:bg-success/90 active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loadingPDF ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                Generando Informe...
+              </>
+            ) : (
+              <>
+                <span className="material-symbols-outlined">picture_as_pdf</span>
+                <span>Generar Informe Técnico PDF</span>
+              </>
+            )}
+          </button>
+        </section>
+      </main>
     </div>
   )
 }

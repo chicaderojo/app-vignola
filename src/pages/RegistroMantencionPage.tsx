@@ -50,16 +50,10 @@ function RegistroMantencionPage() {
         const inspeccion = await supabaseService.getInspeccionById(id)
 
         if (inspeccion) {
-          // Cargar información del trabajo
+          // Cargar información del trabajo desde la inspección
           const cilindro = (inspeccion as any).cilindro
-          setInfoTrabajo({
-            cliente: cilindro?.cliente?.nombre || 'Cliente',
-            ot: cilindro?.ot || inspeccion.cilindro_id?.slice(0, 8).toUpperCase() || '',
-            nSAP: cilindro?.n_sap || 'N/A',
-            planta: cilindro?.planta || 'N/A'
-          })
 
-          // Verificar si es reingreso (tiene _mantencion en notas_recepcion)
+          // Intentar obtener info de notas_recepcion para nSAP y planta
           let infoRecepcion: any = null
           if (inspeccion.notas_recepcion) {
             try {
@@ -68,6 +62,15 @@ function RegistroMantencionPage() {
               console.warn('No se pudo parsear notas_recepcion:', e)
             }
           }
+
+          setInfoTrabajo({
+            cliente: inspeccion.nombre_cliente || infoRecepcion?.cliente || cilindro?.cliente?.nombre || 'Cliente',
+            ot: inspeccion.sap_cliente || 'N/A',
+            nSAP: infoRecepcion?.numeroSAP || 'N/A',
+            planta: infoRecepcion?.planta || 'N/A'
+          })
+
+          // Verificar si es reingreso (tiene _mantencion en notas_recepcion)
 
           // Si tiene datos de mantención previa, cargarlos
           if (infoRecepcion?._mantencion) {

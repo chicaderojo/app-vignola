@@ -40,7 +40,7 @@ export function MantencionesModal({ isOpen, onClose }: MantencionesModalProps) {
       // Esto nos permite filtrar correctamente por etapas
       const { data: allInspecciones } = await supabase
         .from('inspecciones')
-        .select('*, cilindro:cilindros(id_codigo, tipo, fabricante)')
+        .select('*, cilindro:cilindros(id_codigo, tipo, fabricante), cliente:clientes(id, nombre)')
         .order('created_at', { ascending: false })
 
       const inspecciones = allInspecciones || []
@@ -68,9 +68,9 @@ export function MantencionesModal({ isOpen, onClose }: MantencionesModalProps) {
 
           return {
             id: insp.id,
-            codigo: cilindro?.id_codigo || insp.cilindro_id,
-            cliente: cilindro?.cliente?.nombre || 'Cliente',
-            equipo: `${cilindro?.tipo || 'Cilindro'} - ${cilindro?.fabricante || 'Fabricante'}`,
+            codigo: insp.sap_cliente || 'N/A',
+            cliente: insp.nombre_cliente || cilindro?.cliente?.nombre || 'Cliente',
+            equipo: cilindro?.id_codigo || insp.cilindro_id,
             prioridad: 'Normal',
             estado,
             fecha: new Date(insp.created_at).toLocaleDateString('es-CL'),
@@ -244,9 +244,12 @@ export function MantencionesModal({ isOpen, onClose }: MantencionesModalProps) {
                   <div className="p-3">
                     <div className="flex justify-between items-start mb-2">
                       <div>
-                        <h4 className="text-slate-900 dark:text-white font-bold text-lg">{orden.codigo}</h4>
+                        <h4 className="text-slate-900 dark:text-white font-bold text-lg">OT {orden.codigo}</h4>
                         <p className="text-slate-500 dark:text-slate-400 text-sm">
-                          {orden.cliente} • {orden.equipo}
+                          {orden.cliente}
+                        </p>
+                        <p className="text-slate-400 dark:text-slate-500 text-xs mt-0.5">
+                          {orden.equipo}
                         </p>
                       </div>
                       <span className={`text-xs font-medium ${getEstadoColor(orden.estado)}`}>
