@@ -427,6 +427,7 @@ function PruebasMantencionPage() {
             </button>
           </div>
         </section>
+      </main>
 
       {/* Fixed Footer Action */}
       <footer className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 dark:bg-background-dark/95 backdrop-blur-md border-t border-gray-200 dark:border-border-dark z-20 max-w-md mx-auto">
