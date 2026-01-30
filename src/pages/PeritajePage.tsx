@@ -105,7 +105,7 @@ function PeritajePage() {
       await supabaseService.savePeritaje(id, componentes)
 
       alert('✅ Peritaje guardado. Puedes continuar después.')
-      navigate('/monitoreo')
+      navigate('/')
     } catch (error: any) {
       console.error('Error guardando peritaje:', error)
       alert(`Error al guardar: ${error.message}`)
@@ -152,7 +152,7 @@ function PeritajePage() {
 
       // 5. Mostrar éxito y navegar
       alert('✅ Peritaje finalizado y PDF generado exitosamente')
-      navigate('/monitoreo')
+      navigate('/')
     } catch (error: any) {
       console.error('Error al guardar y generar PDF:', error)
       alert(`Error: ${error.message}`)

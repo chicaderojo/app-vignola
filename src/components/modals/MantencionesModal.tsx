@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabaseService } from '../../services/supabaseService'
+import { supabaseService, supabase } from '../../services/supabaseService'
 import { Inspeccion } from '../../types'
 
 interface OrdenMantencion {
@@ -37,22 +37,33 @@ export function MantencionesModal({ isOpen, onClose }: MantencionesModalProps) {
     try {
       setLoading(true)
 
-      // Cargar todas las inspecciones en estado borrador (podrían estar en mantención)
-      const inspecciones = await supabaseService.getInspeccionesByEstado('borrador')
+      // Cargar todas las inspecciones (tanto borrador como completa)
+      // Esto nos permite filtrar correctamente por etapas
+      const { data: allInspecciones } = await supabase
+        .from('inspecciones')
+        .select('*, cilindro:cilindros(id_codigo, tipo, fabricante)')
+        .order('created_at', { ascending: false })
 
-      // Filtrar las que están en proceso de mantención o listas
+      const inspecciones = allInspecciones || []
+
+      // Filtrar usando la misma lógica que getDashboardStats()
+      // "En Mantención": completa + con peritaje + sin mantencion
       const ordenesMantencion: OrdenMantencion[] = inspecciones
         .filter((insp: any) => {
           const etapas = insp.etapas_completadas || []
-          // Está en mantención si tiene peritaje completado pero no está finalizada
-          return etapas.includes('peritaje') && !etapas.includes('finalizado')
+          return insp.estado_inspeccion === 'completa' &&
+                 etapas.includes('peritaje') &&
+                 !etapas.includes('mantencion')
         })
         .map((insp: any) => {
           const cilindro = insp.cilindro as any
           const etapas = insp.etapas_completadas || []
 
+          // Determinar sub-estado para mostrar en el modal
           let estado: OrdenMantencion['estado'] = 'en_proceso'
-          if (etapas.includes('pruebas')) {
+          if (etapas.includes('pruebas_presion') && !etapas.includes('pruebas')) {
+            estado = 'listo_pruebas'
+          } else if (!etapas.includes('pruebas')) {
             estado = 'listo_mantencion'
           }
 

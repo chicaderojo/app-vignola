@@ -21,6 +21,7 @@ function DashboardPage() {
   const [stats, setStats] = useState({
     totalInspecciones: 0,
     inspeccionesPendientes: 0,
+    inspeccionesEnMantencion: 0,
     inspeccionesCompletas: 0,
     cilindrosActivos: 0
   })
@@ -77,7 +78,7 @@ function DashboardPage() {
 
   // Calcular contadores dinámicos desde Supabase
   const contarInspecciones = () => stats.inspeccionesPendientes
-  const contarMantencion = () => Math.floor(stats.totalInspecciones * 0.3) // Estimado
+  const contarMantencion = () => stats.inspeccionesEnMantencion || 0
   const contarListas = () => stats.inspeccionesCompletas
 
   const verificarEstadoOnline = () => {

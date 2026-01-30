@@ -648,43 +648,61 @@ export const supabaseService = {
   async getDashboardStats(): Promise<{
     totalInspecciones: number
     inspeccionesPendientes: number
+    inspeccionesEnMantencion: number
     inspeccionesCompletas: number
     cilindrosActivos: number
   }> {
     console.log('Obteniendo estadísticas de Supabase...')
 
-    const [totalResult, pendientesResult, completasResult, cilindrosResult] = await Promise.all([
-      supabase.from('inspecciones').select('*', { count: 'exact', head: true }),
-      supabase.from('inspecciones').select('*', { count: 'exact', head: true }).eq('estado_inspeccion', 'borrador'),
-      supabase.from('inspecciones').select('*', { count: 'exact', head: true }).in('estado_inspeccion', ['completa', 'sincronizada']),
-      supabase.from('cilindros').select('*', { count: 'exact', head: true })
-    ])
+    // Obtener todas las inspecciones con sus datos
+    const { data: allInspecciones, error: inspeccionesError } = await supabase
+      .from('inspecciones')
+      .select('*, cilindro:cilindros(id_codigo, tipo, fabricante)')
+      .order('created_at', { ascending: false })
 
-    // Log detallado de resultados
-    console.log('Resultados crudos:', JSON.stringify({
-      total: totalResult,
-      pendientes: pendientesResult,
-      completas: completasResult,
-      cilindros: cilindrosResult
-    }, null, 2))
+    // Obtener conteo de cilindros
+    const cilindrosResult = await supabase.from('cilindros').select('*', { count: 'exact', head: true })
 
-    // Log de errores si existen
-    if (totalResult.error) console.error('Error totalInspecciones:', totalResult.error)
-    if (pendientesResult.error) console.error('Error inspeccionesPendientes:', pendientesResult.error)
-    if (completasResult.error) console.error('Error inspeccionesCompletas:', completasResult.error)
-    if (cilindrosResult.error) console.error('Error cilindrosActivos:', cilindrosResult.error)
+    if (inspeccionesError) {
+      console.error('Error obteniendo inspecciones:', inspeccionesError)
+    }
 
-    console.log('Conteos:', {
-      total: totalResult.count,
-      pendientes: pendientesResult.count,
-      completas: completasResult.count,
+    const inspecciones = allInspecciones || []
+
+    // Filtrar por etapas completadas
+    const enInspeccion = inspecciones.filter((insp: any) => {
+      const etapas = insp.etapas_completadas || []
+      return insp.estado_inspeccion === 'borrador' &&
+             (!etapas.includes('peritaje') || (etapas.includes('peritaje') && !etapas.includes('mantencion')))
+    })
+
+    const enMantencion = inspecciones.filter((insp: any) => {
+      const etapas = insp.etapas_completadas || []
+      return insp.estado_inspeccion === 'completa' &&
+             etapas.includes('peritaje') &&
+             !etapas.includes('mantencion')
+    })
+
+    const finalizados = inspecciones.filter((insp: any) => {
+      const etapas = insp.etapas_completadas || []
+      return insp.estado_inspeccion === 'completa' &&
+             etapas.includes('peritaje') &&
+             etapas.includes('mantencion')
+    })
+
+    console.log('Conteos por etapa:', {
+      total: inspecciones.length,
+      enInspeccion: enInspeccion.length,
+      enMantencion: enMantencion.length,
+      finalizados: finalizados.length,
       cilindros: cilindrosResult.count
     })
 
     return {
-      totalInspecciones: totalResult.count || 0,
-      inspeccionesPendientes: pendientesResult.count || 0,
-      inspeccionesCompletas: completasResult.count || 0,
+      totalInspecciones: inspecciones.length,
+      inspeccionesPendientes: enInspeccion.length,
+      inspeccionesEnMantencion: enMantencion.length,
+      inspeccionesCompletas: finalizados.length,
       cilindrosActivos: cilindrosResult.count || 0
     }
   },
@@ -944,7 +962,7 @@ export const supabaseService = {
     inspeccionId: string,
     registro: {
       componentes: any[]
-      verificaciones: { limpieza: boolean; lubricacion: boolean; pruebaPresion: boolean }
+      verificaciones?: { limpieza: boolean; lubricacion: boolean; pruebaPresion: boolean }
       observaciones: string
     }
   ): Promise<void> {
@@ -1024,6 +1042,8 @@ export const supabaseService = {
       fallas: string
       observaciones: string
       fotos: string[]
+      fotos_fuga_interna?: string[]
+      fotos_fuga_externa?: string[]
     }
   ): Promise<void> {
     // Primero verificar si ya existen datos en notas_recepcion
