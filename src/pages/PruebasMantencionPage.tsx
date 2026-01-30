@@ -39,7 +39,6 @@ function PruebasMantencionPage() {
   const [fotos, setFotos] = useState<string[]>([])
   const [fotosFugaInterna, setFotosFugaInterna] = useState<string[]>([])
   const [fotosFugaExterna, setFotosFugaExterna] = useState<string[]>([])
-  const [loading, setLoading] = useState(false)
   const [loadingPDF, setLoadingPDF] = useState(false)
 
   const handleBack = () => {

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabaseService, supabase } from '../../services/supabaseService'
-import { Inspeccion } from '../../types'
+import { supabase } from '../../services/supabaseService'
 
 interface OrdenMantencion {
   id: string

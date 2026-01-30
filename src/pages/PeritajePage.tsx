@@ -179,35 +179,6 @@ function PeritajePage() {
     setComponentes([...componentes, componente])
   }
 
-  const handleGenerarPDF = async () => {
-    if (!id) {
-      alert('Error: ID de inspección no válido')
-      return
-    }
-
-    try {
-      setLoadingPDF(true)
-
-      // Obtener datos completos de la inspección
-      const inspeccionData = await supabaseService.getInspeccionCompleta(id)
-
-      if (!inspeccionData) {
-        alert('Error: No se pudieron cargar los datos de la inspección')
-        return
-      }
-
-      // Generar PDF
-      await generatePeritajePDF(inspeccionData, componentes)
-
-      alert('✅ PDF generado exitosamente')
-    } catch (error: any) {
-      console.error('Error generando PDF:', error)
-      alert(`Error al generar PDF: ${error.message}`)
-    } finally {
-      setLoadingPDF(false)
-    }
-  }
-
   const actualizarEstado = (index: number, nuevoEstado: ComponenteStatus) => {
     const nuevosComponentes = [...componentes]
     nuevosComponentes[index].estado = nuevoEstado
