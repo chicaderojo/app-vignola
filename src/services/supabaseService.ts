@@ -1078,6 +1078,60 @@ export const supabaseService = {
       .eq('id', inspeccionId)
 
     if (error) throw error
+  },
+
+  /**
+   * Limpiar todas las inspecciones de la base de datos
+   * Elimina inspecciones, detalles y cilindros asociados
+   */
+  async limpiarTodasLasInspecciones(): Promise<{ eliminadas: number; error?: string }> {
+    try {
+      // Primero, obtener todas las inspecciones para saber los IDs de cilindros
+      const { data: inspecciones, error: errorInspecciones } = await supabase
+        .from('inspecciones')
+        .select('id, cilindro_id')
+
+      if (errorInspecciones) throw errorInspecciones
+
+      if (!inspecciones || inspecciones.length === 0) {
+        return { eliminadas: 0 }
+      }
+
+      // Recopilar IDs únicos de cilindros
+      const cilindroIds = [...new Set(inspecciones.map(i => i.cilindro_id).filter(Boolean))]
+      const inspeccionIds = inspecciones.map(i => i.id)
+
+      // Eliminar detalles de inspección (registros de mantención, peritajes, etc.)
+      const { error: errorDetalles } = await supabase
+        .from('inspeccion_detalles')
+        .delete()
+        .in('inspeccion_id', inspeccionIds)
+
+      if (errorDetalles) console.warn('Advertencia eliminando detalles:', errorDetalles)
+
+      // Eliminar inspecciones
+      const { error: errorInspeccionesDelete } = await supabase
+        .from('inspecciones')
+        .delete()
+        .in('id', inspeccionIds)
+
+      if (errorInspeccionesDelete) throw errorInspeccionesDelete
+
+      // Eliminar cilindros huérfanos
+      if (cilindroIds.length > 0) {
+        const { error: errorCilindros } = await supabase
+          .from('cilindros')
+          .delete()
+          .in('id', cilindroIds)
+
+        if (errorCilindros) console.warn('Advertencia eliminando cilindros:', errorCilindros)
+      }
+
+      return { eliminadas: inspecciones.length }
+    } catch (error: any) {
+      console.error('Error limpiando inspecciones:', error)
+      return { eliminadas: 0, error: error.message }
+    }
   }
 }
 

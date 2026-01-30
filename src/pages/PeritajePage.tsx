@@ -13,6 +13,7 @@ interface Componente {
   estado: ComponenteStatus
   observaciones: string
   fotos: string[]
+  requiereFabricacion: boolean
   expandido: boolean
 }
 
@@ -51,7 +52,8 @@ function PeritajePage() {
               estado,
               observaciones: det.observaciones || det.detalle_tecnico || '',
               fotos: det.fotos_urls || [],
-              expandido: estado !== 'pending' && estado !== 'bueno'
+              requiereFabricacion: false,
+              expandido: estado !== 'pending'
             }
           })
           setComponentes(componentesFromDB)
@@ -63,6 +65,7 @@ function PeritajePage() {
             estado: 'pending' as ComponenteStatus,
             observaciones: '',
             fotos: [],
+            requiereFabricacion: false,
             expandido: false
           }))
           setComponentes(componentesBase)
@@ -76,6 +79,7 @@ function PeritajePage() {
           estado: 'pending' as ComponenteStatus,
           observaciones: '',
           fotos: [],
+          requiereFabricacion: false,
           expandido: false
         }))
         setComponentes(componentesBase)
@@ -173,7 +177,8 @@ function PeritajePage() {
       estado: nuevoComponente.estado,
       observaciones: nuevoComponente.observaciones,
       fotos: nuevoComponente.fotos,
-      expandido: nuevoComponente.estado !== 'pending' && nuevoComponente.estado !== 'bueno'
+      requiereFabricacion: false,
+      expandido: nuevoComponente.estado !== 'pending'
     }
 
     setComponentes([...componentes, componente])
@@ -183,11 +188,17 @@ function PeritajePage() {
     const nuevosComponentes = [...componentes]
     nuevosComponentes[index].estado = nuevoEstado
 
-    // Si se selecciona un estado diferente de pending, expandir el componente
+    // Expandir siempre que se seleccione un estado diferente de pending
     if (nuevoEstado !== 'pending') {
       nuevosComponentes[index].expandido = true
     }
 
+    setComponentes(nuevosComponentes)
+  }
+
+  const actualizarRequiereFabricacion = (index: number, valor: boolean) => {
+    const nuevosComponentes = [...componentes]
+    nuevosComponentes[index].requiereFabricacion = valor
     setComponentes(nuevosComponentes)
   }
 
@@ -322,8 +333,10 @@ function PeritajePage() {
             }`}
           >
             {/* Barra lateral de color */}
-            {componente.estado === 'mantencion' && componente.expandido && (
-              <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-status-maintain"></div>
+            {(componente.estado === 'mantencion' || componente.estado === 'cambio') && componente.expandido && (
+              <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${
+                componente.estado === 'mantencion' ? 'bg-status-maintain' : 'bg-status-replace'
+              }`}></div>
             )}
 
             <div className="p-4">
@@ -356,7 +369,8 @@ function PeritajePage() {
                        componente.estado === 'mantencion' ? 'build' : 'cancel'}
                     </span>
                     <span>{componente.estado === 'bueno' ? 'BUENO' :
-                           componente.estado === 'mantencion' ? 'MANTENCIÓN' : 'CAMBIO'}</span>
+                           componente.estado === 'mantencion' ? 'MANTENCIÓN' :
+                           componente.requiereFabricacion ? 'CAMBIO (FABRICAR)' : 'CAMBIO'}</span>
                   </div>
                 )}
               </div>
@@ -424,6 +438,28 @@ function PeritajePage() {
                     />
                   </div>
 
+                  {/* Checkbox de fabricación para estado cambio */}
+                  {componente.estado === 'cambio' && (
+                    <div className="flex items-center gap-3 p-3 bg-status-replace/10 rounded-lg border border-status-replace/20">
+                      <button
+                        onClick={() => actualizarRequiereFabricacion(index, !componente.requiereFabricacion)}
+                        className={`relative w-6 h-6 rounded-md border-2 transition-all flex items-center justify-center ${
+                          componente.requiereFabricacion
+                            ? 'bg-status-replace border-status-replace'
+                            : 'border-slate-400 dark:border-slate-600'
+                        }`}
+                      >
+                        {componente.requiereFabricacion && (
+                          <span className="material-symbols-outlined text-white text-[16px]">check</span>
+                        )}
+                      </button>
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">Requiere Fabricación</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Marca si la pieza debe ser fabricada</p>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Evidence Section - AHORA DISPONIBLE PARA TODOS LOS ESTADOS */}
                   <div className="flex gap-2 overflow-x-auto pb-1">
                     {componente.fotos.map((foto, fotoIndex) => (
@@ -454,64 +490,19 @@ function PeritajePage() {
                 </div>
               )}
 
-              {/* Section para componentes en estado bueno */}
-              {componente.estado === 'bueno' && (
-                <div className="pl-2 space-y-3">
-                  {/* Observaciones para estado bueno */}
-                  <div>
-                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5 block">
-                      Observaciones
-                    </label>
-                    <textarea
-                      value={componente.observaciones}
-                      onChange={(e) => actualizarObservaciones(index, e.target.value)}
-                      className="w-full bg-background-light dark:bg-background-dark border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:ring-1 focus:ring-status-good focus:border-status-good outline-none resize-none"
-                      placeholder="Añada observaciones sobre el estado bueno del componente..."
-                      rows={2}
-                    />
-                  </div>
-
-                  {/* Evidence Section - SIEMPRE DISPONIBLE */}
-                  <div>
-                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5 block">
-                      Evidencia Fotográfica
-                    </label>
-                    <div className="flex gap-2 overflow-x-auto pb-1">
-                      {componente.fotos.map((foto, fotoIndex) => (
-                        <div
-                          key={fotoIndex}
-                          className="relative size-16 shrink-0 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 group/img"
-                        >
-                          <img
-                            alt={`Evidencia ${fotoIndex + 1}`}
-                            className="object-cover w-full h-full opacity-80"
-                            src={foto}
-                          />
-                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity">
-                            <span className="material-symbols-outlined text-white text-sm">visibility</span>
-                          </div>
-                        </div>
-                      ))}
-
-                      {/* Add Photo Button - SIEMPRE VISIBLE */}
-                      <button
-                        onClick={() => handleAgregarFoto(index)}
-                        className="size-16 shrink-0 rounded-lg border border-dashed border-slate-400 dark:border-slate-600 flex flex-col items-center justify-center text-slate-500 hover:text-primary hover:border-primary hover:bg-primary/5 transition-all"
-                      >
-                        <span className="material-symbols-outlined text-[20px]">add_a_photo</span>
-                        <span className="text-[9px] font-medium mt-1">Foto</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Collapsed View (for completed items other than bueno) */}
-              {componente.expandido === false && componente.estado !== 'pending' && componente.estado !== 'bueno' && (
+              {/* Collapsed View (for completed items) */}
+              {componente.expandido === false && componente.estado !== 'pending' && (
                 <div className="flex items-center justify-between text-xs text-slate-500">
-                  <span className="truncate max-w-[200px]">
-                    {componente.observaciones || 'Sin observaciones'}
-                  </span>
+                  <div className="flex flex-col">
+                    <span className="truncate max-w-[200px]">
+                      {componente.observaciones || 'Sin observaciones'}
+                    </span>
+                    {componente.estado === 'cambio' && componente.requiereFabricacion && (
+                      <span className="text-status-replace font-medium mt-0.5">
+                        Requiere Fabricación
+                      </span>
+                    )}
+                  </div>
                   <button
                     onClick={() => toggleExpandido(index)}
                     className="text-primary hover:text-white hover:underline flex items-center gap-1"
