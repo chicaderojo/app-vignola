@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { supabaseService } from '../services/supabaseService'
 import { COMPONENTES_BASE } from '../types'
 
-type AccionMantencion = 'ninguna' | 'brunido' | 'rectificado' | 'soldadura' | 'cambio_total'
+type AccionMantencion = 'ninguna' | 'lijar' | 'pulir' | 'limpiar' | 'brunir' | 'fabricacion' | 'reemplazo'
 
 interface ComponenteMantencion {
   id: string
@@ -12,13 +12,8 @@ interface ComponenteMantencion {
   detallesTecnicos: string
   fotoAntes: string | null
   fotoDespues: string | null
+  fotoProceso: string | null
   expandido: boolean
-}
-
-interface Verificaciones {
-  limpieza: boolean
-  lubricacion: boolean
-  pruebaPresion: boolean
 }
 
 function RegistroMantencionPage() {
@@ -29,15 +24,21 @@ function RegistroMantencionPage() {
   const [loadingInicial, setLoadingInicial] = useState(true)
   const [esReingreso, setEsReingreso] = useState(false)
 
+  // Información del trabajo
+  const [infoTrabajo, setInfoTrabajo] = useState<{
+    cliente: string
+    ot: string
+    nSAP: string
+    planta: string
+  }>({
+    cliente: '',
+    ot: '',
+    nSAP: '',
+    planta: ''
+  })
+
   // Componentes de mantención
   const [componentes, setComponentes] = useState<ComponenteMantencion[]>([])
-
-  // Verificaciones rápidas
-  const [verificaciones, setVerificaciones] = useState<Verificaciones>({
-    limpieza: false,
-    lubricacion: false,
-    pruebaPresion: false
-  })
 
   // Cargar datos de la inspección
   useEffect(() => {
@@ -49,6 +50,15 @@ function RegistroMantencionPage() {
         const inspeccion = await supabaseService.getInspeccionById(id)
 
         if (inspeccion) {
+          // Cargar información del trabajo
+          const cilindro = (inspeccion as any).cilindro
+          setInfoTrabajo({
+            cliente: cilindro?.cliente?.nombre || 'Cliente',
+            ot: cilindro?.ot || inspeccion.cilindro_id?.slice(0, 8).toUpperCase() || '',
+            nSAP: cilindro?.n_sap || 'N/A',
+            planta: cilindro?.planta || 'N/A'
+          })
+
           // Verificar si es reingreso (tiene _mantencion en notas_recepcion)
           let infoRecepcion: any = null
           if (inspeccion.notas_recepcion) {
@@ -75,28 +85,73 @@ function RegistroMantencionPage() {
                 detallesTecnicos: compPrev?.detallesTecnicos || '',
                 fotoAntes: compPrev?.fotoAntes || null,
                 fotoDespues: compPrev?.fotoDespues || null,
+                fotoProceso: compPrev?.fotoProceso || null,
                 expandido: compPrev?.accion !== 'ninguna'
               }
             })
 
             setComponentes(componentesConDatos)
-            setVerificaciones(mantencionPrev.verificaciones || {
-              limpieza: false,
-              lubricacion: false,
-              pruebaPresion: false
-            })
           } else {
-            // Inicializar componentes vacíos (flujo normal)
-            const componentesBase = COMPONENTES_BASE.map((nombre, index) => ({
-              id: `mant-${index}`,
-              nombre,
-              accion: 'ninguna' as AccionMantencion,
-              detallesTecnicos: '',
-              fotoAntes: null,
-              fotoDespues: null,
-              expandido: false
-            }))
-            setComponentes(componentesBase)
+            // Cargar componentes del peritaje si existen
+            try {
+              const detallesPeritaje = await supabaseService.getInspeccionDetalles(id)
+
+              if (detallesPeritaje && detallesPeritaje.length > 0) {
+                // Hay componentes del peritaje, convertirlos a formato de mantención
+                const componentesDesdePeritaje: ComponenteMantencion[] = detallesPeritaje.map((detalle, index) => {
+                  // Mapear estado de detalle_peritaje a acción de mantención
+                  let accion: AccionMantencion = 'ninguna'
+                  if (detalle.estado === 'Bueno') {
+                    accion = 'ninguna' // Está bueno, no requiere acción
+                  } else if (detalle.estado === 'Mantención') {
+                    accion = 'brunir' // Acción por defecto para mantención
+                  } else if (detalle.estado === 'Cambio') {
+                    accion = 'reemplazo'
+                  }
+
+                  return {
+                    id: `peritaje-${index}`,
+                    nombre: detalle.componente,
+                    accion,
+                    detallesTecnicos: detalle.detalle_tecnico || '',
+                    fotoAntes: null, // Se podría cargar la primera foto como foto antes si existe
+                    fotoDespues: null,
+                    fotoProceso: null,
+                    expandido: detalle.estado !== 'Bueno' // Expandir si no está bueno
+                  }
+                })
+
+                setComponentes(componentesDesdePeritaje)
+                setEsReingreso(false) // No es reingreso, pero sí tiene datos de peritaje
+              } else {
+                // No hay detalles de peritaje, inicializar vacíos
+                const componentesBase = COMPONENTES_BASE.map((nombre, index) => ({
+                  id: `mant-${index}`,
+                  nombre,
+                  accion: 'ninguna' as AccionMantencion,
+                  detallesTecnicos: '',
+                  fotoAntes: null,
+                  fotoDespues: null,
+                  fotoProceso: null,
+                  expandido: false
+                }))
+                setComponentes(componentesBase)
+              }
+            } catch (error) {
+              console.error('Error cargando detalles de peritaje:', error)
+              // Si falla, inicializar vacíos
+              const componentesBase = COMPONENTES_BASE.map((nombre, index) => ({
+                id: `mant-${index}`,
+                nombre,
+                accion: 'ninguna' as AccionMantencion,
+                detallesTecnicos: '',
+                fotoAntes: null,
+                fotoDespues: null,
+                fotoProceso: null,
+                expandido: false
+              }))
+              setComponentes(componentesBase)
+            }
           }
         }
       } catch (error) {
@@ -111,6 +166,31 @@ function RegistroMantencionPage() {
 
   const handleBack = () => {
     navigate('/mantencion-pendiente')
+  }
+
+  const handleGuardarPorAhora = async () => {
+    if (!id) {
+      alert('Error: ID de inspección no válido')
+      return
+    }
+
+    try {
+      setLoading(true)
+
+      // Guardar registro de mantención temporal
+      await supabaseService.saveMantencion(id, {
+        componentes,
+        observaciones: ''
+      })
+
+      alert('✅ Registro guardado. Puedes continuar después.')
+      navigate('/mantencion-pendiente')
+    } catch (error: any) {
+      console.error('Error guardando mantención:', error)
+      alert(`Error al guardar: ${error.message}`)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handlePasarAPruebas = async () => {
@@ -132,7 +212,6 @@ function RegistroMantencionPage() {
       // Guardar registro de mantención antes de navegar
       await supabaseService.saveMantencion(id, {
         componentes,
-        verificaciones,
         observaciones: ''
       })
 
@@ -164,7 +243,7 @@ function RegistroMantencionPage() {
     setComponentes(nuevosComponentes)
   }
 
-  const handleAgregarFoto = (index: number, tipo: 'antes' | 'despues') => {
+  const handleAgregarFoto = (index: number, tipo: 'antes' | 'despues' | 'proceso') => {
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = 'image/*'
@@ -178,8 +257,10 @@ function RegistroMantencionPage() {
           const nuevosComponentes = [...componentes]
           if (tipo === 'antes') {
             nuevosComponentes[index].fotoAntes = reader.result as string
-          } else {
+          } else if (tipo === 'despues') {
             nuevosComponentes[index].fotoDespues = reader.result as string
+          } else {
+            nuevosComponentes[index].fotoProceso = reader.result as string
           }
           setComponentes(nuevosComponentes)
         }
@@ -188,13 +269,6 @@ function RegistroMantencionPage() {
     }
 
     input.click()
-  }
-
-  const toggleVerificacion = (key: keyof Verificaciones) => {
-    setVerificaciones(prev => ({
-      ...prev,
-      [key]: !prev[key]
-    }))
   }
 
   if (loadingInicial) {
@@ -263,11 +337,19 @@ function RegistroMantencionPage() {
           <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
             <div className="p-4 grid grid-cols-[30%_1fr] gap-x-4 border-b border-gray-100 dark:border-gray-800">
               <p className="text-gray-500 dark:text-gray-400 text-sm">Cliente</p>
-              <p className="text-sm font-medium">Vignola Corp</p>
+              <p className="text-sm font-medium">{infoTrabajo.cliente}</p>
+            </div>
+            <div className="p-4 grid grid-cols-[30%_1fr] gap-x-4 border-b border-gray-100 dark:border-gray-800">
+              <p className="text-gray-500 dark:text-gray-400 text-sm">OT</p>
+              <p className="text-sm font-medium">{infoTrabajo.ot}</p>
+            </div>
+            <div className="p-4 grid grid-cols-[30%_1fr] gap-x-4 border-b border-gray-100 dark:border-gray-800">
+              <p className="text-gray-500 dark:text-gray-400 text-sm">N° SAP</p>
+              <p className="text-sm font-medium">{infoTrabajo.nSAP}</p>
             </div>
             <div className="p-4 grid grid-cols-[30%_1fr] gap-x-4">
-              <p className="text-gray-500 dark:text-gray-400 text-sm">ID Cilindro</p>
-              <p className="text-sm font-medium">{id?.slice(0, 8).toUpperCase()} (Telescópico)</p>
+              <p className="text-gray-500 dark:text-gray-400 text-sm">Planta</p>
+              <p className="text-sm font-medium">{infoTrabajo.planta}</p>
             </div>
           </div>
         </section>
@@ -318,10 +400,12 @@ function RegistroMantencionPage() {
                       className="w-full bg-background-light dark:bg-background-dark border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-primary focus:border-primary"
                     >
                       <option value="ninguna">Seleccione acción...</option>
-                      <option value="brunido">Bruñido (Honing)</option>
-                      <option value="rectificado">Rectificado</option>
-                      <option value="soldadura">Soldadura</option>
-                      <option value="cambio_total">Cambio Total</option>
+                      <option value="lijar">Lijar</option>
+                      <option value="pulir">Pulir</option>
+                      <option value="limpiar">Limpiar</option>
+                      <option value="brunir">Bruñir</option>
+                      <option value="fabricacion">Fabricación</option>
+                      <option value="reemplazo">Reemplazo</option>
                     </select>
                   </div>
 
@@ -341,95 +425,132 @@ function RegistroMantencionPage() {
 
                   {/* Photo Upload Area */}
                   <div className="grid grid-cols-2 gap-3">
-                    <button
-                      onClick={() => handleAgregarFoto(index, 'antes')}
-                      className={`flex flex-col items-center justify-center border-2 rounded-lg p-3 transition-colors ${
-                        componente.fotoAntes
-                          ? 'border-solid border-green-500 bg-green-50 dark:bg-green-900/20'
-                          : 'border-dashed border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
-                      }`}
-                    >
-                      <span className="material-symbols-outlined text-gray-400 mb-1">add_a_photo</span>
-                      <span className="text-[10px] font-bold text-gray-500 uppercase">
-                        {componente.fotoAntes ? 'Foto Antes ✓' : 'Foto Antes'}
-                      </span>
-                    </button>
+                    <div className="relative">
+                      <button
+                        onClick={() => handleAgregarFoto(index, 'antes')}
+                        className={`w-full flex flex-col items-center justify-center border-2 rounded-lg overflow-hidden transition-colors ${
+                          componente.fotoAntes
+                            ? 'border-solid border-green-500 h-32'
+                            : 'border-dashed border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 p-3'
+                        }`}
+                      >
+                        {componente.fotoAntes ? (
+                          <img
+                            src={componente.fotoAntes}
+                            alt="Foto Antes"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <>
+                            <span className="material-symbols-outlined text-gray-400 mb-1">add_a_photo</span>
+                            <span className="text-[10px] font-bold text-gray-500 uppercase">Foto Antes</span>
+                          </>
+                        )}
+                      </button>
+                      {componente.fotoAntes && (
+                        <button
+                          onClick={() => {
+                            const nuevosComponentes = [...componentes]
+                            nuevosComponentes[index].fotoAntes = null
+                            setComponentes(nuevosComponentes)
+                          }}
+                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 shadow-lg hover:bg-red-600"
+                        >
+                          <span className="material-symbols-outlined text-sm">close</span>
+                        </button>
+                      )}
+                    </div>
 
-                    <button
-                      onClick={() => handleAgregarFoto(index, 'despues')}
-                      className={`flex flex-col items-center justify-center border-2 rounded-lg p-3 transition-colors ${
-                        componente.fotoDespues
-                          ? 'border-solid border-primary bg-primary/10'
-                          : 'border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10'
-                      }`}
-                    >
-                      <span className="material-symbols-outlined text-primary mb-1">photo_camera</span>
-                      <span className="text-[10px] font-bold text-primary uppercase">
-                        {componente.fotoDespues ? 'Foto Después ✓' : 'Foto Después'}
-                      </span>
-                    </button>
+                    <div className="relative">
+                      <button
+                        onClick={() => handleAgregarFoto(index, 'despues')}
+                        className={`w-full flex flex-col items-center justify-center border-2 rounded-lg overflow-hidden transition-colors ${
+                          componente.fotoDespues
+                            ? 'border-solid border-primary h-32'
+                            : 'border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 p-3'
+                        }`}
+                      >
+                        {componente.fotoDespues ? (
+                          <img
+                            src={componente.fotoDespues}
+                            alt="Foto Después"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <>
+                            <span className="material-symbols-outlined text-primary mb-1">photo_camera</span>
+                            <span className="text-[10px] font-bold text-primary uppercase">Foto Después</span>
+                          </>
+                        )}
+                      </button>
+                      {componente.fotoDespues && (
+                        <button
+                          onClick={() => {
+                            const nuevosComponentes = [...componentes]
+                            nuevosComponentes[index].fotoDespues = null
+                            setComponentes(nuevosComponentes)
+                          }}
+                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 shadow-lg hover:bg-red-600"
+                        >
+                          <span className="material-symbols-outlined text-sm">close</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Photo Upload for Action - Show when action is selected */}
+                  {componente.accion !== 'ninguna' && (
+                    <div className="mt-3">
+                      <div className="relative">
+                        <button
+                          onClick={() => handleAgregarFoto(index, 'proceso')}
+                          className={`w-full flex flex-col items-center justify-center border-2 rounded-lg overflow-hidden transition-colors ${
+                            componente.fotoProceso
+                              ? 'border-solid border-blue-500 h-32'
+                              : 'border-dashed border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 p-3'
+                          }`}
+                        >
+                          {componente.fotoProceso ? (
+                            <img
+                              src={componente.fotoProceso}
+                              alt="Foto del Proceso"
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <>
+                              <span className="material-symbols-outlined text-blue-500 mb-1">photo_camera</span>
+                              <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase">Agregar Foto del Proceso</span>
+                            </>
+                          )}
+                        </button>
+                        {componente.fotoProceso && (
+                          <button
+                            onClick={() => {
+                              const nuevosComponentes = [...componentes]
+                              nuevosComponentes[index].fotoProceso = null
+                              setComponentes(nuevosComponentes)
+                            }}
+                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 shadow-lg hover:bg-red-600"
+                          >
+                            <span className="material-symbols-outlined text-sm">close</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </details>
           ))}
         </section>
-
-        {/* Maintenance Checklist / Quick Options */}
-        <section className="px-4 mt-2">
-          <h3 className="text-xs font-bold text-gray-500 uppercase mb-3">Verificaciones Rápidas</h3>
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => toggleVerificacion('limpieza')}
-              className={`px-3 py-2 rounded-full text-xs font-medium flex items-center gap-2 transition-colors ${
-                verificaciones.limpieza
-                  ? 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-green-600'
-                  : 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-600'
-              }`}
-            >
-              <span className={`material-symbols-outlined text-sm ${verificaciones.limpieza ? 'text-green-500' : 'text-gray-300'}`}>
-                {verificaciones.limpieza ? 'check_circle' : 'circle'}
-              </span>
-              Limpieza OK
-            </button>
-
-            <button
-              onClick={() => toggleVerificacion('lubricacion')}
-              className={`px-3 py-2 rounded-full text-xs font-medium flex items-center gap-2 transition-colors ${
-                verificaciones.lubricacion
-                  ? 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-green-600'
-                  : 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-600'
-              }`}
-            >
-              <span className={`material-symbols-outlined text-sm ${verificaciones.lubricacion ? 'text-green-500' : 'text-gray-300'}`}>
-                {verificaciones.lubricacion ? 'check_circle' : 'circle'}
-              </span>
-              Lubricación
-            </button>
-
-            <button
-              onClick={() => toggleVerificacion('pruebaPresion')}
-              className={`px-3 py-2 rounded-full text-xs font-medium flex items-center gap-2 transition-colors ${
-                verificaciones.pruebaPresion
-                  ? 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-green-600'
-                  : 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-600'
-              }`}
-            >
-              <span className={`material-symbols-outlined text-sm ${verificaciones.pruebaPresion ? 'text-green-500' : 'text-gray-300'}`}>
-                {verificaciones.pruebaPresion ? 'check_circle' : 'circle'}
-              </span>
-              Prueba Presión
-            </button>
-          </div>
-        </section>
       </main>
 
       {/* Fixed Bottom Footer Action */}
-      <footer className="fixed bottom-0 left-0 right-0 p-4 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 z-20 max-w-md mx-auto">
+      <footer className="fixed bottom-0 left-0 right-0 p-4 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 z-[60] max-w-md mx-auto">
         <div className="max-w-md mx-auto">
           <button
             onClick={handlePasarAPruebas}
-            className="w-full bg-success text-white font-bold py-4 rounded-xl shadow-lg shadow-success/20 flex items-center justify-center gap-2 active:scale-95 transition-transform"
+            className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-green-500/20 flex items-center justify-center gap-2 active:scale-95 transition-transform"
           >
             <span className="material-symbols-outlined">task_alt</span>
             Pasar a Pruebas de Presión

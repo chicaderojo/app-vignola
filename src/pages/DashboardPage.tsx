@@ -6,6 +6,8 @@ import { useTheme } from '../hooks/useTheme'
 import { supabaseService } from '../services/supabaseService'
 import { Inspeccion } from '../types'
 import { BottomNavigation } from '../components/layout/BottomNavigation'
+import { InspeccionesModal } from '../components/modals/InspeccionesModal'
+import { MantencionesModal } from '../components/modals/MantencionesModal'
 
 function DashboardPage() {
   const navigate = useNavigate()
@@ -19,9 +21,12 @@ function DashboardPage() {
   const [stats, setStats] = useState({
     totalInspecciones: 0,
     inspeccionesPendientes: 0,
+    inspeccionesEnMantencion: 0,
     inspeccionesCompletas: 0,
     cilindrosActivos: 0
   })
+  const [showInspeccionesModal, setShowInspeccionesModal] = useState(false)
+  const [showMantencionesModal, setShowMantencionesModal] = useState(false)
 
   // Cargar datos de Supabase al montar
   useEffect(() => {
@@ -72,8 +77,8 @@ function DashboardPage() {
   }
 
   // Calcular contadores dinámicos desde Supabase
-  const contarInspecciones = () => stats.inspeccionesPendientes // Solo inspecciones pendientes (en borrador)
-  const contarMantencion = () => Math.floor(stats.totalInspecciones * 0.3) // Estimado
+  const contarInspecciones = () => stats.inspeccionesPendientes
+  const contarMantencion = () => stats.inspeccionesEnMantencion || 0
   const contarListas = () => stats.inspeccionesCompletas
 
   const verificarEstadoOnline = () => {
@@ -94,7 +99,7 @@ function DashboardPage() {
   }
 
   const handleVerInspeccionesPendientes = () => {
-    navigate('/inspecciones-pendientes')
+    setShowInspeccionesModal(true)
   }
 
   const handleVerTrabajosListos = () => {
@@ -106,7 +111,7 @@ function DashboardPage() {
   }
 
   const handleVerMantencion = () => {
-    navigate('/mantencion')
+    setShowMantencionesModal(true)
   }
 
   const handleVerPruebas = () => {
@@ -368,27 +373,18 @@ function DashboardPage() {
         </div>
       </div>
 
-      {/* Monitoreo de Mantención Button */}
-      <div className="px-4 py-2">
-        <button
-          onClick={() => navigate('/monitoreo')}
-          className="w-full flex items-center justify-between bg-primary hover:bg-primary/90 active:bg-primary/80 text-white rounded-xl p-4 shadow-lg shadow-primary/20 transition-all group"
-        >
-          <div className="flex items-center gap-3">
-            <div className="bg-white/10 rounded-lg p-2 group-hover:bg-white/20 transition-colors">
-              <span className="material-symbols-outlined text-[28px]">monitoring</span>
-            </div>
-            <div className="text-left">
-              <span className="font-bold text-lg block">Monitoreo de Mantención</span>
-              <span className="text-sm opacity-90">Ver progreso de peritajes</span>
-            </div>
-          </div>
-          <span className="material-symbols-outlined">arrow_forward</span>
-        </button>
-      </div>
-
       {/* Bottom Navigation */}
       <BottomNavigation notificationCount={stats.inspeccionesPendientes} />
+
+      {/* Modals */}
+      <InspeccionesModal
+        isOpen={showInspeccionesModal}
+        onClose={() => setShowInspeccionesModal(false)}
+      />
+      <MantencionesModal
+        isOpen={showMantencionesModal}
+        onClose={() => setShowMantencionesModal(false)}
+      />
     </div>
   )
 }
