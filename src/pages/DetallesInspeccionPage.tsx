@@ -432,7 +432,7 @@ function DetallesInspeccionPage() {
       </section>
 
       {/* Action Footer */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background-light dark:bg-background-dark border-t border-slate-200 dark:border-border-dark max-w-md mx-auto">
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background-light dark:bg-background-dark border-t border-slate-200 dark:border-border-dark z-[60] max-w-md mx-auto">
         <button
           onClick={handleGenerarInforme}
           className="w-full flex items-center justify-center gap-2 rounded-lg bg-primary py-3 px-4 text-white font-bold text-sm hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"

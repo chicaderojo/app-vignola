@@ -321,7 +321,7 @@ function AjustesPage() {
       </main>
 
       {/* Fixed Action Bar */}
-      <footer className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/80 dark:bg-surface-card/80 backdrop-blur-md p-4 border-t border-slate-200 dark:border-slate-700">
+      <footer className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/80 dark:bg-surface-card/80 backdrop-blur-md p-4 border-t border-slate-200 dark:border-slate-700 z-[60]">
         <button
           onClick={handleGuardarCambios}
           disabled={loading}

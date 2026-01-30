@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { supabaseService } from '../services/supabaseService'
 import { COMPONENTES_BASE } from '../types'
 
-type AccionMantencion = 'ninguna' | 'brunido' | 'rectificado' | 'soldadura' | 'cambio_total'
+type AccionMantencion = 'ninguna' | 'lijar' | 'pulir' | 'limpiar' | 'brunir' | 'fabricacion' | 'reemplazo'
 
 interface ComponenteMantencion {
   id: string
@@ -344,10 +344,12 @@ function RegistroMantencionPage() {
                       className="w-full bg-background-light dark:bg-background-dark border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-primary focus:border-primary"
                     >
                       <option value="ninguna">Seleccione acción...</option>
-                      <option value="brunido">Bruñido (Honing)</option>
-                      <option value="rectificado">Rectificado</option>
-                      <option value="soldadura">Soldadura</option>
-                      <option value="cambio_total">Cambio Total</option>
+                      <option value="lijar">Lijar</option>
+                      <option value="pulir">Pulir</option>
+                      <option value="limpiar">Limpiar</option>
+                      <option value="brunir">Bruñir</option>
+                      <option value="fabricacion">Fabricación</option>
+                      <option value="reemplazo">Reemplazo</option>
                     </select>
                   </div>
 
@@ -451,11 +453,11 @@ function RegistroMantencionPage() {
       </main>
 
       {/* Fixed Bottom Footer Action */}
-      <footer className="fixed bottom-0 left-0 right-0 p-4 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 z-20 max-w-md mx-auto">
+      <footer className="fixed bottom-0 left-0 right-0 p-4 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 z-[60] max-w-md mx-auto">
         <div className="max-w-md mx-auto">
           <button
             onClick={handlePasarAPruebas}
-            className="w-full bg-success text-white font-bold py-4 rounded-xl shadow-lg shadow-success/20 flex items-center justify-center gap-2 active:scale-95 transition-transform"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 active:scale-95 transition-transform"
           >
             <span className="material-symbols-outlined">task_alt</span>
             Pasar a Pruebas de Presión

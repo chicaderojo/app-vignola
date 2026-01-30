@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { supabaseService } from '../services/supabaseService'
 import { generateInformeTecnicoPDF } from '../services/pdfService'
 import { COMPONENTES_BASE } from '../types'
+import { AgregarComponenteModal } from '../components/modals/AgregarComponenteModal'
 
 type ComponenteStatus = 'pending' | 'bueno' | 'mantencion' | 'cambio'
 
@@ -21,6 +22,7 @@ function PeritajePage() {
   const [loading, setLoading] = useState(false)
   const [loadingInicial, setLoadingInicial] = useState(true)
   const [loadingPDF, setLoadingPDF] = useState(false)
+  const [showAgregarComponente, setShowAgregarComponente] = useState(false)
 
   // Componentes cargados desde BD o inicializados con componentes base
   const [componentes, setComponentes] = useState<Componente[]>([])
@@ -159,6 +161,24 @@ function PeritajePage() {
     }
   }
 
+  const handleAgregarComponente = (nuevoComponente: {
+    nombre: string
+    estado: ComponenteStatus
+    observaciones: string
+    fotos: string[]
+  }) => {
+    const componente: Componente = {
+      id: `manual-${Date.now()}`,
+      nombre: nuevoComponente.nombre,
+      estado: nuevoComponente.estado,
+      observaciones: nuevoComponente.observaciones,
+      fotos: nuevoComponente.fotos,
+      expandido: nuevoComponente.estado !== 'pending' && nuevoComponente.estado !== 'bueno'
+    }
+
+    setComponentes([...componentes, componente])
+  }
+
   const handleGenerarPDF = async () => {
     if (!id) {
       alert('Error: ID de inspección no válido')
@@ -258,7 +278,7 @@ function PeritajePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background-light dark:bg-background-dark pb-20">
+    <div className="min-h-screen bg-background-light dark:bg-background-dark pb-24">
       {/* Top App Bar */}
       <header className="sticky top-0 z-50 bg-background-light dark:bg-background-dark border-b border-slate-200 dark:border-slate-800">
         <div className="flex items-center p-4 justify-between">
@@ -411,18 +431,24 @@ function PeritajePage() {
                 </div>
               ) : null}
 
-              {/* Expanded Section (solo para mantención y cambio) */}
-              {componente.expandido && componente.estado !== 'pending' && componente.estado !== 'bueno' && (
+              {/* Expanded Section (para bueno, mantención y cambio) */}
+              {componente.expandido && componente.estado !== 'pending' && (
                 <div className="pl-2 space-y-3">
                   <div>
                     <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5 block">
-                      Observaciones Técnicas
+                      {componente.estado === 'bueno' ? 'Observaciones (opcional)' : 'Observaciones Técnicas'}
                     </label>
                     <textarea
                       value={componente.observaciones}
                       onChange={(e) => actualizarObservaciones(index, e.target.value)}
-                      className="w-full bg-background-light dark:bg-background-dark border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:ring-1 focus:ring-status-maintain focus:border-status-maintain outline-none resize-none"
-                      placeholder="Describa el estado del componente..."
+                      className={`w-full bg-background-light dark:bg-background-dark border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-sm text-slate-900 dark:text-white placeholder-slate-400 outline-none resize-none ${
+                        componente.estado === 'bueno'
+                          ? 'focus:ring-1 focus:ring-status-good focus:border-status-good'
+                          : componente.estado === 'cambio'
+                          ? 'focus:ring-1 focus:ring-status-replace focus:border-status-replace'
+                          : 'focus:ring-1 focus:ring-status-maintain focus:border-status-maintain'
+                      }`}
+                      placeholder={componente.estado === 'bueno' ? 'Agrega comentarios sobre el estado del componente...' : 'Describa el estado del componente...'}
                       rows={3}
                     />
                   </div>
@@ -478,7 +504,10 @@ function PeritajePage() {
 
       {/* Manual Add Section */}
       <div className="px-4 py-2">
-        <button className="w-full py-4 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl flex items-center justify-center gap-2 text-slate-500 dark:text-slate-400 hover:border-primary hover:text-primary hover:bg-primary/5 transition-all group">
+        <button
+          onClick={() => setShowAgregarComponente(true)}
+          className="w-full py-4 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl flex items-center justify-center gap-2 text-slate-500 dark:text-slate-400 hover:border-primary hover:text-primary hover:bg-primary/5 transition-all group"
+        >
           <div className="bg-slate-200 dark:bg-slate-800 group-hover:bg-primary group-hover:text-white rounded-full p-1 transition-colors">
             <span className="material-symbols-outlined text-[20px]">add</span>
           </div>
@@ -486,8 +515,8 @@ function PeritajePage() {
         </button>
       </div>
 
-      {/* Floating Action Button Area / Sticky Footer */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background-dark via-background-dark to-transparent pt-8 max-w-md mx-auto">
+      {/* Action Buttons */}
+      <section className="px-4 pb-24">
         <div className="flex gap-3">
           {/* Botón Guardar por ahora - Secundario */}
           <button
@@ -527,7 +556,14 @@ function PeritajePage() {
             )}
           </button>
         </div>
-      </div>
+      </section>
+
+      {/* Modal para agregar componente manual */}
+      <AgregarComponenteModal
+        isOpen={showAgregarComponente}
+        onClose={() => setShowAgregarComponente(false)}
+        onAgregar={handleAgregarComponente}
+      />
     </div>
   )
 }

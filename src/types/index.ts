@@ -251,7 +251,7 @@ export interface ResumenSemanal {
 export interface ComponenteMantencion {
   id: string
   nombre: string
-  accion: 'brunido' | 'rectificado' | 'soldadura' | 'cambio_total' | 'ninguna'
+  accion: 'lijar' | 'pulir' | 'limpiar' | 'brunir' | 'fabricacion' | 'reemplazo' | 'ninguna'
   detallesTecnicos: string
   fotoAntes: string | null
   fotoDespues: string | null
